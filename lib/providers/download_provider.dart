@@ -77,6 +77,15 @@ class DownloadTask {
   }
 }
 
+/// Z 站当日下载额度已用尽。精简版仓库里此前只有引用、没有定义
+///（原定义随私有插件缺失），此处按仓库内同类异常的写法补定义；
+/// 用法只有无参构造与类型捕获，不携带额外字段。
+class DownloadLimitReachedException implements Exception {
+  const DownloadLimitReachedException();
+  @override
+  String toString() => 'DownloadLimitReachedException';
+}
+
 class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   final ZLibraryApi _api;
   final StorageService _storage;
