@@ -1,0 +1,711 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+
+import 'api_response.dart';
+import 'book.dart';
+import 'user.dart';
+
+/// Z-Library client, rewritten from the call sites in olib-mobile.
+///
+/// Session model (matches what the app assumes):
+/// - Auth is the `remix_userid` / `remix_userkey` pair, sent as a Cookie
+///   header on every request. [login] learns the pair from the login
+///   response (Set-Cookie headers and/or the user object);
+///   [loginWithToken] installs a stored pair and re-validates it against
+///   `/eapi/user/profile` directly, exactly as the app's auth comment says.
+/// - [setDomain] only switches the base host; cookies are re-issued on the
+///   new host by the app's reverify flow ([loginWithToken]).
+///
+/// Endpoint status (see README.md for the full table):
+/// - Verified pattern from independent public eapi clients: login, profile,
+///   search, book info, file link, saved, unsave, downloaded.
+/// - Plausible by the same naming pattern, NOT yet verified against a live
+///   account: most_popular, recommended, recently, similar, save,
+///   send_code, verify_code. Those methods fall back or fail loudly rather
+///   than silently returning wrong data; see their doc comments.
+class ZLibraryApi {
+  static const String _defaultDomain = 'bookroom.lifestyle';
+
+  final Dio _dio;
+  String _domain;
+  String? _userId;
+  String? _userKey;
+
+  ZLibraryApi({String? domain})
+    : _domain = _cleanDomain(domain ?? _defaultDomain),
+      _dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 60),
+          headers: {
+            'User-Agent':
+                'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 '
+                'Chrome/120.0 Mobile Safari/537.36',
+            'Accept': 'application/json',
+          },
+        ),
+      );
+
+  String get domain => _domain;
+
+  /// Switch the mirror host. Accepts a bare host or a full URL.
+  void setDomain(String domain) {
+    _domain = _cleanDomain(domain);
+  }
+
+  static String _cleanDomain(String domain) {
+    var d = domain.trim();
+    d = d.replaceFirst(RegExp(r'^https?://'), '');
+    while (d.endsWith('/')) {
+      d = d.substring(0, d.length - 1);
+    }
+    return d;
+  }
+
+  String get _base => 'https://$_domain';
+
+  Map<String, String> get _headers {
+    final h = <String, String>{};
+    if (_userId != null && _userKey != null) {
+      h['Cookie'] = 'remix_userid=$_userId; remix_userkey=$_userKey';
+    }
+    return h;
+  }
+
+  // ── Low-level helpers ──────────────────────────────────────────────
+
+  /// One raw JSON-ish response. `json` is null when the server did not
+  /// return parseable JSON (HTML wall, empty body, ...).
+  Future<_Raw> _get(
+    String path, {
+    Map<String, dynamic>? query,
+  }) async {
+    try {
+      final res = await _dio.get<String>(
+        '$_base$path',
+        queryParameters: query,
+        options: Options(
+          headers: _headers,
+          responseType: ResponseType.plain,
+        ),
+      );
+      return _fromResponse(res);
+    } on DioException catch (e) {
+      return _fromError(e);
+    }
+  }
+
+  Future<_Raw> _postForm(
+    String path,
+    Map<String, dynamic> fields,
+  ) async {
+    try {
+      final res = await _dio.post<String>(
+        '$_base$path',
+        data: _encodeForm(fields),
+        options: Options(
+          headers: _headers,
+          contentType: Headers.formUrlEncodedContentType,
+          responseType: ResponseType.plain,
+        ),
+      );
+      return _fromResponse(res);
+    } on DioException catch (e) {
+      return _fromError(e);
+    }
+  }
+
+  /// Form encoding with repeated keys for list values, matching how the
+  /// Python eapi clients send the same parameters.
+  static String _encodeForm(Map<String, dynamic> fields) {
+    final parts = <String>[];
+    for (final entry in fields.entries) {
+      final value = entry.value;
+      if (value == null) continue;
+      if (value is Iterable) {
+        for (final item in value) {
+          parts.add(
+            '${Uri.encodeQueryComponent(entry.key)}='
+            '${Uri.encodeQueryComponent(item.toString())}',
+          );
+        }
+      } else {
+        parts.add(
+          '${Uri.encodeQueryComponent(entry.key)}='
+          '${Uri.encodeQueryComponent(value.toString())}',
+        );
+      }
+    }
+    return parts.join('&');
+  }
+
+  _Raw _fromResponse(Response<String> res) {
+    final body = res.data ?? '';
+    final status = res.statusCode;
+    final cookies = res.headers['set-cookie'] ?? const <String>[];
+    if (status == 403 && _looksLikeCloudflare(body)) {
+      return _Raw(status: status, error: 'cf_blocked', cookies: cookies);
+    }
+    if (body.isEmpty) {
+      return _Raw(
+        status: status,
+        error: 'empty response (HTTP $status)',
+        cookies: cookies,
+      );
+    }
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        return _Raw(status: status, json: decoded, cookies: cookies);
+      }
+      return _Raw(status: status, error: 'unexpected response format');
+    } on FormatException {
+      if (_looksLikeCloudflare(body)) {
+        return _Raw(status: status, error: 'cf_blocked');
+      }
+      return _Raw(status: status, error: 'non-JSON response (HTTP $status)');
+    }
+  }
+
+  _Raw _fromError(DioException e) {
+    final res = e.response;
+    final status = res?.statusCode;
+    final body = res?.data?.toString() ?? '';
+    if (status == 403 && _looksLikeCloudflare(body)) {
+      return _Raw(status: status, error: 'cf_blocked');
+    }
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return _Raw(status: status, error: 'timeout: ${e.message}');
+      case DioExceptionType.connectionError:
+        return _Raw(status: status, error: 'connection error: ${e.message}');
+      case DioExceptionType.badResponse:
+        return _Raw(status: status, error: 'HTTP $status');
+      case DioExceptionType.cancel:
+        return _Raw(status: status, error: 'cancelled');
+      default:
+        return _Raw(status: status, error: e.message ?? e.toString());
+    }
+  }
+
+  static bool _looksLikeCloudflare(String body) {
+    final lower = body.toLowerCase();
+    return lower.contains('cloudflare') ||
+        lower.contains('attention required') ||
+        lower.contains('cf-challenge');
+  }
+
+  /// eapi success is `success: 1` (sometimes `true`); some list endpoints
+  /// omit the flag and just return the payload, which also counts.
+  static bool _isSuccess(Map<String, dynamic> json) {
+    final s = json['success'];
+    if (s == null) return true;
+    if (s is bool) return s;
+    if (s is num) return s != 0;
+    return s.toString() == '1' || s.toString().toLowerCase() == 'true';
+  }
+
+  static Map<String, dynamic>? _metaOf(Map<String, dynamic> json) {
+    final pagination = json['pagination'];
+    if (pagination is Map<String, dynamic>) return pagination;
+    final meta = json['meta'];
+    if (meta is Map<String, dynamic>) return meta;
+    return null;
+  }
+
+  static List<Book> _booksOf(Map<String, dynamic> json) {
+    final raw = json['books'] ?? json['data'] ?? json['results'];
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(Book.fromJson)
+        .toList();
+  }
+
+  static Map<String, dynamic>? _userJson(Map<String, dynamic> json) {
+    for (final key in const ['user', 'data', 'profile']) {
+      final v = json[key];
+      if (v is Map<String, dynamic>) return v;
+    }
+    return null;
+  }
+
+  void _learnSession(Map<String, dynamic> json, List<String> setCookie) {
+    // From Set-Cookie headers first (the server's own session values).
+    for (final cookie in setCookie) {
+      for (final part in cookie.split(';')) {
+        final kv = part.trim().split('=');
+        if (kv.length != 2) continue;
+        if (kv[0] == 'remix_userid') _userId = kv[1];
+        if (kv[0] == 'remix_userkey') _userKey = kv[1];
+      }
+    }
+    // Then from the user object, which carries the same pair.
+    final userJson = _userJson(json);
+    if (userJson != null) {
+      final id = userJson['id']?.toString();
+      final key = (userJson['remixUserkey'] ?? userJson['remix_userkey'])
+          ?.toString();
+      if (id != null && id.isNotEmpty) _userId = id;
+      if (key != null && key.isNotEmpty) _userKey = key;
+    }
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────
+
+  Future<ApiResponse<User>> login(String email, String password) async {
+    final raw = await _postForm('/eapi/user/login', {
+      'email': email,
+      'password': password,
+    });
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'login failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'login failed',
+        statusCode: raw.status,
+      );
+    }
+    // Learn the session pair from Set-Cookie headers and/or the user
+    // object; if the payload has no user object, a profile fetch fills
+    // it in.
+    _learnSession(json, raw.cookies);
+    var userJson = _userJson(json);
+    if (userJson == null) {
+      final profile = await getProfile();
+      if (profile.success && profile.data != null) return profile;
+      return ApiResponse.fail(
+        profile.error ?? 'login succeeded but no user data',
+        statusCode: profile.statusCode,
+      );
+    }
+    final user = User.fromJson(userJson);
+    _userId ??= user.id.isNotEmpty ? user.id : null;
+    _userKey ??= user.remixUserkey.isNotEmpty ? user.remixUserkey : null;
+    return ApiResponse.ok(user);
+  }
+
+  /// Install a stored `remix_userid` / `remix_userkey` pair and validate
+  /// it against `/eapi/user/profile`. This is what the app calls on boot
+  /// and after a domain switch.
+  Future<ApiResponse<User>> loginWithToken(
+    String userId,
+    String userKey,
+  ) async {
+    _userId = userId;
+    _userKey = userKey;
+    return getProfile();
+  }
+
+  /// Registration step 1: ask the server to send a verification code.
+  /// Endpoint spelling is inferred, not verified against a live account.
+  Future<ApiResponse<void>> sendCode(
+    String email,
+    String password,
+    String name,
+  ) async {
+    final raw = await _postForm('/eapi/user/send_code', {
+      'email': email,
+      'password': password,
+      'name': name,
+    });
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'send code failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'send code failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(null);
+  }
+
+  /// Registration step 2: verify the code. The app logs in separately
+  /// afterwards, so this only reports success/failure.
+  Future<ApiResponse<void>> verifyCode(
+    String email,
+    String password,
+    String name,
+    String code,
+  ) async {
+    final raw = await _postForm('/eapi/user/verify_code', {
+      'email': email,
+      'password': password,
+      'name': name,
+      'code': code,
+    });
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'verify code failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'verify code failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(null);
+  }
+
+  Future<ApiResponse<User>> getProfile() async {
+    final raw = await _get('/eapi/user/profile');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'profile failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'profile failed',
+        statusCode: raw.status,
+      );
+    }
+    final userJson = _userJson(json);
+    if (userJson == null) {
+      return ApiResponse.fail('profile response had no user',
+          statusCode: raw.status);
+    }
+    return ApiResponse.ok(User.fromJson(userJson));
+  }
+
+  // ── Search & lists ─────────────────────────────────────────────────
+
+  Future<ApiResponse<List<Book>>> search({
+    String? message,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    String? order,
+    int? page,
+    int? limit,
+  }) async {
+    final raw = await _postForm('/eapi/book/search', {
+      if (message != null) 'message': message,
+      if (yearFrom != null) 'yearFrom': yearFrom,
+      if (yearTo != null) 'yearTo': yearTo,
+      if (languages != null) 'languages': languages,
+      if (extensions != null) 'extensions': extensions,
+      if (order != null) 'order': order,
+      if (page != null) 'page': page,
+      if (limit != null) 'limit': limit,
+    });
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'search failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'search failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  Future<ApiResponse<Book>> getBookInfo(String bookId, String hashId) async {
+    final raw = await _get('/eapi/book/$bookId/$hashId');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'book info failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'book info failed',
+        statusCode: raw.status,
+      );
+    }
+    final bookJson = json['book'];
+    if (bookJson is Map<String, dynamic>) {
+      return ApiResponse.ok(Book.fromJson(bookJson));
+    }
+    // Some endpoints return the book fields at the top level.
+    if (json['title'] != null) {
+      return ApiResponse.ok(Book.fromJson(json));
+    }
+    return ApiResponse.fail('book info response had no book',
+        statusCode: raw.status);
+  }
+
+  /// Homepage "most popular". Primary path follows the eapi naming
+  /// pattern; if the server 404s it (endpoint does not exist), fall back
+  /// to a popularity-ordered search so the home list still works.
+  Future<ApiResponse<List<Book>>> getMostPopular() async {
+    final raw = await _get('/eapi/book/most_popular');
+    if (raw.status == 404) {
+      return search(order: 'popular', limit: 20);
+    }
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'most popular failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'most popular failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  /// Personalised home recommendations. Falls back to most-popular on a
+  /// 404, because a wrong guess here must not blank the home screen.
+  Future<ApiResponse<List<Book>>> getUserRecommended() async {
+    final raw = await _get('/eapi/user/recommended');
+    if (raw.status == 404) return getMostPopular();
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'recommended failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'recommended failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  /// Recently added books. Falls back to a newest-ordered search on 404.
+  Future<ApiResponse<List<Book>>> getRecently() async {
+    final raw = await _get('/eapi/book/recently');
+    if (raw.status == 404) {
+      return search(order: 'newest', limit: 20);
+    }
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'recently failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'recently failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  Future<ApiResponse<List<Book>>> getUserSaved({
+    int? page,
+    int? limit,
+  }) async {
+    final raw = await _get(
+      '/eapi/user/book/saved',
+      query: {
+        if (page != null) 'page': page,
+        if (limit != null) 'limit': limit,
+      },
+    );
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'saved books failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'saved books failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  Future<ApiResponse<List<Book>>> getUserDownloaded({
+    int? limit,
+  }) async {
+    final raw = await _get(
+      '/eapi/user/book/downloaded',
+      query: {if (limit != null) 'limit': limit},
+    );
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'downloaded books failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'downloaded books failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  /// Save to "My library". Mirrors the confirmed unsave path.
+  Future<ApiResponse<void>> saveBook(String bookId) async {
+    final raw = await _get('/eapi/user/book/$bookId/save');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'save failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'save failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(null);
+  }
+
+  /// Confirmed path from the public eapi clients.
+  Future<ApiResponse<void>> unsaveUserBook(String bookId) async {
+    final raw = await _get('/eapi/user/book/$bookId/unsave');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'unsave failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'unsave failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(null);
+  }
+
+  /// Books similar to one book. Falls back to a title search on 404.
+  Future<ApiResponse<List<Book>>> similar(
+    String bookId,
+    String hashId,
+  ) async {
+    final raw = await _get('/eapi/book/$bookId/$hashId/similar');
+    if (raw.status == 404) {
+      final info = await getBookInfo(bookId, hashId);
+      if (!info.success || info.data == null) return ApiResponse.fail(
+        info.error ?? 'similar failed',
+        statusCode: info.statusCode,
+      );
+      final res = await search(message: info.data!.title, limit: 20);
+      if (!res.success) return res;
+      final books =
+          res.data!.where((b) => b.id.toString() != bookId).toList();
+      return ApiResponse.ok(books, meta: res.meta);
+    }
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'similar failed',
+          statusCode: raw.status);
+    }
+    if (!_isSuccess(raw.json!)) {
+      return ApiResponse.fail(
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'similar failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+  }
+
+  // ── Download ───────────────────────────────────────────────────────
+
+  /// Resolve the file link via `/eapi/book/{id}/{hash}/file` and stream
+  /// the file to [savePath]. Throws on failure (the app catches it and
+  /// re-checks the download quota via [getProfile]).
+  ///
+  /// `onProgress` receives `(received, total)`; `cancelToken` is the
+  /// caller's Dio token (the app checks `isCancelled` itself).
+  Future<void> downloadBook(
+    String bookId,
+    String hash,
+    String savePath, {
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final link = await _resolveDownloadLink(bookId, hash);
+    await _dio.download(
+      link,
+      savePath,
+      onReceiveProgress: onProgress,
+      cancelToken: cancelToken,
+      options: Options(
+        headers: _headers,
+        receiveTimeout: const Duration(seconds: 300),
+      ),
+    );
+  }
+
+  Future<String> _resolveDownloadLink(String bookId, String hash) async {
+    final path = '/eapi/book/$bookId/$hash/file';
+    try {
+      final res = await _dio.get<String>(
+        '$_base$path',
+        options: Options(
+          headers: _headers,
+          responseType: ResponseType.plain,
+        ),
+      );
+      final body = res.data ?? '';
+      try {
+        final decoded = jsonDecode(body);
+        if (decoded is Map<String, dynamic>) {
+          final link = _findLink(decoded);
+          if (link != null && link.isNotEmpty) {
+            return link.startsWith('/') ? '$_base$link' : link;
+          }
+          final err = (decoded['error'] ?? decoded['message'])?.toString();
+          throw StateError(err ?? 'no download link in file response');
+        }
+      } on FormatException {
+        // Not JSON: the endpoint itself streams the file.
+        return '$_base$path';
+      }
+      throw StateError('no download link in file response');
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.cancel) rethrow;
+      throw StateError(_fromError(
+        e,
+      ).error ?? 'download link lookup failed');
+    }
+  }
+
+  static String? _findLink(Map<String, dynamic> json) {
+    for (final key in const [
+      'downloadLink',
+      'download_url',
+      'downloadUrl',
+      'url',
+      'link',
+      'file',
+    ]) {
+      final v = json[key];
+      if (v is String && v.isNotEmpty) return v;
+      if (v is Map<String, dynamic>) {
+        final nested = _findLink(v);
+        if (nested != null) return nested;
+      }
+    }
+    final data = json['data'];
+    if (data is Map<String, dynamic>) return _findLink(data);
+    return null;
+  }
+}
+
+class _Raw {
+  final int? status;
+  final Map<String, dynamic>? json;
+  final String? error;
+  final List<String> cookies;
+
+  const _Raw({
+    this.status,
+    this.json,
+    this.error,
+    this.cookies = const <String>[],
+  });
+}

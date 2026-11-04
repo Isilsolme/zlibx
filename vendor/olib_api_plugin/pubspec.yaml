@@ -1,0 +1,10 @@
+name: olib_api_plugin
+description: "Z-Library API client + data models (rewrite from call-site inventory; replaces the private upstream plugin)."
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  dio: ^5.4.3+1
