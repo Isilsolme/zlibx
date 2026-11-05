@@ -39,24 +39,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final blurEnabled = ref.watch(blurEnabledProvider);
+    final floatingNav = ref.watch(floatingNavProvider);
+    final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
+    final navVisible = ref.watch(navBarVisibleProvider);
     return Scaffold(
       extendBodyBehindAppBar: true,
       extendBody: true,
       body: _screens[_selectedIndex],
-      bottomNavigationBar: _buildNavBar(context, cs, blurEnabled),
+      bottomNavigationBar: _buildNavBar(
+        context,
+        cs,
+        blurEnabled,
+        floatingNav,
+        hideNavOnScroll,
+        navVisible,
+      ),
     );
   }
 
   Widget _buildNavBar(
-      BuildContext context, ColorScheme cs, bool blurEnabled) {
-    final navBar = Container(
+    BuildContext context,
+    ColorScheme cs,
+    bool blurEnabled,
+    bool floatingNav,
+    bool hideNavOnScroll,
+    bool navVisible,
+  ) {
+    Widget navBar = Container(
       decoration: BoxDecoration(
         color: blurEnabled ? cs.surface.withValues(alpha: 0.7) : cs.surface,
-        border: Border(
-          top: BorderSide(
-            color: cs.outlineVariant.withValues(alpha: 0.4),
-          ),
-        ),
+        border: floatingNav
+            ? null
+            : Border(
+                top: BorderSide(
+                  color: cs.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
       ),
       child: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -99,10 +117,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
-    if (!blurEnabled) return navBar;
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+    if (!blurEnabled) {
+      navBar = _wrapNavBar(navBar, floatingNav);
+    } else {
+      navBar = ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: navBar,
+        ),
+      );
+      navBar = _wrapNavBar(navBar, floatingNav);
+    }
+    // Hide on scroll down only applies to the floating bar; when the
+    // feature is off the bar is always shown, whatever the transient
+    // scroll state says.
+    final hideEnabled = floatingNav && hideNavOnScroll;
+    return AnimatedSlide(
+      offset:
+          hideEnabled && !navVisible ? const Offset(0, 1.5) : Offset.zero,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: navBar,
+    );
+  }
+
+  /// Floating style: detach the bar from the bottom edge as a rounded
+  /// pill with a soft shadow. Non-floating keeps the full-width bar.
+  Widget _wrapNavBar(Widget navBar, bool floatingNav) {
+    if (!floatingNav) return navBar;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
         child: navBar,
       ),
     );
@@ -153,6 +209,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Check for updates after frame is rendered
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
@@ -161,8 +218,38 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Drives the floating nav bar's hide-on-scroll: hide while scrolling
+  /// down, show while scrolling up, always show at the very top. Only
+  /// applies while the floating bar and hide-on-scroll are both on.
+  void _onScroll() {
+    final hideEnabled =
+        ref.read(floatingNavProvider) && ref.read(hideNavOnScrollProvider);
+    if (!hideEnabled) {
+      _setNavVisible(true);
+      return;
+    }
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels <= 0) {
+      _setNavVisible(true);
+      return;
+    }
+    if (position.userScrollDirection == ScrollDirection.reverse) {
+      _setNavVisible(false);
+    } else if (position.userScrollDirection == ScrollDirection.forward) {
+      _setNavVisible(true);
+    }
+  }
+
+  void _setNavVisible(bool visible) {
+    if (ref.read(navBarVisibleProvider) != visible) {
+      ref.read(navBarVisibleProvider.notifier).state = visible;
+    }
   }
 
   /// Scroll the recommendation grid back to the top (used by the

@@ -5,8 +5,9 @@ import '../../../l10n/app_localizations.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
-/// Three theme modes laid out as a single M3 SegmentedButton row.
-/// Replaces the three stacked RadioListTiles to save ~70% vertical space.
+/// Appearance options as a uniform set of switches, matching the other
+/// settings rows. Theme is two switches: follow system, and dark mode
+/// (disabled while following the system).
 class ThemeSection extends ConsumerWidget {
   const ThemeSection({super.key});
 
@@ -14,8 +15,11 @@ class ThemeSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final blurEnabled = ref.watch(blurEnabledProvider);
+    final floatingNav = ref.watch(floatingNavProvider);
+    final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final t = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
+    final followingSystem = themeMode == AppThemeMode.system;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -28,66 +32,62 @@ class ThemeSection extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           child: Column(
             children: [
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<AppThemeMode>(
-                  segments: [
-                  ButtonSegment(
-                    value: AppThemeMode.light,
-                    icon: const Icon(Icons.light_mode_rounded, size: 18),
-                    label: Text(t.get('light')),
-                  ),
-                  ButtonSegment(
-                    value: AppThemeMode.dark,
-                    icon: const Icon(Icons.dark_mode_rounded, size: 18),
-                    label: Text(t.get('dark')),
-                  ),
-                  ButtonSegment(
-                    value: AppThemeMode.system,
-                    icon: const Icon(Icons.phone_iphone_rounded, size: 18),
-                    label: Text(t.get('system')),
-                  ),
-                ],
-                selected: {themeMode},
-                onSelectionChanged: (set) {
-                  if (set.isNotEmpty) {
-                    ref
-                        .read(themeModeProvider.notifier)
-                        .setThemeMode(set.first);
-                  }
+              SwitchListTile(
+                title: Text(t.get('system')),
+                value: followingSystem,
+                activeColor: cs.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                onChanged: (value) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(
+                        value ? AppThemeMode.system : AppThemeMode.light,
+                      );
                 },
-                style: ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  textStyle: WidgetStateProperty.all(
-                    const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return cs.onPrimary;
-                    }
-                    return cs.onSurfaceVariant;
-                  }),
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return cs.primary;
-                    }
-                    return Colors.transparent;
-                  }),
-                ),
-                showSelectedIcon: false,
               ),
-            ),
+              SwitchListTile(
+                title: Text(t.get('dark_mode')),
+                value: themeMode == AppThemeMode.dark,
+                activeColor: cs.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                onChanged: followingSystem
+                    ? null
+                    : (value) {
+                        ref.read(themeModeProvider.notifier).setThemeMode(
+                              value ? AppThemeMode.dark : AppThemeMode.light,
+                            );
+                      },
+              ),
               SwitchListTile(
                 title: Text(t.get('blur_effect')),
                 value: blurEnabled,
                 activeColor: cs.primary,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 4),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                onChanged: (value) {
+                  ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
+                },
+              ),
+              SwitchListTile(
+                title: Text(t.get('floating_nav')),
+                value: floatingNav,
+                activeColor: cs.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                 onChanged: (value) {
                   ref
-                      .read(blurEnabledProvider.notifier)
-                      .setBlurEnabled(value);
+                      .read(floatingNavProvider.notifier)
+                      .setFloatingNav(value);
                 },
+              ),
+              SwitchListTile(
+                title: Text(t.get('hide_nav_on_scroll')),
+                value: hideNavOnScroll,
+                activeColor: cs.primary,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                onChanged: floatingNav
+                    ? (value) {
+                        ref
+                            .read(hideNavOnScrollProvider.notifier)
+                            .setHideNavOnScroll(value);
+                      }
+                    : null,
               ),
             ],
           ),

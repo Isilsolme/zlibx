@@ -174,3 +174,57 @@ final blurEnabledProvider =
     StateNotifierProvider<BlurNotifier, bool>((ref) {
   return BlurNotifier();
 });
+
+/// Floating navigation bar — whether the bottom nav bar floats as a
+/// detached rounded pill (on) or spans the full width attached to the
+/// bottom edge (off). Default on.
+class FloatingNavNotifier extends StateNotifier<bool> {
+  FloatingNavNotifier() : super(true) {
+    _loadFloatingNav();
+  }
+
+  Future<void> _loadFloatingNav() async {
+    final v = HiveService.settingsBox.get('floatingNav');
+    if (v is bool) state = v;
+  }
+
+  Future<void> setFloatingNav(bool value) async {
+    state = value;
+    await HiveService.settingsBox.put('floatingNav', value);
+  }
+}
+
+/// Floating navigation bar provider
+final floatingNavProvider =
+    StateNotifierProvider<FloatingNavNotifier, bool>((ref) {
+  return FloatingNavNotifier();
+});
+
+/// Hide the floating nav bar on scroll down — whether the floating bar
+/// slides away while scrolling down and returns on scroll up. Only
+/// applies while the floating bar is on. Default on.
+class HideNavOnScrollNotifier extends StateNotifier<bool> {
+  HideNavOnScrollNotifier() : super(true) {
+    _loadHideNavOnScroll();
+  }
+
+  Future<void> _loadHideNavOnScroll() async {
+    final v = HiveService.settingsBox.get('hideNavOnScroll');
+    if (v is bool) state = v;
+  }
+
+  Future<void> setHideNavOnScroll(bool value) async {
+    state = value;
+    await HiveService.settingsBox.put('hideNavOnScroll', value);
+  }
+}
+
+/// Hide-on-scroll provider
+final hideNavOnScrollProvider =
+    StateNotifierProvider<HideNavOnScrollNotifier, bool>((ref) {
+  return HideNavOnScrollNotifier();
+});
+
+/// Whether the bottom nav bar is currently visible. Driven by the home
+/// grid's scroll direction (transient UI state, not persisted).
+final navBarVisibleProvider = StateProvider<bool>((ref) => true);
