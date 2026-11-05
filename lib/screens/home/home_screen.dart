@@ -130,7 +130,7 @@ String _getGreeting(BuildContext context) {
 }
 
 class _HomeTab extends ConsumerStatefulWidget {
-  const _HomeTab();
+  const _HomeTab({super.key});
 
   @override
   ConsumerState<_HomeTab> createState() => _HomeTabState();
