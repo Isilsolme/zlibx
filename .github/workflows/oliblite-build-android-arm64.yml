@@ -350,7 +350,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Olib ${{ github.ref_name }}
+          name: olib lite ${{ github.ref_name }}
           body_path: release_notes.md
           fail_on_unmatched_files: true
           files: |
