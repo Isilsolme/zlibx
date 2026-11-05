@@ -57,6 +57,7 @@ const Map<String, String> ja = {
 
   // Home
   'home': 'ホーム',
+  'recommended': 'おすすめ',
   'search': '検索',
   'favorites': 'お気に入り',
   'downloads': 'ダウンロード',
@@ -140,6 +141,7 @@ const Map<String, String> ja = {
   'network': 'ネットワーク',
   'network_line': '回線',
   'appearance': '外観',
+  'blur_effect': 'ぼかし効果',
   'language_setting': '言語',
   'system': 'システム',
   'follow_device': 'デバイスの言語に従う',

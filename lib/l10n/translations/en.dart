@@ -58,6 +58,7 @@ const Map<String, String> en = {
 
   // Home
   'home': 'Home',
+  'recommended': 'Recommended',
   'search': 'Search',
   'favorites': 'Favorites',
   'downloads': 'Downloads',
@@ -142,6 +143,7 @@ const Map<String, String> en = {
   'network': 'Network',
   'network_line': 'Network Line',
   'appearance': 'Appearance',
+  'blur_effect': 'Blur effect',
   'language_setting': 'Language',
   'system': 'System',
   'follow_device': 'Follow device language',

@@ -150,3 +150,27 @@ class FontFamilyNotifier extends StateNotifier<AppFontFamily> {
 final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, AppFontFamily>((ref) {
   return FontFamilyNotifier();
 });
+
+/// Blur effect notifier — whether the glass header and bottom nav bar use
+/// a backdrop blur (on) or a solid surface (off). Default on.
+class BlurNotifier extends StateNotifier<bool> {
+  BlurNotifier() : super(true) {
+    _loadBlurEnabled();
+  }
+
+  Future<void> _loadBlurEnabled() async {
+    final v = HiveService.settingsBox.get('blurEnabled');
+    if (v is bool) state = v;
+  }
+
+  Future<void> setBlurEnabled(bool value) async {
+    state = value;
+    await HiveService.settingsBox.put('blurEnabled', value);
+  }
+}
+
+/// Blur effect provider
+final blurEnabledProvider =
+    StateNotifierProvider<BlurNotifier, bool>((ref) {
+  return BlurNotifier();
+});

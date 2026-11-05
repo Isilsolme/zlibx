@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../services/update_service.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/loading_widget.dart';
@@ -23,71 +24,108 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
+  final _homeTabKey = GlobalKey<_HomeTabState>();
 
-  // Only the home tab lives in the stack; bookshelf/downloads/settings
-  // are pushed as routes, and search is opened from the home search box
-  // (no nav tab).
-  final List<Widget> _screens = [
-    const _HomeTab(),
+  // Only the home tab lives in the stack; downloads/settings are pushed
+  // as routes, and search is opened from the home search box (no nav tab).
+  // The Recommended destination selects the home tab and scrolls its
+  // grid back to the top.
+  late final List<Widget> _screens = [
+    _HomeTab(key: _homeTabKey),
   ];
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final blurEnabled = ref.watch(blurEnabledProvider);
     return Scaffold(
       extendBodyBehindAppBar: true,
+      extendBody: true,
       body: _screens[_selectedIndex],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: cs.surface,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          elevation: 0,
-          backgroundColor: cs.surface,
-          onDestinationSelected: (index) {
-            if (index == 1) {
-              Navigator.of(context).pushNamed(AppRoutes.favorites);
-            } else if (index == 2) {
-              Navigator.of(context).pushNamed(AppRoutes.downloads);
-            } else if (index == 3) {
-              Navigator.of(context).pushNamed(AppRoutes.settings);
-            } else {
-              setState(() => _selectedIndex = index);
-            }
-          },
-          destinations: [
-            NavigationDestination(
-              icon: const Icon(Icons.home_outlined),
-              selectedIcon: const Icon(Icons.home),
-              label: AppLocalizations.of(context).get('home'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.library_books_outlined),
-              selectedIcon: const Icon(Icons.library_books),
-              label: AppLocalizations.of(context).get('bookshelf'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.cloud_download_outlined),
-              selectedIcon: const Icon(Icons.cloud_download),
-              label: AppLocalizations.of(context).get('downloads'),
-            ),
-            NavigationDestination(
-              icon: const Icon(Icons.settings_outlined),
-              selectedIcon: const Icon(Icons.settings),
-              label: AppLocalizations.of(context).get('settings'),
-            ),
-          ],
+      bottomNavigationBar: _buildNavBar(context, cs, blurEnabled),
+    );
+  }
+
+  Widget _buildNavBar(
+      BuildContext context, ColorScheme cs, bool blurEnabled) {
+    final navBar = Container(
+      decoration: BoxDecoration(
+        color: blurEnabled ? cs.surface.withValues(alpha: 0.7) : cs.surface,
+        border: Border(
+          top: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.4),
+          ),
         ),
       ),
+      child: NavigationBar(
+        selectedIndex: _selectedIndex,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            // Recommended: back to the home tab, scrolled to the top.
+            _homeTabKey.currentState?.scrollToTop();
+            setState(() => _selectedIndex = 0);
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(AppRoutes.downloads);
+          } else if (index == 3) {
+            Navigator.of(context).pushNamed(AppRoutes.settings);
+          } else {
+            setState(() => _selectedIndex = index);
+          }
+        },
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
+            label: AppLocalizations.of(context).get('home'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.local_fire_department_outlined),
+            selectedIcon: const Icon(Icons.local_fire_department),
+            label: AppLocalizations.of(context).get('recommended'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.cloud_download_outlined),
+            selectedIcon: const Icon(Icons.cloud_download),
+            label: AppLocalizations.of(context).get('downloads'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: AppLocalizations.of(context).get('settings'),
+          ),
+        ],
+      ),
     );
+    if (!blurEnabled) return navBar;
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: navBar,
+      ),
+    );
+  }
+}
+
+/// Get time-based greeting message
+String _getGreeting(BuildContext context) {
+  final hour = DateTime.now().hour;
+  final locale = Localizations.localeOf(context).languageCode;
+  final isZh = locale == 'zh';
+
+  if (hour < 6) {
+    return isZh ? '夜深了，' : 'Late night,';
+  } else if (hour < 12) {
+    return isZh ? '早上好，' : 'Good morning,';
+  } else if (hour < 14) {
+    return isZh ? '中午好，' : 'Good afternoon,';
+  } else if (hour < 18) {
+    return isZh ? '下午好，' : 'Good afternoon,';
+  } else if (hour < 22) {
+    return isZh ? '晚上好，' : 'Good evening,';
+  } else {
+    return isZh ? '夜深了，' : 'Late night,';
   }
 }
 
@@ -99,6 +137,8 @@ class _HomeTab extends ConsumerStatefulWidget {
 }
 
 class _HomeTabState extends ConsumerState<_HomeTab> {
+  final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -106,6 +146,34 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Scroll the recommendation grid back to the top (used by the
+  /// Recommended nav destination).
+  void scrollToTop() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  /// Pull-to-refresh: re-fetch the recommendations.
+  Future<void> _refreshRecommendations() async {
+    ref.invalidate(recommendedBooksProvider);
+    try {
+      await ref.read(recommendedBooksProvider.future);
+    } catch (_) {
+      // The provider surfaces a failed fetch as an empty list.
+    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -158,8 +226,11 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final cs = Theme.of(context).colorScheme;
+    final user = authState.user;
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    final blurEnabled = ref.watch(blurEnabledProvider);
 
     // The glass header floats over the recommendation grid so the grid
     // scrolls underneath it (visible through the blur). Its height is
@@ -170,16 +241,110 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
         authState.lineUnavailable ? 0.0 : MediaQuery.of(context).padding.top;
     const searchBarHeight = 54.0;
     const headerPadding = 12.0;
-    const titleHeight = 22.0;
+    const greetingHeight = 58.0;
     const headerGap = 12.0;
     final headerHeight = topInset +
         headerPadding +
         searchBarHeight +
         headerGap +
-        titleHeight +
+        greetingHeight +
         headerPadding;
     // A little slack so the first row never tucks under the glass.
     final gridTopPadding = headerHeight + 8;
+
+    // Header content (search bar + greeting). The blur is applied
+    // around it only when the blur switch is on; otherwise the header
+    // is a solid surface so nothing shows through.
+    final header = Container(
+      decoration: BoxDecoration(
+        color: blurEnabled ? cs.surface.withValues(alpha: 0.65) : cs.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+            24, topInset + headerPadding, 24, headerPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Search Bar Trigger
+            GestureDetector(
+              onTap: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.search),
+              child: Container(
+                height: searchBarHeight,
+                padding: const EdgeInsets.only(left: 20, right: 8),
+                decoration: BoxDecoration(
+                  color: cs.surface.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: cs.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(context).get('search_for_books'),
+                        style: TextStyle(
+                          color:
+                              cs.onSurfaceVariant.withValues(alpha: 0.7),
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.arrow_forward,
+                          color: Colors.white, size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: headerGap),
+
+            // Greeting (below the search bar)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _getGreeting(context),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  user?.name ?? (isZh ? '读者' : 'Reader'),
+                  style: theme.textTheme.displaySmall?.copyWith(
+                    color: cs.onSurface,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
 
     return Column(
       children: [
@@ -195,101 +360,15 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 top: 0,
                 left: 0,
                 right: 0,
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: cs.surface.withValues(alpha: 0.65),
-                        border: Border(
-                          bottom: BorderSide(
-                            color:
-                                cs.outlineVariant.withValues(alpha: 0.4),
-                          ),
+                child: blurEnabled
+                    ? ClipRect(
+                        child: BackdropFilter(
+                          filter:
+                              ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                          child: header,
                         ),
-                      ),
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(
-                            24, topInset + headerPadding, 24, headerPadding),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Search Bar Trigger
-                            GestureDetector(
-                              onTap: () => Navigator.of(context)
-                                  .pushNamed(AppRoutes.search),
-                              child: Container(
-                                height: searchBarHeight,
-                                padding:
-                                    const EdgeInsets.only(left: 20, right: 8),
-                                decoration: BoxDecoration(
-                                  color: cs.surface.withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(30),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black
-                                          .withValues(alpha: 0.06),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 6),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.search,
-                                        color: cs.onSurfaceVariant),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        AppLocalizations.of(context)
-                                            .get('search_for_books'),
-                                        style: TextStyle(
-                                          color: cs.onSurfaceVariant
-                                              .withValues(alpha: 0.7),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: cs.primary,
-                                        borderRadius:
-                                            BorderRadius.circular(20),
-                                      ),
-                                      child: const Icon(Icons.arrow_forward,
-                                          color: Colors.white, size: 20),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: headerGap),
-
-                            // 推荐书籍标题
-                            Row(
-                              children: [
-                                Icon(Icons.local_fire_department_rounded,
-                                    color: cs.primary, size: 22),
-                                const SizedBox(width: 6),
-                                Text(
-                                  isZh ? '为你推荐' : 'Recommended',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: cs.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                      )
+                    : header,
               ),
             ],
           ),
@@ -384,29 +463,34 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ((gridWidth - columnSpacing * (columnCount - 1)) / columnCount)
                     .clamp(0.0, double.infinity);
 
-            return GridView.builder(
-              padding: EdgeInsets.fromLTRB(20, topPadding, 20, 32),
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: maxCardWidth,
-                mainAxisExtent: BookCard.compactHeightFor(cardWidth),
-                crossAxisSpacing: columnSpacing,
-                mainAxisSpacing: 12,
+            return RefreshIndicator(
+              onRefresh: _refreshRecommendations,
+              color: Theme.of(context).colorScheme.primary,
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.fromLTRB(20, topPadding, 20, 96),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: maxCardWidth,
+                  mainAxisExtent: BookCard.compactHeightFor(cardWidth),
+                  crossAxisSpacing: columnSpacing,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: itemCount,
+                itemBuilder: (context, index) {
+                  final book = books[index];
+                  return BookCard(
+                    book: book,
+                    compact: true,
+                    showSourceBadge: true,
+                    onTap: () {
+                      Navigator.of(context).pushNamed(
+                        AppRoutes.bookDetail,
+                        arguments: book.asZLibBook,
+                      );
+                    },
+                  );
+                },
               ),
-              itemCount: itemCount,
-              itemBuilder: (context, index) {
-                final book = books[index];
-                return BookCard(
-                  book: book,
-                  compact: true,
-                  showSourceBadge: true,
-                  onTap: () {
-                    Navigator.of(context).pushNamed(
-                      AppRoutes.bookDetail,
-                      arguments: book.asZLibBook,
-                    );
-                  },
-                );
-              },
             );
           },
         );

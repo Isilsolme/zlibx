@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'expressive_loading_indicator.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -7,21 +8,11 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: cs.primary,
-              shape: BoxShape.circle,
-            ),
-            child: const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          ),
+          const ExpressiveLoadingIndicator(size: 56),
           if (message != null) ...[
             const SizedBox(height: 24),
             Text(

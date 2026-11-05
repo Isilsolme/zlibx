@@ -13,6 +13,7 @@ class ThemeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final blurEnabled = ref.watch(blurEnabledProvider);
     final t = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
 
@@ -25,10 +26,12 @@ class ThemeSection extends ConsumerWidget {
         ),
         SettingsCard(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          child: SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<AppThemeMode>(
-                segments: [
+          child: Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<AppThemeMode>(
+                  segments: [
                   ButtonSegment(
                     value: AppThemeMode.light,
                     icon: const Icon(Icons.light_mode_rounded, size: 18),
@@ -74,7 +77,21 @@ class ThemeSection extends ConsumerWidget {
                 showSelectedIcon: false,
               ),
             ),
+              SwitchListTile(
+                title: Text(t.get('blur_effect')),
+                value: blurEnabled,
+                activeColor: cs.primary,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 4),
+                onChanged: (value) {
+                  ref
+                      .read(blurEnabledProvider.notifier)
+                      .setBlurEnabled(value);
+                },
+              ),
+            ],
           ),
+        ),
       ],
     );
   }

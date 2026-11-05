@@ -57,6 +57,7 @@ const Map<String, String> zh_Hant = {
 
   // Home
   'home': '首頁',
+  'recommended': '推薦',
   'search': '搜尋',
   'favorites': '收藏',
   'downloads': '下載',
@@ -140,6 +141,7 @@ const Map<String, String> zh_Hant = {
   'network': '網路',
   'network_line': '網路線路',
   'appearance': '外觀',
+  'blur_effect': '模糊效果',
   'language_setting': '語言',
   'system': '跟隨系統',
   'follow_device': '跟隨裝置語言',

@@ -57,6 +57,7 @@ const Map<String, String> zh = {
 
   // Home
   'home': '首页',
+  'recommended': '推荐',
   'search': '搜索',
   'favorites': '收藏',
   'downloads': '下载',
@@ -140,6 +141,7 @@ const Map<String, String> zh = {
   'network': '网络',
   'network_line': '网络线路',
   'appearance': '外观',
+  'blur_effect': '模糊效果',
   'language_setting': '语言',
   'system': '跟随系统',
   'follow_device': '跟随设备语言',

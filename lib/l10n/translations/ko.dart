@@ -57,6 +57,7 @@ const Map<String, String> ko = {
 
   // Home
   'home': '홈',
+  'recommended': '추천',
   'search': '검색',
   'favorites': '즐겨찾기',
   'downloads': '다운로드',
@@ -140,6 +141,7 @@ const Map<String, String> ko = {
   'network': '네트워크',
   'network_line': '네트워크 회선',
   'appearance': '모양',
+  'blur_effect': '블러 효과',
   'language_setting': '언어',
   'system': '시스템',
   'follow_device': '기기 언어 따르기',
