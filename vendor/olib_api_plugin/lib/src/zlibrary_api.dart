@@ -521,25 +521,28 @@ class ZLibraryApi {
   }
 
   /// Homepage "most popular". Primary path follows the eapi naming
-  /// pattern; if the server 404s it (endpoint does not exist), fall back
-  /// to a popularity-ordered search so the home list still works.
+  /// pattern; if the server 404s it, rejects it, or returns an empty
+  /// list, fall back to a popularity-ordered search so the home list
+  /// still works. (The community mirrors answer this endpoint with
+  /// success:0 / an empty payload instead of 404, so a 404-only
+  /// fallback leaves the home screen blank — device-verified 2026-11-05
+  /// on the run #6 package.)
   Future<ApiResponse<List<Book>>> getMostPopular() async {
     final raw = await _get('/eapi/book/most_popular');
     if (raw.status == 404) {
       return search(order: 'popular', limit: 20);
     }
     if (raw.json == null) {
-      return ApiResponse.fail(raw.error ?? 'most popular failed',
-          statusCode: raw.status);
+      return search(order: 'popular', limit: 20);
     }
     if (!_isSuccess(raw.json!)) {
-      return ApiResponse.fail(
-        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
-            'most popular failed',
-        statusCode: raw.status,
-      );
+      return search(order: 'popular', limit: 20);
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    final books = _booksOf(raw.json!);
+    if (books.isEmpty) {
+      return search(order: 'popular', limit: 20);
+    }
+    return ApiResponse.ok(books, meta: _metaOf(raw.json!));
   }
 
   /// Personalised home recommendations. Falls back to most-popular when
