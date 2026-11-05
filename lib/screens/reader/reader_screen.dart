@@ -12,10 +12,17 @@ class ReaderScreen extends StatefulWidget {
   final String url;
   final String title;
 
+  /// Z-Library session, installed as WebView cookies before load.
+  /// Passed through from ReaderArgs (main.dart route builder).
+  final String? remixUserId;
+  final String? remixUserKey;
+
   const ReaderScreen({
     super.key,
     required this.url,
     required this.title,
+    this.remixUserId,
+    this.remixUserKey,
   });
 
   @override

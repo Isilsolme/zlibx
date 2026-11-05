@@ -108,7 +108,12 @@ class _MyAppState extends ConsumerState<MyApp> {
         AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
         AppRoutes.reader: (context) {
           final args = ModalRoute.of(context)!.settings.arguments as ReaderArgs;
-          return ReaderScreen(url: args.url, title: args.title);
+          return ReaderScreen(
+            url: args.url,
+            title: args.title,
+            remixUserId: args.remixUserId,
+            remixUserKey: args.remixUserKey,
+          );
         },
       },
     );
