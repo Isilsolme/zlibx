@@ -60,7 +60,13 @@ or run against a live mirror. In particular:
 - Cloudflare/DiamWall walls on some mirrors will still surface as
   `cf_blocked` (the app already handles that as "line unavailable").
 - Response shapes for `Book` (cover URL form, `filesizeString`,
-  `interestScore`) and `User.downloadsLeft` are best-effort mappings.
+  `interestScore`) are best-effort mappings. `User.downloadsLeft` is
+  `downloads_limit - downloads_today` from `/eapi/user/profile`
+  (fallbacks `dailyDownloadLimit` / `dailyDownloadsCount`,
+  `downloads_left`, a `limits` object); it is `null` when the payload
+  carries no quota fields, and `null` must never be read as "exhausted"
+  — a 0 default once made the app show the quota dialog before any
+  download was even attempted (2026-11-05 device report).
 
 First real check, in order: `flutter pub get` (resolves the path
 dependency), `flutter analyze` (plugin + app), then a logged-in run of

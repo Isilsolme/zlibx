@@ -70,10 +70,11 @@ class UserProfileSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _DownloadsChip(
-            count: user.downloadsLeft,
-            label: AppLocalizations.of(context).get('downloads_left_today'),
-          ),
+          if (user.downloadsLeft != null)
+            _DownloadsChip(
+              count: user.downloadsLeft!,
+              label: AppLocalizations.of(context).get('downloads_left_today'),
+            ),
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,

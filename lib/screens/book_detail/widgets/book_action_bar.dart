@@ -280,13 +280,19 @@ class BookActionBar extends ConsumerWidget {
   }
 
   /// 本地缓存显示用户自己 Z 站账号额度已用尽时，刷新资料再确认一次
-  /// （额度按天重置，缓存可能过期）。
+  /// （额度按天重置，缓存可能过期）。额度未知（null）时绝不视为用尽。
   Future<bool> _ownQuotaExhausted(WidgetRef ref) async {
     final user = ref.read(authProvider).user;
-    if (user == null || user.downloadsLeft > 0) return false;
+    if (user == null ||
+        user.downloadsLeft == null ||
+        user.downloadsLeft! > 0) {
+      return false;
+    }
     await ref.read(authProvider.notifier).refreshProfile();
     final refreshed = ref.read(authProvider).user;
-    return refreshed != null && refreshed.downloadsLeft <= 0;
+    return refreshed != null &&
+        refreshed.downloadsLeft != null &&
+        refreshed.downloadsLeft! <= 0;
   }
 
   /// 经 backend `/books/download-url` 取签名 URL 并启动下载。

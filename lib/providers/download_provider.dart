@@ -432,7 +432,8 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       final profile = await _api.getProfile();
       return profile.success &&
           profile.data != null &&
-          profile.data!.downloadsLeft <= 0;
+          profile.data!.downloadsLeft != null &&
+          profile.data!.downloadsLeft! <= 0;
     } catch (e) {
       debugPrint('Could not check download quota: ${e.runtimeType}');
       return false;
