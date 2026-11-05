@@ -26,10 +26,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   final _homeTabKey = GlobalKey<_HomeTabState>();
 
-  // Only the home tab lives in the stack; downloads/settings are pushed
-  // as routes, and search is opened from the home search box (no nav tab).
-  // The Recommended destination selects the home tab and scrolls its
-  // grid back to the top.
+  // Only the home tab lives in the stack; bookshelf/downloads/settings
+  // are pushed as routes, and search is opened from the home search box
+  // (no nav tab). The first destination is Recommended (the home tab,
+  // showing the recommendations); tapping it scrolls the grid to the top.
   late final List<Widget> _screens = [
     _HomeTab(key: _homeTabKey),
   ];
@@ -62,28 +62,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         onDestinationSelected: (index) {
-          if (index == 1) {
-            // Recommended: back to the home tab, scrolled to the top.
+          if (index == 0) {
+            // Recommended: the home tab, scrolled to the top.
             _homeTabKey.currentState?.scrollToTop();
             setState(() => _selectedIndex = 0);
+          } else if (index == 1) {
+            Navigator.of(context).pushNamed(AppRoutes.favorites);
           } else if (index == 2) {
             Navigator.of(context).pushNamed(AppRoutes.downloads);
           } else if (index == 3) {
             Navigator.of(context).pushNamed(AppRoutes.settings);
-          } else {
-            setState(() => _selectedIndex = index);
           }
         },
         destinations: [
           NavigationDestination(
-            icon: const Icon(Icons.home_outlined),
-            selectedIcon: const Icon(Icons.home),
-            label: AppLocalizations.of(context).get('home'),
-          ),
-          NavigationDestination(
             icon: const Icon(Icons.local_fire_department_outlined),
             selectedIcon: const Icon(Icons.local_fire_department),
             label: AppLocalizations.of(context).get('recommended'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.library_books_outlined),
+            selectedIcon: const Icon(Icons.library_books),
+            label: AppLocalizations.of(context).get('bookshelf'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.cloud_download_outlined),
