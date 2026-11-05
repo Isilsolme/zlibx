@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/backend_auth_provider.dart';
 import '../../services/update_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/book_card.dart';
@@ -134,25 +133,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkForUpdates();
     });
-  }
-
-  /// 寻书入口：未授权先弹扫码授权页，授权成功才允许进寻书页。
-  /// 把校验放在入口（而非进入寻书页后）的好处：
-  /// 1) 用户路径更清晰——授权 ≡ 进入功能；
-  /// 2) 寻书页内部的防御性 _ensureAuthorized 是兜底，正常路径不会再触发；
-  /// 3) 避免未授权状态下泄露任何 UI 引诱用户点击。
-  Future<void> _openPrescriber() async {
-    final isAuthorized = ref.read(backendAuthProvider).isAuthorized;
-    if (isAuthorized) {
-      Navigator.of(context).pushNamed(AppRoutes.prescriber);
-      return;
-    }
-
-    final result = await Navigator.of(context).pushNamed(AppRoutes.qrAuth);
-    if (!mounted) return;
-    if (result == true) {
-      Navigator.of(context).pushNamed(AppRoutes.prescriber);
-    }
   }
 
   Future<void> _checkForUpdates() async {
@@ -327,82 +307,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   ),
 
                   const SizedBox(height: 16),
-
-                  // 寻书入口（AI 推荐）— 入口处先校验授权，未授权直接走扫码
-                  GestureDetector(
-                    onTap: _openPrescriber,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.primary.withValues(alpha:0.9),
-                            AppColors.primary,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha:0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha:0.2),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.auto_awesome,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  Localizations.localeOf(context).languageCode == 'zh'
-                                      ? '不知道读什么？'
-                                      : "Don't know what to read?",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  Localizations.localeOf(context).languageCode == 'zh'
-                                      ? '让 AI 帮你寻书 ✨'
-                                      : 'Let AI find books for you ✨',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha:0.85),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white.withValues(alpha:0.7),
-                            size: 16,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
 
                   // 推荐书籍标题
                   Row(

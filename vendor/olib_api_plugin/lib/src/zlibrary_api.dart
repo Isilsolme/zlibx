@@ -542,23 +542,18 @@ class ZLibraryApi {
     return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
   }
 
-  /// Personalised home recommendations. Falls back to most-popular on a
-  /// 404, because a wrong guess here must not blank the home screen.
+  /// Personalised home recommendations. Falls back to most-popular when
+  /// the personalised endpoint 404s, fails, or returns an empty list:
+  /// a wrong guess here must not blank the home screen (a fresh account
+  /// has no history, so the endpoint legitimately returns nothing).
   Future<ApiResponse<List<Book>>> getUserRecommended() async {
     final raw = await _get('/eapi/user/recommended');
     if (raw.status == 404) return getMostPopular();
-    if (raw.json == null) {
-      return ApiResponse.fail(raw.error ?? 'recommended failed',
-          statusCode: raw.status);
-    }
-    if (!_isSuccess(raw.json!)) {
-      return ApiResponse.fail(
-        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
-            'recommended failed',
-        statusCode: raw.status,
-      );
-    }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    if (raw.json == null) return getMostPopular();
+    if (!_isSuccess(raw.json!)) return getMostPopular();
+    final books = _booksOf(raw.json!);
+    if (books.isEmpty) return getMostPopular();
+    return ApiResponse.ok(books, meta: _metaOf(raw.json!));
   }
 
   /// Recently added books. Falls back to a newest-ordered search on 404.

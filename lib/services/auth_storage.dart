@@ -23,6 +23,17 @@ class AuthStorage {
   // Legacy plaintext Hive keys, deleted by migration (password included).
   static const String _legacyKeyPassword = 'user_password';
 
+  // Removed AI/backend feature's legacy Hive keys: the whole backend
+  // auth stack is gone, so its orphaned token must not linger either.
+  static const _legacyBackendKeys = [
+    'backend_jwt',
+    'backend_user_id',
+    'backend_unionid',
+    'backend_last_authorized_at',
+    'backend_role',
+    'backend_device_id',
+  ];
+
   static bool _migrationDone = false;
 
   /// One-time move of legacy plaintext Hive credentials into secure
@@ -33,7 +44,8 @@ class AuthStorage {
     final box = HiveService.authBox;
     final hasLegacy = box.containsKey(_keyUserId) ||
         box.containsKey(_keyUserKey) ||
-        box.containsKey(_keyAccounts);
+        box.containsKey(_keyAccounts) ||
+        _legacyBackendKeys.any((key) => box.containsKey(key));
     if (!hasLegacy) return;
 
     final userId = box.get(_keyUserId) as String?;
@@ -56,13 +68,17 @@ class AuthStorage {
       await SecureStorage.write(_keyAccounts, jsonEncode(cleaned));
     }
 
-    // Delete every legacy plaintext key, password included.
+    // Delete every legacy plaintext key, password included, plus the
+    // removed backend-auth stack's orphaned keys.
     await box.delete(_keyUserId);
     await box.delete(_keyUserKey);
     await box.delete(_keyUserEmail);
     await box.delete(_keyUserName);
     await box.delete(_legacyKeyPassword);
     await box.delete(_keyAccounts);
+    for (final key in _legacyBackendKeys) {
+      await box.delete(key);
+    }
   }
 
   /// Save authentication credentials (session keys only — no password).

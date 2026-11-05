@@ -6,9 +6,6 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/domain_provider.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../providers/backend_auth_provider.dart';
-import '../../../services/backend_books_api.dart';
-import '../../../utils/quota_phrases.dart';
 import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/update_service.dart';
@@ -22,9 +19,6 @@ class BookActionBar extends ConsumerWidget {
   final DownloadTask? downloadTask;
   final bool isDownloading;
   final bool isCompleted;
-  /// 从 AI 寻书入口进来的书，下载走 backend 免费下载路径，
-  /// 不消耗用户 z站 账号配额。详见 BookDetailArgs。
-  final bool fromAi;
 
   const BookActionBar({
     super.key,
@@ -32,7 +26,6 @@ class BookActionBar extends ConsumerWidget {
     required this.downloadTask,
     required this.isDownloading,
     required this.isCompleted,
-    this.fromAi = false,
   });
 
   @override
@@ -246,39 +239,20 @@ class BookActionBar extends ConsumerWidget {
     }
   }
 
-  /// 真正触发下载的统一入口 — 根据 fromAi 二分：
-  /// - fromAi=true:  调 backend `/books/download-url` 拿 z-lib 签名 URL（消耗
-  ///                 免费下载配额），用内置 DownloadNotifier streaming 到本地
-  /// - fromAi=false: 老路径，用户自己 z站 账号
-  ///
-  /// 配额耗尽时显示文学化文案，UI 无任何"配额/免费"商业词。
+  /// 真正触发下载的统一入口：只走用户自己的 z站 账号。
   Future<void> _kickoffDownload(BuildContext context, WidgetRef ref) async {
     final downloadingMsg = AppLocalizations.of(context).get('downloading');
     final notifier = ref.read(downloadProvider.notifier);
 
-    if (!fromAi) {
-      if (await _ownQuotaExhausted(ref)) {
-        if (context.mounted) showDownloadQuotaDialog(context);
-        return;
-      }
-      if (!context.mounted) return;
-      // 下载结束后刷新资料，保持本地剩余次数准确
-      final auth = ref.read(authProvider.notifier);
-      notifier.startDownload(book).whenComplete(auth.refreshProfile);
-      _toast(context, downloadingMsg);
+    if (await _ownQuotaExhausted(ref)) {
+      if (context.mounted) showDownloadQuotaDialog(context);
       return;
     }
-
-    // AI 寻书路径：先用 backend 拿 URL（这一步消耗免费下载配额）
-    final token = ref.read(backendAuthProvider).jwt;
-    if (token == null) {
-      // 入口已 gated，正常路径走不到这里；兜底回退到用户自己账号
-      notifier.startDownload(book);
-      _toast(context, downloadingMsg);
-      return;
-    }
-
-    await _downloadViaBackend(context, ref, token, quiet: false);
+    if (!context.mounted) return;
+    // 下载结束后刷新资料，保持本地剩余次数准确
+    final auth = ref.read(authProvider.notifier);
+    notifier.startDownload(book).whenComplete(auth.refreshProfile);
+    _toast(context, downloadingMsg);
   }
 
   /// 本地缓存显示用户自己 Z 站账号额度已用尽时，刷新资料再确认一次
@@ -295,41 +269,6 @@ class BookActionBar extends ConsumerWidget {
     return refreshed != null &&
         refreshed.downloadsLeft != null &&
         refreshed.downloadsLeft! <= 0;
-  }
-
-  /// 经 backend `/books/download-url` 取签名 URL 并启动下载。
-  /// 返回 true 表示本次已处理完（含成功与配额用尽的文案）；
-  /// [quiet]=true 时其他失败不提示、返回 false，交由调用方回退。
-  Future<bool> _downloadViaBackend(
-    BuildContext context,
-    WidgetRef ref,
-    String token, {
-    required bool quiet,
-  }) async {
-    final notifier = ref.read(downloadProvider.notifier);
-    try {
-      final url = await BackendBooksApi().getAiBookDownloadUrl(
-        olibToken: token,
-        bookId: book.id.toString(),
-        hashId: book.hash ?? '',
-      );
-      if (!context.mounted) return true;
-      notifier.startDownload(book, presetUrl: url);
-      _toast(context, AppLocalizations.of(context).get('downloading'));
-      return true;
-    } on FreeDownloadQuotaExceeded {
-      // 额度用尽是明确结果，不回退，展示文学化文案
-      if (context.mounted) {
-        _toast(context, QuotaPhrases.randomFrom(QuotaPhrases.downloadQuota));
-      }
-      return true;
-    } catch (e) {
-      if (quiet) return false;
-      if (!context.mounted) return true;
-      final isZh = Localizations.localeOf(context).languageCode == 'zh';
-      _toast(context, isZh ? '获取下载链接失败：$e' : 'Failed to get download URL: $e');
-      return true;
-    }
   }
 
   void _toast(BuildContext context, String message) {

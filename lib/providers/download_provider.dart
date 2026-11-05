@@ -250,8 +250,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   ///
   /// 默认走 ZLibraryApi（用户自己账号查 URL + 下载）。
   /// [presetUrl] 传入时跳过 URL 获取，直接用此 URL 下文件 —
-  /// 用于 AI 寻书结果走 backend 拿到的签名 URL，不消耗用户自己的 z站
-  /// 配额（但消耗已在 backend 端记账的免费下载配额），以及 LAN 传书。
+  /// 用于 LAN 传书（电脑直连下载）。
   /// [presetHeaders] 随 presetUrl 请求发送的 header（LAN token 走
   /// `X-Olib-Token`，绝不拼进 URL）。
   Future<void> startDownload(
@@ -305,7 +304,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       // a partial book under its final name.
       final alreadyExists = await File(finalPath).exists();
       if (!alreadyExists && presetUrl != null) {
-        // AI 寻书路径：backend 已签发 URL，直接 stream 到本地
+        // presetUrl 路径（LAN 传书）：直接 stream 到本地
         // 用独立 Dio，不带 z站 cookie / auth；LAN token 走 header。
         final dio = Dio();
         await dio.download(

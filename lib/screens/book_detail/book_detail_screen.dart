@@ -15,7 +15,7 @@ class BookDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 兼容两种 arg：BookDetailArgs（带 fromAi）和直接的 Book（旧调用方）。
+    // 兼容两种 arg：BookDetailArgs 和直接的 Book（旧调用方）。
     final raw = ModalRoute.of(context)!.settings.arguments;
     final BookDetailArgs args = raw is BookDetailArgs
         ? raw
@@ -34,7 +34,6 @@ class BookDetailScreen extends ConsumerWidget {
     final book = details?.isLoading == true
         ? initialBook
         : details?.valueOrNull ?? initialBook;
-    final fromAi = args.fromAi;
     final tasks = ref.watch(downloadProvider);
 
     // 本书下载因账号额度用尽失败时弹一次提醒
@@ -66,7 +65,6 @@ class BookDetailScreen extends ConsumerWidget {
         downloadTask: downloadTask,
         isDownloading: isDownloading,
         isCompleted: isCompleted,
-        fromAi: fromAi,
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
