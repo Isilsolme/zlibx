@@ -33,8 +33,12 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         // Android only, 64-bit only: ship arm64-v8a and nothing else.
+        // NOTE: abiFilters must be REPLACED, not appended (+=): the Flutter
+        // plugin pre-seeds the set with all three ABIs, so += is a no-op and
+        // plugin .so files leak in for armeabi-v7a/x86_64 (v1.4.0 APK was 57 MB).
         ndk {
-            abiFilters += "arm64-v8a"
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
         }
     }
 
