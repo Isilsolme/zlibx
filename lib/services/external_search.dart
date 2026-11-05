@@ -2,7 +2,7 @@
 // lib/services/search_manager.dart (SearchProviderId, SearchProvider,
 // SearchQuery, AnnasArchiveProvider, LibgenProvider, SearchManagerResult
 // only). ZlibraryProvider, WelibProvider and SearchManager were NOT taken.
-// olib lite is AGPL-3.0 (see LICENSE).
+// zlibx is AGPL-3.0 (see LICENSE).
 // Dart imports:
 import 'dart:async';
 
@@ -15,9 +15,10 @@ import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
 // Project imports:
-import 'package:olib_mobile/services/annas_archieve.dart';
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/instance_manager.dart';
+import 'package:zlibx/services/annas_archieve.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/instance_manager.dart';
+import 'package:zlibx/services/network_error.dart';
 
 /// One searchable catalog the app can query.
 enum SearchProviderId { annasArchive, libgen, zlibrary, welib }
@@ -341,7 +342,16 @@ class LibgenProvider implements SearchProvider {
     }
     _logger.error('All libgen mirrors failed',
         tag: 'LibgenProvider', error: lastError);
-    throw Exception('Library Genesis unreachable: $lastError');
+    // Short user-facing message only: the provider surfaces
+    // NetworkError.userMessage, and the full Dio dump stays in the log
+    // line above — it used to be shown verbatim in the search UI.
+    throw NetworkError(
+      type: NetworkErrorType.serverUnavailable,
+      userMessage: 'Library Genesis temporarily unavailable',
+      solution: 'The LibGen mirrors are not answering right now. '
+          'Please try again in a moment.',
+      technicalDetails: lastError.toString(),
+    );
   }
 }
 

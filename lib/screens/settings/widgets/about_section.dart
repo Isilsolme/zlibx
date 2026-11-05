@@ -89,7 +89,7 @@ class AboutSection extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'olib lite',
+              'zlibx',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: cs.primary,
@@ -115,8 +115,8 @@ class AboutSection extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 isZh
-                    ? 'olib lite 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• olib lite 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容'
-                    : 'olib lite is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• olib lite is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above',
+                    ? 'zlibx 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• zlibx 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容'
+                    : 'zlibx is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• zlibx is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above',
                 style: TextStyle(
                   fontSize: 14,
                   color: cs.onSurfaceVariant,
@@ -126,8 +126,8 @@ class AboutSection extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 isZh
-                    ? '致谢：本应用基于 shiyi-0x7f 的 olib-mobile 精简修改。'
-                    : 'Credits: based on olib-mobile by shiyi-0x7f, slimmed down.',
+                    ? '致谢：本应用基于 shiyi-0x7f 的 olib-mobile 魔改。'
+                    : 'Credits: based on olib-mobile by shiyi-0x7f, heavily modded.',
                 style: TextStyle(
                   fontSize: 13,
                   color: cs.onSurfaceVariant,
@@ -135,36 +135,26 @@ class AboutSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              InkWell(
-                onTap: () => _launchUrl(
-                    'https://github.com/shiyi-0x7f/olib-mobile'),
-                borderRadius: BorderRadius.circular(4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.link, size: 15, color: cs.primary),
-                    const SizedBox(width: 4),
-                    Text(
-                      isZh ? '原版：' : 'Original: ',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: cs.onSurfaceVariant,
-                        height: 1.5,
-                      ),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _launchUrl(
+                          'https://github.com/shiyi-0x7f/olib-mobile'),
+                      icon: const Icon(Icons.code, size: 16),
+                      label: Text(isZh ? '原版' : 'Original'),
                     ),
-                    Flexible(
-                      child: Text(
-                        'shiyi-0x7f/olib-mobile',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: cs.primary,
-                          decoration: TextDecoration.underline,
-                          height: 1.5,
-                        ),
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () => _launchUrl(
+                          'https://github.com/minglaiyo/olib-lite'),
+                      icon: const Icon(Icons.code, size: 16),
+                      label: const Text('zlibx'),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Container(
@@ -199,18 +189,6 @@ class AboutSection extends StatelessWidget {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(isZh ? '关闭' : 'Close'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              _launchUrl('https://github.com/minglaiyo/olib-lite');
-            },
-            icon: const Icon(Icons.code, size: 16),
-            label: Text(isZh ? '查看源码' : 'View Source'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: cs.primary,
-              foregroundColor: Colors.white,
-            ),
           ),
         ],
       ),

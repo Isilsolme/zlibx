@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/webview_challenge_solver.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 //
 // Cross-platform DDoS-challenge solver.
@@ -17,9 +17,9 @@
 // Captured HTML is stored in ChallengeHtmlCache keyed by the request URL, so a
 // retry ("Try Again") or another mirror attempt can parse it directly.
 //
-// Android-only adaptation notes (olib lite):
+// Android-only adaptation notes (zlibx):
 //  * The upstream desktop branch (the desktop window package import and
-//    the visible desktop window solver) is DELETED — olib lite builds
+//    the visible desktop window solver) is DELETED — zlibx builds
 //    Android only and that import breaks the build.
 //  * `_js` uses flutter_inappwebview 6.x `evaluateJavascript(source: ...)`
 //    (the upstream `_js` called the v5-spelled `evaluateJavaScript`,
@@ -38,15 +38,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 // Project imports:
-import 'package:olib_mobile/services/challenge_html_cache.dart';
-import 'package:olib_mobile/services/external_logger.dart';
+import 'package:zlibx/services/challenge_html_cache.dart';
+import 'package:zlibx/services/external_logger.dart';
 
 class WebviewChallengeSolver {
   WebviewChallengeSolver._();
 
   static final AppLogger _logger = AppLogger();
 
-  /// Android/iOS use flutter_inappwebview. olib lite is Android-only, so
+  /// Android/iOS use flutter_inappwebview. zlibx is Android-only, so
   /// there is no desktop branch here (upstream's desktop window import
   /// was deleted).
   static bool get isSupported => Platform.isAndroid || Platform.isIOS;

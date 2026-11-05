@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/challenge_html_cache.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 // Cache for HTML pages captured by the challenge solver, keyed by request URL.
 //
@@ -14,7 +14,7 @@
 // Dart imports:
 
 // Project imports:
-import 'package:olib_mobile/services/external_logger.dart';
+import 'package:zlibx/services/external_logger.dart';
 
 class ChallengeHtmlCache {
   ChallengeHtmlCache._();

@@ -13,7 +13,7 @@
     
     
     <application
-        android:label="olib lite"
+        android:label="zlibx"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

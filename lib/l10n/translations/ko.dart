@@ -1,6 +1,6 @@
 const Map<String, String> ko = {
   // General
-  'app_name': 'olib lite',
+  'app_name': 'zlibx',
   'cancel': '취소',
   'save': '저장',
   'close': '닫기',
@@ -138,6 +138,7 @@ const Map<String, String> ko = {
   'resolving_download_link': '다운로드 링크 확인 중…',
   'open_file': '파일 열기',
   'open_folder': '폴더 열기',
+  'open_file_failed': '파일을 열 수 없습니다',
   'share': '공유',
   'copy_path': '경로 복사',
   'path_copied': '경로가 클립보드에 복사되었습니다',
@@ -162,7 +163,7 @@ const Map<String, String> ko = {
   'about': '정보',
   'version': '버전',
   'downloads_left_today': '오늘 남은 다운로드 횟수',
-  'about_zlibrary': 'olib lite 정보',
+  'about_zlibrary': 'zlibx 정보',
 
   // Network
   'select_network': '네트워크 선택',
@@ -210,7 +211,7 @@ const Map<String, String> ko = {
   'my_reading_list': '내 독서 목록',
   'share_image': '이미지 공유',
   'and_more': '...외 %d권 더 보기',
-  'generated_by': 'olib lite에서 생성됨',
+  'generated_by': 'zlibx에서 생성됨',
   'unfavorited': '즐겨찾기에서 삭제했습니다',
   'scan_qr_code': 'QR 코드 스캔',
   'import_from_qr': 'QR 코드로 가져오기',

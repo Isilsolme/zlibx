@@ -113,7 +113,7 @@ class _MyAppState extends ConsumerState<MyApp> {
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         return MaterialApp(
           navigatorKey: rootNavigatorKey,
-          title: 'olib lite',
+          title: 'zlibx',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightThemeFromScheme(lightDynamic),
           darkTheme: AppTheme.darkThemeFromScheme(darkDynamic),

@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/download_target.dart
-// (verbatim; only this header added). olib lite is AGPL-3.0 (see LICENSE).
+// (verbatim; only this header added). zlibx is AGPL-3.0 (see LICENSE).
 //
 // What the book page's download button should do with a book's links.
 

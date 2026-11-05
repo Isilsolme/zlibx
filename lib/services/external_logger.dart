@@ -1,6 +1,6 @@
 // Minimal logger shim for the ported external book sources (Anna's Archive
 // / LibGen, from warreth/OpenlibExtended). OpenlibExtended's logger writes
-// to a rolling file and shares logs; olib lite keeps it debugPrint-only —
+// to a rolling file and shares logs; zlibx keeps it debugPrint-only —
 // no file_picker / path_provider / share_plus needed.
 //
 // This is NOT a port of OpenlibExtended's lib/services/logger.dart; it only

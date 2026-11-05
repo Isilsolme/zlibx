@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/instance_manager.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 // Dart imports:
 import 'dart:convert';
@@ -9,14 +9,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 // Project imports:
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/preference_store.dart';
-import 'package:olib_mobile/services/slum_catalogue.dart';
-import 'package:olib_mobile/services/hive_preference_store.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/preference_store.dart';
+import 'package:zlibx/services/slum_catalogue.dart';
+import 'package:zlibx/services/hive_preference_store.dart';
 
 // MirrorService and the SLUM model live in the catalogue; re-exported so
 // callers keep importing only this file.
-export 'package:olib_mobile/services/slum_catalogue.dart'
+export 'package:zlibx/services/slum_catalogue.dart'
     show MirrorService, SlumStatus, SlumSite, Protection, ProtectionRank;
 
 /// One mirror as the settings screen shows it: the SLUM reading plus the

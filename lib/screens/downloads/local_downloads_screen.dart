@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
+import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/file_utils.dart';
 import '../../widgets/empty_state.dart';
@@ -376,7 +375,7 @@ class _DownloadItem extends ConsumerWidget {
 
   Future<bool> _fileExists(BuildContext context, WidgetRef ref) async {
     final path = task.filePath;
-    if (path != null && await File(path).exists()) return true;
+    if (path != null && await MediaStoreFiles.exists(path)) return true;
     ref.read(downloadProvider.notifier).markMissingFile(task.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -393,6 +392,21 @@ class _DownloadItem extends ConsumerWidget {
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
     if (!await _fileExists(context, ref)) return;
     try {
+      // MediaStore-published downloads live at a content:// URI, which
+      // OpenFilex cannot open — those go through the platform channel.
+      if (MediaStoreFiles.isContentUri(task.filePath!)) {
+        final opened = await MediaStoreFiles.open(task.filePath!);
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).get('open_file_failed'),
+              ),
+            ),
+          );
+        }
+        return;
+      }
       final result = await OpenFilex.open(task.filePath!);
       if (result.type != ResultType.done && context.mounted) {
         ScaffoldMessenger.of(

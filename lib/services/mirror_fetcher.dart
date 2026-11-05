@@ -1,10 +1,10 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/mirror_fetcher.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 //
 // Android-only adaptation: upstream's Linux early-return
-// (`PlatformUtils.isLinux` → return []) is deleted — olib lite builds
+// (`PlatformUtils.isLinux` → return []) is deleted — zlibx builds
 // Android only and never takes that branch.
 
 // Dart imports:
@@ -14,7 +14,7 @@ import 'dart:async';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 // Project imports:
-import 'package:olib_mobile/services/external_logger.dart';
+import 'package:zlibx/services/external_logger.dart';
 
 /// Service to fetch mirror links in the background without showing UI
 class MirrorFetcherService {

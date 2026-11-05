@@ -350,7 +350,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           child: Column(
                             children: [
                               Text(
-                                'olib lite',
+                                'zlibx',
                                 style: Theme.of(context)
                                     .textTheme
                                     .displayLarge

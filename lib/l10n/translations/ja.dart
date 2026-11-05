@@ -1,6 +1,6 @@
 const Map<String, String> ja = {
   // General
-  'app_name': 'olib lite',
+  'app_name': 'zlibx',
   'cancel': 'キャンセル',
   'save': '保存',
   'close': '閉じる',
@@ -138,6 +138,7 @@ const Map<String, String> ja = {
   'resolving_download_link': 'ダウンロードリンクを解析中…',
   'open_file': 'ファイルを開く',
   'open_folder': 'フォルダを開く',
+  'open_file_failed': 'ファイルを開けませんでした',
   'share': '共有',
   'copy_path': 'パスをコピー',
   'path_copied': 'パスをコピーしました',
@@ -162,7 +163,7 @@ const Map<String, String> ja = {
   'about': 'このアプリについて',
   'version': 'バージョン',
   'downloads_left_today': '本日の残りダウンロード数',
-  'about_zlibrary': 'olib lite について',
+  'about_zlibrary': 'zlibx について',
 
   // Network
   'select_network': '回線を選択',
@@ -210,7 +211,7 @@ const Map<String, String> ja = {
   'my_reading_list': 'マイ読書リスト',
   'share_image': '画像を共有',
   'and_more': '...ほか%d冊',
-  'generated_by': 'olib lite で作成',
+  'generated_by': 'zlibx で作成',
   'unfavorited': 'お気に入りから削除しました',
   'scan_qr_code': 'QRコードをスキャン',
   'import_from_qr': 'QRコードからインポート',

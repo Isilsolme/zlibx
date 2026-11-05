@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/libgen_service.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 
 // Dart imports:
@@ -12,9 +12,9 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:meta/meta.dart';
 
 // Project imports:
-import 'package:olib_mobile/services/annas_archieve.dart';
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/instance_manager.dart';
+import 'package:zlibx/services/annas_archieve.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/instance_manager.dart';
 
 /// Library Genesis book-info + download service.
 ///

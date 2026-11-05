@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/slum_catalogue.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 // Dart imports:
 import 'dart:async';
@@ -13,11 +13,11 @@ import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 // Project imports:
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/preference_store.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/preference_store.dart';
 
-import 'package:olib_mobile/core/slum.dart';
-export 'package:olib_mobile/core/slum.dart';
+import 'package:zlibx/core/slum.dart';
+export 'package:zlibx/core/slum.dart';
 
 /// Reads mirror lists and their status from open-slum.org.
 ///

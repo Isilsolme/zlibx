@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/ui/challenge_solver_page.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 //
 // Full-screen fallback page shown when the automatic headless challenge
@@ -10,7 +10,7 @@
 // in ChallengeHtmlCache (keyed by request URL) and pops itself. The caller then
 // simply retries - the cached HTML is used instead of a doomed Dio request.
 //
-// olib lite adaptation: class renamed ChallengeSolverScreen to match this
+// zlibx adaptation: class renamed ChallengeSolverScreen to match this
 // app's screen naming; title/hint come from the app's own l10n keys
 // (`verifying_access` / `verifying_access_hint`).
 
@@ -24,10 +24,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 // Project imports:
-import 'package:olib_mobile/l10n/app_localizations.dart';
-import 'package:olib_mobile/services/challenge_html_cache.dart';
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/webview_challenge_solver.dart';
+import 'package:zlibx/l10n/app_localizations.dart';
+import 'package:zlibx/services/challenge_html_cache.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/webview_challenge_solver.dart';
 
 class ChallengeSolverScreen extends StatefulWidget {
   const ChallengeSolverScreen({super.key, required this.url});

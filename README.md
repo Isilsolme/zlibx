@@ -1,4 +1,4 @@
-# 📚 olib lite
+# 📚 zlibx
 
 <div align="center">
 
@@ -20,7 +20,7 @@
 
 ---
 
-> ⚠️ **Disclaimer**: olib lite is an independent, open-source third-party client. It is NOT an official client and is not affiliated with any official service. This project only provides the frontend interface - all book data comes from external sources. Use at your own discretion.
+> ⚠️ **Disclaimer**: zlibx is an independent, open-source third-party client. It is NOT an official client and is not affiliated with any official service. This project only provides the frontend interface - all book data comes from external sources. Use at your own discretion.
 
 ## ✨ Features
 
@@ -36,7 +36,7 @@
 
 ## ✂️ About this fork
 
-olib lite is a slimmed-down fork of shiyi-0x7f/olib-mobile:
+zlibx is a heavily-modded fork of shiyi-0x7f/olib-mobile:
 - Android only, 64-bit (`arm64-v8a`) only
 - AI features removed (prescriber, AI search, backend auth)
 - WeRead removed

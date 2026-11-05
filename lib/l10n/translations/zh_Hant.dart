@@ -1,6 +1,6 @@
 const Map<String, String> zh_Hant = {
   // General
-  'app_name': 'olib lite',
+  'app_name': 'zlibx',
   'cancel': '取消',
   'save': '儲存',
   'close': '關閉',
@@ -137,6 +137,7 @@ const Map<String, String> zh_Hant = {
   'resolving_download_link': '正在解析下載連結…',
   'open_file': '開啟檔案',
   'open_folder': '開啟資料夾',
+  'open_file_failed': '無法開啟檔案',
   'share': '分享',
   'copy_path': '複製路徑',
   'path_copied': '路徑已複製到剪貼簿',
@@ -161,7 +162,7 @@ const Map<String, String> zh_Hant = {
   'about': '關於',
   'version': '版本',
   'downloads_left_today': '今日剩餘下載次數',
-  'about_zlibrary': '關於 olib lite',
+  'about_zlibrary': '關於 zlibx',
 
   // Network
   'select_network': '選擇線路',
@@ -209,7 +210,7 @@ const Map<String, String> zh_Hant = {
   'my_reading_list': '我的閱讀清單',
   'share_image': '分享圖片',
   'and_more': '...以及其他 %d 本',
-  'generated_by': '由 olib lite 產生',
+  'generated_by': '由 zlibx 產生',
   'unfavorited': '已取消收藏',
   'scan_qr_code': '掃碼',
   'import_from_qr': '掃碼匯入',

@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:android_intent_plus/android_intent.dart';
+
+import '../services/media_store.dart';
 
 /// Check if platform supports opening folder in file manager
 /// (Android-only build: always true on Android.)
@@ -16,7 +18,7 @@ Future<bool> openDownloadFolder() async {
       try {
         final intent = AndroidIntent(
           action: 'android.intent.action.VIEW',
-          data: 'content://com.android.externalstorage.documents/document/primary%3ADownload%2FOlib',
+          data: 'content://com.android.externalstorage.documents/document/primary%3ADownload%2Fzlibx',
           type: 'vnd.android.document/directory',
           flags: <int>[0x10000000], // FLAG_ACTIVITY_NEW_TASK
         );
@@ -56,15 +58,15 @@ Future<bool> openDownloadFolder() async {
   }
 }
 
-/// Open a file with the system default application
+/// Open a file with the system default application.
+/// Understands both plain paths and the content:// URIs of
+/// MediaStore-published downloads.
 Future<bool> openFile(String filePath) async {
   try {
-    final file = File(filePath);
-    if (!await file.exists()) {
+    if (!await MediaStoreFiles.exists(filePath)) {
       return false;
     }
-    final result = await OpenFilex.open(filePath);
-    return result.type == ResultType.done;
+    return await MediaStoreFiles.open(filePath);
   } catch (e) {
     debugPrint('Failed to open file: $e');
     return false;

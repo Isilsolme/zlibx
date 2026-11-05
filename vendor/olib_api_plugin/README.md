@@ -1,6 +1,6 @@
 # olib_api_plugin (rewrite)
 
-Z-Library eapi client + data models for olib-mobile, rewritten from the
+Z-Library eapi client + data models for zlibx, rewritten from the
 call sites in the app (inventory: `~/workspace/olib-plugin-call-inventory.md`).
 It replaces the private upstream plugin, which the public repo never
 shipped: `pubspec.yaml` references this package as `path: vendor/olib_api_plugin`.

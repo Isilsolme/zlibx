@@ -17,7 +17,7 @@ class BooklistFileUtils {
     await file.writeAsString(json);
     await Share.shareXFiles(
       [XFile(file.path, mimeType: 'application/json')],
-      text: 'olib lite booklist (${data.entries.length} books)',
+      text: 'zlibx booklist (${data.entries.length} books)',
     );
   }
 

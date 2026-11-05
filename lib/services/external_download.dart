@@ -39,13 +39,13 @@ import 'package:dio/dio.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:
-import 'package:olib_mobile/core/annas_archive.dart';
-import 'package:olib_mobile/services/annas_archieve.dart';
-import 'package:olib_mobile/services/download_target.dart';
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/hive_service.dart';
-import 'package:olib_mobile/services/instance_manager.dart';
-import 'package:olib_mobile/services/mirror_fetcher.dart';
+import 'package:zlibx/core/annas_archive.dart';
+import 'package:zlibx/services/annas_archieve.dart';
+import 'package:zlibx/services/download_target.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/hive_service.dart';
+import 'package:zlibx/services/instance_manager.dart';
+import 'package:zlibx/services/mirror_fetcher.dart';
 
 /// Hive settings-box key for the user's own Anna's Archive donation key.
 const String annasDonationKeyHiveKey = 'annasDonationKey';

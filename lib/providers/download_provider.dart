@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import '../services/media_store.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
 
@@ -106,10 +107,11 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
         final filePath = data['filePath'] as String?;
 
-        // Only add if file still exists
+        // Only add if file still exists (content:// URIs from
+        // MediaStore publishes are checked through the resolver).
         if (filePath != null) {
           final file = File(filePath);
-          final fileExists = await file.exists();
+          final fileExists = await MediaStoreFiles.exists(filePath);
 
           // Create a minimal Book object from stored data
           final book = Book(
@@ -133,7 +135,11 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
               downloadedAt: DateTime.tryParse(
                 data['downloadTime']?.toString() ?? '',
               ),
-              fileSize: fileExists ? await file.length() : null,
+              // MediaStore content URIs have no local File to measure,
+              // so the size stays unknown for history-loaded entries.
+              fileSize: fileExists && !MediaStoreFiles.isContentUri(filePath)
+                  ? await file.length()
+                  : null,
               missingFile: !fileExists,
             ),
           );
@@ -165,9 +171,10 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
   /// Android 应用专属外部目录 `<...>/Android/data/<pkg>/files/Olib`。
   ///
-  /// 不再用公共 `Download/Olib`：公共目录里的书可被任何有存储权限的
-  /// 应用读取，且写公共目录需要 MANAGE_EXTERNAL_STORAGE。专属目录无需
-  /// 任何存储权限，卸载时随应用一起清除；历史记录里的旧路径仍可打开。
+  /// 这只是下载的暂存目录：下完后经 MediaStore 发布到公共
+  /// `Download/zlibx`，历史记录记的是发布后的 content:// 位置。
+  /// 专属目录无需任何存储权限，卸载时随应用一起清除；历史记录里
+  /// 的旧路径仍可打开。
   Future<Directory> _androidDownloadDir() async {
     // 形如 /storage/emulated/<user>/Android/data/<pkg>/files
     final appExternal = await getExternalStorageDirectory();
@@ -193,8 +200,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       book.id.toString(),
     );
     if (historyPath != null) {
-      final file = File(historyPath);
-      if (await file.exists()) {
+      if (await MediaStoreFiles.exists(historyPath)) {
         return historyPath;
       }
     }
@@ -357,12 +363,37 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
       final completedAt = DateTime.now();
       final fileSize = await File(finalPath).length();
+
+      // Publish into the public Downloads/zlibx folder (MediaStore,
+      // Android 10+). On failure keep the app-specific file and report
+      // success with that location — the download itself still counts.
+      var recordedPath = finalPath;
+      if (Platform.isAndroid) {
+        final uri = await MediaStoreFiles.publishToDownloads(
+          sourcePath: finalPath,
+          displayName: _buildSafeFileName(book),
+          mimeType: MediaStoreFiles.mimeTypeForExtension(book.extension),
+        );
+        if (uri != null) {
+          recordedPath = uri;
+          try {
+            await File(finalPath).delete();
+          } catch (e) {
+            debugPrint('Could not remove staged download: $e');
+          }
+        } else {
+          debugPrint(
+            'MediaStore publish failed, keeping app-specific file',
+          );
+        }
+      }
+
       // Save to download history (with cover and extension for persistence)
       await _storage.addToDownloadHistory(
         book.id.toString(),
         book.title,
         book.author,
-        finalPath,
+        recordedPath,
         cover: book.cover,
         extension: book.extension,
       );
@@ -371,7 +402,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         (t) => t.copyWith(
           status: DownloadStatus.completed,
           progress: 1.0,
-          filePath: finalPath,
+          filePath: recordedPath,
           downloadedAt: completedAt,
           fileSize: fileSize,
         ),
@@ -447,12 +478,9 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       orElse: () => throw Exception("Task not found"),
     );
 
-    // Delete file if exists
+    // Delete file if exists (content:// URIs via ContentResolver).
     if (task.filePath != null) {
-      final file = File(task.filePath!);
-      if (await file.exists()) {
-        await file.delete();
-      }
+      await MediaStoreFiles.delete(task.filePath!);
     }
 
     // Remove from persistent storage

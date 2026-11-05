@@ -1,6 +1,6 @@
 // Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
 // book sources. Original file: lib/services/annas_archieve.dart
-// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 // Dart imports:
 import 'dart:async';
@@ -11,12 +11,12 @@ import 'package:dio/dio.dart';
 import 'package:meta/meta.dart';
 
 // Project imports:
-import 'package:olib_mobile/core/annas_archive.dart';
-import 'package:olib_mobile/services/instance_manager.dart';
-import 'package:olib_mobile/services/external_logger.dart';
-import 'package:olib_mobile/services/network_error.dart';
-import 'package:olib_mobile/services/challenge_html_cache.dart';
-import 'package:olib_mobile/services/webview_challenge_solver.dart';
+import 'package:zlibx/core/annas_archive.dart';
+import 'package:zlibx/services/instance_manager.dart';
+import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/network_error.dart';
+import 'package:zlibx/services/challenge_html_cache.dart';
+import 'package:zlibx/services/webview_challenge_solver.dart';
 
 class BookData {
   final String title;

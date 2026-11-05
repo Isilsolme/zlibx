@@ -8,8 +8,8 @@
 // both storable in Hive.
 
 // Project imports:
-import 'package:olib_mobile/services/hive_service.dart';
-import 'package:olib_mobile/services/preference_store.dart';
+import 'package:zlibx/services/hive_service.dart';
+import 'package:zlibx/services/preference_store.dart';
 
 /// PreferenceStore backed by the app's Hive settings box.
 class HivePreferenceStore implements PreferenceStore {
