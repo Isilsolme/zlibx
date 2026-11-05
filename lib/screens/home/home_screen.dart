@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -139,6 +140,12 @@ class _HomeTab extends ConsumerStatefulWidget {
 class _HomeTabState extends ConsumerState<_HomeTab> {
   final _scrollController = ScrollController();
 
+  /// Incremented on each pull-to-refresh. The recommendation endpoint
+  /// returns the same list every time, so the displayed books are
+  /// shuffled with this seed to make a refresh visibly change the order.
+  /// Seed 0 (initial load) keeps the server's ranked order.
+  int _refreshSeed = 0;
+
   @override
   void initState() {
     super.initState();
@@ -166,7 +173,9 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     }
   }
 
-  /// Pull-to-refresh: re-fetch the recommendations.
+  /// Pull-to-refresh: re-fetch the recommendations, then shuffle the
+  /// displayed order so the refresh is visible (the endpoint returns the
+  /// same list every time, so a plain refetch would look unchanged).
   Future<void> _refreshRecommendations() async {
     ref.invalidate(recommendedBooksProvider);
     try {
@@ -174,6 +183,8 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     } catch (_) {
       // The provider surfaces a failed fetch as an empty list.
     }
+    if (!mounted) return;
+    setState(() => _refreshSeed++);
   }
 
   Future<void> _checkForUpdates() async {
@@ -447,7 +458,13 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           );
         }
 
-        final itemCount = books.length;
+        // After a pull-to-refresh, shuffle a copy so the order visibly
+        // changes (the endpoint returns the same list every time).
+        final displayBooks = _refreshSeed == 0
+            ? books
+            : (List<DisplayBook>.of(books)
+              ..shuffle(math.Random(_refreshSeed)));
+        final itemCount = displayBooks.length;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -481,7 +498,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 itemCount: itemCount,
                 itemBuilder: (context, index) {
-                  final book = books[index];
+                  final book = displayBooks[index];
                   return BookCard(
                     book: book,
                     compact: true,
