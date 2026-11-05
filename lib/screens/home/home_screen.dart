@@ -1,9 +1,9 @@
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
+import '../../providers/zlibrary_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/update_service.dart';
@@ -140,11 +140,15 @@ class _HomeTab extends ConsumerStatefulWidget {
 class _HomeTabState extends ConsumerState<_HomeTab> {
   final _scrollController = ScrollController();
 
-  /// Incremented on each pull-to-refresh. The recommendation endpoint
-  /// returns the same list every time, so the displayed books are
-  /// shuffled with this seed to make a refresh visibly change the order.
-  /// Seed 0 (initial load) keeps the server's ranked order.
-  int _refreshSeed = 0;
+  /// Current popular-books page (0 = showing the personalised
+  /// recommendations; >0 = showing popular page N). Pull-to-refresh
+  /// pages through popular books because the personalised endpoint
+  /// returns the same list every time.
+  int _popularPage = 0;
+
+  /// The popular page currently displayed, or null while showing the
+  /// personalised recommendations.
+  List<DisplayBook>? _pagedBooks;
 
   @override
   void initState() {
@@ -173,18 +177,31 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     }
   }
 
-  /// Pull-to-refresh: re-fetch the recommendations, then shuffle the
-  /// displayed order so the refresh is visible (the endpoint returns the
-  /// same list every time, so a plain refetch would look unchanged).
+  /// Pull-to-refresh: show the next page of popular books. The
+  /// personalised endpoint returns the same list every time, so paging
+  /// popular is the only way a refresh shows genuinely different books.
   Future<void> _refreshRecommendations() async {
-    ref.invalidate(recommendedBooksProvider);
-    try {
-      await ref.read(recommendedBooksProvider.future);
-    } catch (_) {
-      // The provider surfaces a failed fetch as an empty list.
-    }
+    await _loadPopularPage(_popularPage + 1);
+  }
+
+  Future<void> _loadPopularPage(int page) async {
+    final api = ref.read(zlibraryApiProvider);
+    final res = await api.search(order: 'popular', page: page, limit: 20);
     if (!mounted) return;
-    setState(() => _refreshSeed++);
+    final books = res.data;
+    final totalPages = res.meta?['total_pages'];
+    final outOfRange = totalPages is int && page > totalPages;
+    if (!res.success || books == null || books.isEmpty || outOfRange) {
+      // No more pages (or the fetch failed) — wrap back to page 1.
+      if (page != 1) {
+        await _loadPopularPage(1);
+      }
+      return;
+    }
+    setState(() {
+      _popularPage = page;
+      _pagedBooks = books.map((b) => b.toDisplay()).toList();
+    });
   }
 
   Future<void> _checkForUpdates() async {
@@ -357,6 +374,13 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       ),
     );
 
+    // When paging popular books, show the fetched page instead of the
+    // personalised recommendations.
+    final booksAsync = ref.watch(homeRecommendedProvider);
+    final effectiveAsync = (_popularPage > 0 && _pagedBooks != null)
+        ? AsyncValue.data(_pagedBooks!)
+        : booksAsync;
+
     return Column(
       children: [
         if (authState.lineUnavailable)
@@ -364,8 +388,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
         Expanded(
           child: Stack(
             children: [
-              _buildBookGrid(
-                  ref.watch(homeRecommendedProvider), gridTopPadding),
+              _buildBookGrid(effectiveAsync, gridTopPadding),
               // ========== 悬浮毛玻璃头部 ==========
               Positioned(
                 top: 0,
@@ -458,13 +481,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           );
         }
 
-        // After a pull-to-refresh, shuffle a copy so the order visibly
-        // changes (the endpoint returns the same list every time).
-        final displayBooks = _refreshSeed == 0
-            ? books
-            : (List<DisplayBook>.of(books)
-              ..shuffle(math.Random(_refreshSeed)));
-        final itemCount = displayBooks.length;
+        final itemCount = books.length;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -498,7 +515,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 itemCount: itemCount,
                 itemBuilder: (context, index) {
-                  final book = displayBooks[index];
+                  final book = books[index];
                   return BookCard(
                     book: book,
                     compact: true,
