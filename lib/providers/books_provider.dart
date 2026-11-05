@@ -239,7 +239,7 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
       final books = await _provider.search(SearchQuery(text: query, page: 1));
       if (requestId != _requestId) return;
       state = ExternalSearchState(
-        books: books.map((b) => b.toDisplay()).toList(),
+        books: books.map<DisplayBook>((b) => b.toAnnaDisplayBook()).toList(),
         currentPage: 1,
         hasSearched: true,
         hasMore: books.isNotEmpty,
@@ -270,7 +270,10 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
       );
       if (requestId != _requestId) return;
       state = state.copyWith(
-        books: [...state.books, ...books.map((b) => b.toDisplay())],
+        books: [
+          ...state.books,
+          ...books.map<DisplayBook>((b) => b.toAnnaDisplayBook()),
+        ],
         currentPage: nextPage,
         isLoadingMore: false,
         hasMore: books.isNotEmpty,

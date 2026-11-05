@@ -2,6 +2,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:
 import '../core/annas_archive.dart';
+import '../services/annas_archieve.dart';
 
 /// 数据源标识
 enum BookSource { zlibrary, annasArchive }
@@ -96,12 +97,14 @@ extension BookToDisplay on Book {
 
 /// Anna's Archive BookData → DisplayBook.
 ///
-/// id 是 md5（十六进制字符串，不再二次哈希）；详情页用它取 BookInfoData，
-/// 下载（Stage 3）用它前 8 位十六进制转 int 作 DownloadTask 的键。
-/// tag 是从 info 列解析出的格式标签（如 "EPUB"）；BookData 没有年份和
-/// 评分，简介/出版社/文件大小只在详情页的 BookInfoData 里才有。
+/// Named toAnnaDisplayBook (not toDisplay) on purpose: the z站 Book
+/// extension above already provides toDisplay(), and sharing that name
+/// made the call sites ambiguous. id 是 md5（十六进制字符串，不再二次哈希）；
+/// 详情页用它取 BookInfoData，下载（Stage 3）用它前 8 位十六进制转 int 作
+/// DownloadTask 的键。tag 是从 info 列解析出的格式标签（如 "EPUB"）；
+/// BookData 没有年份和评分，简介/出版社/文件大小只在详情页的 BookInfoData 里才有。
 extension BookDataToDisplay on BookData {
-  DisplayBook toDisplay() => DisplayBook(
+  DisplayBook toAnnaDisplayBook() => DisplayBook(
     id: md5,
     title: title,
     author: author,
