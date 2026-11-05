@@ -20,10 +20,10 @@ export 'update/update_manifest.dart' show UpdateLink;
 class UpdateService {
   /// GitHub Releases 数据源
   static const String _releaseApiUrl =
-      'https://api.github.com/repos/minglaiyo/olib-lite/releases/latest';
+      'https://api.github.com/repos/minglaiyo/zlibx/releases/latest';
 
-  /// 项目 Releases 页（minglaiyo/olib-lite），PanSync 发版时同步网盘链接到这里
-  static const String _downloadUrl = 'https://github.com/minglaiyo/olib-lite/releases';
+  /// 项目 Releases 页（minglaiyo/zlibx），PanSync 发版时同步网盘链接到这里
+  static const String _downloadUrl = 'https://github.com/minglaiyo/zlibx/releases';
 
   static const String _lastCheckKey = 'last_update_check';
   static const String _dismissedVersionKey = 'dismissed_version';

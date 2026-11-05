@@ -12,7 +12,7 @@
 
 **第三方客户端 • 仅提供前端界面 • 数据来自外部源**
 
-[下载 APK](https://github.com/minglaiyo/olib-lite/releases) • [报告问题](../../issues) • [功能建议](../../issues)
+[下载 APK](https://github.com/minglaiyo/zlibx/releases) • [报告问题](../../issues) • [功能建议](../../issues)
 
 **[English](README.md)** | **简体中文** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -60,10 +60,10 @@ zlibx 是 shiyi-0x7f/olib-mobile 的魔改版：
 
 ```bash
 # 克隆仓库
-git clone https://github.com/minglaiyo/olib-lite.git
+git clone https://github.com/minglaiyo/zlibx.git
 
 # 进入项目目录
-cd olib-lite
+cd zlibx
 
 # 安装依赖
 flutter pub get

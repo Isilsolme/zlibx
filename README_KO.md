@@ -12,7 +12,7 @@
 
 **서드파티 클라이언트 • 프론트엔드 인터페이스만 제공 • 외부 소스에서 데이터**
 
-[APK 다운로드](https://github.com/minglaiyo/olib-lite/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
+[APK 다운로드](https://github.com/minglaiyo/zlibx/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **한국어**
 
@@ -60,10 +60,10 @@ zlibx는 shiyi-0x7f/olib-mobile을 대폭 수정한 포크입니다:
 
 ```bash
 # 저장소 복제
-git clone https://github.com/minglaiyo/olib-lite.git
+git clone https://github.com/minglaiyo/zlibx.git
 
 # 프로젝트 디렉토리로 이동
-cd olib-lite
+cd zlibx
 
 # 종속성 설치
 flutter pub get

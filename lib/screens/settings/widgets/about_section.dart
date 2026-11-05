@@ -48,7 +48,7 @@ class AboutSection extends StatelessWidget {
                 title: Text(isZh ? 'GitHub 开源' : 'GitHub Open Source'),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
-                    _launchUrl('https://github.com/minglaiyo/olib-lite'),
+                    _launchUrl('https://github.com/minglaiyo/zlibx'),
               ),
             ],
           ),
@@ -149,7 +149,7 @@ class AboutSection extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () => _launchUrl(
-                          'https://github.com/minglaiyo/olib-lite'),
+                          'https://github.com/minglaiyo/zlibx'),
                       icon: const Icon(Icons.code, size: 16),
                       label: const Text('zlibx'),
                     ),

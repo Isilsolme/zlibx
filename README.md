@@ -12,7 +12,7 @@
 
 **Third-party client • Frontend interface only • All data from external sources**
 
-[Download](https://github.com/minglaiyo/olib-lite/releases) • [Report Bug](../../issues) • [Request Feature](../../issues)
+[Download](https://github.com/minglaiyo/zlibx/releases) • [Report Bug](../../issues) • [Request Feature](../../issues)
 
 **English** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -60,10 +60,10 @@ zlibx is a heavily-modded fork of shiyi-0x7f/olib-mobile:
 
 ```bash
 # Clone the repository
-git clone https://github.com/minglaiyo/olib-lite.git
+git clone https://github.com/minglaiyo/zlibx.git
 
 # Navigate to project directory
-cd olib-lite
+cd zlibx
 
 # Install dependencies
 flutter pub get

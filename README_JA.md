@@ -12,7 +12,7 @@
 
 **サードパーティクライアント • フロントエンドインターフェースのみ • 外部ソースからのデータ**
 
-[APKをダウンロード](https://github.com/minglaiyo/olib-lite/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
+[APKをダウンロード](https://github.com/minglaiyo/zlibx/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **日本語** | **[한국어](README_KO.md)**
 
@@ -60,10 +60,10 @@ zlibx は shiyi-0x7f/olib-mobile を大幅に改造したフォークです：
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/minglaiyo/olib-lite.git
+git clone https://github.com/minglaiyo/zlibx.git
 
 # プロジェクトディレクトリに移動
-cd olib-lite
+cd zlibx
 
 # 依存関係をインストール
 flutter pub get
