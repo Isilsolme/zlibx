@@ -32,7 +32,7 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 
 | Method | Endpoint used | Status |
 |---|---|---|
-| login | POST `/eapi/user/login` | Pattern confirmed by independent public eapi clients |
+| login | POST `/eapi/user/login` (+ website-login fields; falls back to POST `/rpc.php` on the same mirror if eapi login fails) | Eapi shape confirmed by independent public eapi clients (incl. heartleo/zlib, email+password only); the extra fields + rpc fallback were added 2026-11-05 after the app's community mirrors answered email+password-only with HTTP 400 on every line while the original app logs in — NOT yet live-verified |
 | loginWithToken / getProfile | GET `/eapi/user/profile` | Confirmed (also named in the app's own auth comment) |
 | search | POST `/eapi/book/search` | Confirmed, same parameter names |
 | getBookInfo | GET `/eapi/book/{id}/{hash}` | Confirmed |

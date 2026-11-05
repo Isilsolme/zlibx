@@ -183,6 +183,28 @@ class ZLibraryApi {
       case DioExceptionType.connectionError:
         return _Raw(status: status, error: 'connection error: ${e.message}');
       case DioExceptionType.badResponse:
+        // Do NOT flatten the body away: EAPI answers failures with
+        // HTTP 400 + {"success":0,"error":"..."} and the message is the
+        // only thing that tells a bad request apart from bad credentials.
+        // (The login dialog redacts emails/passwords before display.)
+        if (body.isNotEmpty) {
+          try {
+            final decoded = jsonDecode(body);
+            if (decoded is Map<String, dynamic>) {
+              final msg = (decoded['error'] ?? decoded['message'])
+                  ?.toString()
+                  .trim();
+              if (msg != null && msg.isNotEmpty) {
+                return _Raw(status: status, error: msg);
+              }
+            }
+          } on FormatException {
+            // Not JSON: fall through to the truncated body below.
+          }
+          final snippet =
+              body.length > 200 ? '${body.substring(0, 200)}…' : body;
+          return _Raw(status: status, error: 'HTTP $status: $snippet');
+        }
         return _Raw(status: status, error: 'HTTP $status');
       case DioExceptionType.cancel:
         return _Raw(status: status, error: 'cancelled');
@@ -256,27 +278,78 @@ class ZLibraryApi {
 
   // ── Auth ───────────────────────────────────────────────────────────
 
+  /// Website-login fields, sent alongside email/password on the eapi
+  /// login call. The eapi clients that work against z-lib's own domains
+  /// send only email+password, but the community mirrors in this app's
+  /// line list answered that shape with HTTP 400 on every line while the
+  /// original app logs in fine — so the mirrors' login handler appears
+  /// to want the website login's field set. EAPI handlers ignore unknown
+  /// fields, so including them costs nothing where email+password alone
+  /// already works.
+  static const Map<String, String> _loginExtraFields = {
+    'isModal': 'true',
+    'site_mode': 'books',
+    'action': 'login',
+    'isSingleLogin': '1',
+    'redirectUrl': '',
+    'gg_json_mode': '1',
+  };
+
   Future<ApiResponse<User>> login(String email, String password) async {
-    final raw = await _postForm('/eapi/user/login', {
+    final fields = <String, dynamic>{
       'email': email,
       'password': password,
-    });
-    if (raw.json == null) {
-      return ApiResponse.fail(raw.error ?? 'login failed',
-          statusCode: raw.status);
+      ..._loginExtraFields,
+    };
+    final raw = await _postForm('/eapi/user/login', fields);
+    if (raw.json != null && _isSuccess(raw.json!)) {
+      return _finishLogin(raw.json!, raw.cookies);
     }
-    final json = raw.json!;
-    if (!_isSuccess(json)) {
+    // EAPI login did not succeed. Fall back to the website login RPC on
+    // the same mirror: the original app logs in on these lines, and the
+    // website login is the other shape a mirror's login handler may
+    // expect. If rpc.php is not served here either, the original eapi
+    // error is reported, not the fallback's.
+    final rpc = await _postForm('/rpc.php', fields);
+    if (rpc.json != null) {
+      final rpcJson = rpc.json!;
+      final validationError = rpcJson['validationError']?.toString().trim();
+      if (validationError != null && validationError.isNotEmpty) {
+        return ApiResponse.fail(validationError, statusCode: rpc.status);
+      }
+      _learnSession(rpcJson, rpc.cookies);
+      if (_userId != null && _userKey != null) {
+        final profile = await getProfile();
+        if (profile.success && profile.data != null) return profile;
+        return ApiResponse.fail(
+          profile.error ?? 'login succeeded but no user data',
+          statusCode: profile.statusCode,
+        );
+      }
+      if (_userJson(rpcJson) != null) {
+        return _finishLogin(rpcJson, rpc.cookies);
+      }
+    }
+    if (raw.json != null) {
       return ApiResponse.fail(
-        (json['error'] ?? json['message'])?.toString() ?? 'login failed',
+        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
+            'login failed',
         statusCode: raw.status,
       );
     }
-    // Learn the session pair from Set-Cookie headers and/or the user
-    // object; if the payload has no user object, a profile fetch fills
-    // it in.
-    _learnSession(json, raw.cookies);
-    var userJson = _userJson(json);
+    return ApiResponse.fail(raw.error ?? 'login failed',
+        statusCode: raw.status);
+  }
+
+  /// Shared tail of a successful login: learn the session pair from
+  /// Set-Cookie headers and/or the user object; if the payload has no
+  /// user object, a profile fetch fills it in.
+  Future<ApiResponse<User>> _finishLogin(
+    Map<String, dynamic> json,
+    List<String> cookies,
+  ) async {
+    _learnSession(json, cookies);
+    final userJson = _userJson(json);
     if (userJson == null) {
       final profile = await getProfile();
       if (profile.success && profile.data != null) return profile;
