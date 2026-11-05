@@ -23,6 +23,9 @@ import 'services/hive_service.dart';
 import 'services/booklist_share_codec.dart';
 import 'services/share_intent_handler.dart';
 import 'services/instance_manager.dart';
+import 'services/challenge_html_cache.dart';
+import 'services/webview_challenge_solver.dart';
+import 'screens/challenge_solver/challenge_solver_screen.dart';
 import 'l10n/app_localizations.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -37,6 +40,23 @@ void main() async {
   // cached list first and never throws. Fire-and-forget on purpose —
   // startup must not block on the mirror list.
   unawaited(InstanceManager().refreshOnStartup());
+
+  // When the headless challenge solve fails (e.g. a human CAPTCHA shows),
+  // show the solver as a visible page over the current screen. The user
+  // watches the check clear and the page closes itself as soon as the
+  // HTML is captured; the caller then parses the cached HTML instead of
+  // retrying a doomed Dio request. Registered here (before runApp) so it
+  // is in place before any Anna search can run; the callback only uses
+  // rootNavigatorKey when it is actually invoked.
+  WebviewChallengeSolver.visibleSolverFallback = (url) async {
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) return null;
+    final solved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+          builder: (_) => ChallengeSolverScreen(url: url)),
+    );
+    return solved == true ? ChallengeHtmlCache.get(url) : null;
+  };
 
   runApp(
     const ProviderScope(

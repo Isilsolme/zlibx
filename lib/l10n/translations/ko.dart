@@ -110,6 +110,8 @@ const Map<String, String> ko = {
   'source_annas_archive': "Anna's Archive",
   'source': '출처',
   'annas_download_coming_soon': "Anna's Archive 다운로드는 이후 버전에서 제공될 예정입니다。",
+  'verifying_access': '액세스 확인 중…',
+  'verifying_access_hint': '브라우저 페이지에서 확인을 완료하세요. 통과하면 자동으로 돌아갑니다.',
   'book_details': '책 상세 정보',
   'description': '소개',
   'publication_info': '출판 정보',

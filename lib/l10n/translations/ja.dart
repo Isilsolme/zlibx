@@ -110,6 +110,8 @@ const Map<String, String> ja = {
   'source_annas_archive': "Anna's Archive",
   'source': 'ソース',
   'annas_download_coming_soon': "Anna's Archive のダウンロードは今後のバージョンで提供されます。",
+  'verifying_access': 'アクセスを確認中…',
+  'verifying_access_hint': 'ブラウザページで確認を完了してください。完了すると自動的に戻ります。',
   'book_details': '本の詳細',
   'description': 'あらすじ',
   'publication_info': '出版情報',

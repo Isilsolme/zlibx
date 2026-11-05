@@ -1,22 +1,283 @@
-// STAGE 1 STUB — do NOT treat as the real solver.
+// Ported from warreth/OpenlibExtended (AGPL-3.0) — Anna's Archive / LibGen
+// book sources. Original file: lib/services/webview_challenge_solver.dart
+// olib lite is AGPL-3.0 (see LICENSE); upstream MIT attribution for
+// shiyi-0x7f/olib-mobile is preserved in LICENSE.
 //
-// OpenlibExtended's WebviewChallengeSolver opens a visible WebView so the
-// user can solve a Cloudflare challenge by hand, then re-reads the HTML.
-// That integration (visible challenge page + headless WebView wiring) is
-// Stage 3 work; Stage 1 verifies Anna search against mirrors that do not
-// challenge, so the fallback is deliberately a no-op here.
+// Cross-platform DDoS-challenge solver.
 //
-// What the stub guarantees:
-//  * `isSupported` is false, so AnnasArchieve's two `on NetworkError`
-//    catch blocks skip the challenge path and rethrow the original error.
-//  * `fetchHtmlAfterChallenge` exists with the same signature, so the
-//    ported annas_archieve.dart compiles unchanged.
-// TODO (Stage 3): replace this stub with the real WebviewChallengeSolver
-// (visible challenge page) per the port plan §7.1/§8 Stage 3.
-class WebviewChallengeSolver {
-  /// Stage 1: no visible challenge solving — always false.
-  static bool get isSupported => false;
+// Anna's Archive is protected by DDoS-Guard. Its clearance cookies are HttpOnly
+// AND bound to the browser context, so extracting them and replaying through Dio
+// never works (that was the alpha's approach and it loops 403 forever). Instead
+// we let a real browser engine pass the challenge and capture the fully rendered
+// page HTML:
+//
+//   - Android/iOS: HeadlessInAppWebView runs invisible and automatic. If a real
+//     human CAPTCHA appears, callers fall back to the visible solver page.
+//
+// Captured HTML is stored in ChallengeHtmlCache keyed by the request URL, so a
+// retry ("Try Again") or another mirror attempt can parse it directly.
+//
+// Android-only adaptation notes (olib lite):
+//  * The upstream desktop branch (the desktop window package import and
+//    the visible desktop window solver) is DELETED — olib lite builds
+//    Android only and that import breaks the build.
+//  * `_js` uses flutter_inappwebview 6.x `evaluateJavascript(source: ...)`
+//    (the upstream `_js` called the v5-spelled `evaluateJavaScript`,
+//    which does not exist in v6).
+//  * `InAppWebViewSettings` only uses options verified against v6.1.5
+//    (upstream's `incognito` / `clearCache` are dropped; both default
+//    to false anyway).
 
-  /// Stage 1: never called (guarded by [isSupported]); returns null.
-  static Future<String?> fetchHtmlAfterChallenge(String url) async => null;
+// Dart imports:
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show Platform;
+
+// Package imports:
+import 'package:flutter/foundation.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
+// Project imports:
+import 'package:olib_mobile/services/challenge_html_cache.dart';
+import 'package:olib_mobile/services/external_logger.dart';
+
+class WebviewChallengeSolver {
+  WebviewChallengeSolver._();
+
+  static final AppLogger _logger = AppLogger();
+
+  /// Android/iOS use flutter_inappwebview. olib lite is Android-only, so
+  /// there is no desktop branch here (upstream's desktop window import
+  /// was deleted).
+  static bool get isSupported => Platform.isAndroid || Platform.isIOS;
+
+  /// Escape hatch for tests and headless environments: when false, no real
+  /// webview is opened (headless or desktop window) and the solve returns
+  /// null — but a registered [visibleSolverFallback] is still consulted,
+  /// so tests can exercise the fallback without any webview.
+  static bool guiEnabled = true;
+
+  /// When false (user turned "verify in background" off in settings), the
+  /// headless attempt is skipped on mobile and the visible window runs
+  /// straight away - some devices never finish an invisible webview.
+  static bool headlessEnabled = true;
+
+  /// UI hook: when a headless mobile solve fails, this is called so the app
+  /// shell to push the visible solver page over the current screen. It
+  /// returns the captured HTML (which we then cache) or null when the user
+  /// backs out without solving. A callback keeps this service free of UI
+  /// imports. Registered by the app shell at startup.
+  static Future<String?> Function(String url)? visibleSolverFallback;
+
+  /// Test seam for the mobile/desktop branch: when set, overrides the real
+  /// platform check. Production never sets it.
+  @visibleForTesting
+  static bool? overrideIsMobile;
+
+  static bool get _isMobile =>
+      overrideIsMobile ?? (Platform.isAndroid || Platform.isIOS);
+
+  /// Returns true when the given page looks like an unfinished DDoS protection
+  /// challenge (DDoS-Guard or Cloudflare) instead of real content.
+  static bool isChallengePage({
+    required String title,
+    required String bodySnippet,
+  }) {
+    final t = title.toLowerCase();
+    final b = bodySnippet.toLowerCase();
+    const titleMarkers = [
+      'ddos-guard',
+      'just a moment',
+      'attention required',
+      'checking your browser',
+    ];
+    const bodyMarkers = [
+      'ddos-guard/js-challenge',
+      'check.ddos-guard.net',
+      'ddg-l10n-title',
+      'cf-turnstile',
+      'challenge-platform',
+      'cf-browser-verification',
+    ];
+    return titleMarkers.any(t.contains) || bodyMarkers.any(b.contains);
+  }
+
+  /// Solves the challenge for [url] and returns the fully rendered page HTML,
+  /// or null if the challenge could not be cleared within [timeout].
+  ///
+  /// Mobile runs a headless webview (default 60 s, fully automatic). The
+  /// result is also stored in ChallengeHtmlCache.
+  ///
+  /// A headless failure falls back to [visibleSolverFallback] when it is
+  /// registered (headless misses human CAPTCHAs and races like the
+  /// loadStop/readyState one).
+  static Future<String?> fetchHtmlAfterChallenge(
+    String url, {
+    Duration? timeout,
+  }) async {
+    if (!isSupported) return null;
+
+    final effectiveTimeout = timeout ?? const Duration(seconds: 60);
+
+    final tryHeadless = guiEnabled && headlessEnabled;
+    var html = tryHeadless ? await _solveHeadless(url, effectiveTimeout) : null;
+
+    if (html == null && _isMobile && visibleSolverFallback != null) {
+      _logger.info('Headless solve failed, using visible fallback',
+          tag: 'ChallengeSolver', metadata: {'url': url});
+      html = await visibleSolverFallback!(url);
+    }
+
+    if (html != null) {
+      ChallengeHtmlCache.store(url, html);
+    }
+    return html;
+  }
+
+  // ------------------------------------------------------------------
+  // MOBILE: HeadlessInAppWebView (invisible, automatic)
+  // ------------------------------------------------------------------
+
+  /// Decides whether an onLoadStop may complete the solve. Only a real page
+  /// with captured HTML counts — a loadStop on a page that is still loading
+  /// (null/empty HTML) must NOT complete, or the poll loop below would be
+  /// dead and the solve would return null even though the challenge had
+  /// already been cleared. See the Android log regression this guards.
+  @visibleForTesting
+  static bool shouldCompleteFromLoadStop(String title, String? capturedHtml) =>
+      capturedHtml != null &&
+      capturedHtml.isNotEmpty &&
+      !isChallengePage(title: title, bodySnippet: '');
+
+  static Future<String?> _solveHeadless(String url, Duration timeout) async {
+    HeadlessInAppWebView? headless;
+    try {
+      final completer = Completer<String?>();
+      final controllerHolder = Completer<InAppWebViewController>();
+
+      headless = HeadlessInAppWebView(
+        initialUrlRequest: URLRequest(url: WebUri(url)),
+        initialSettings: InAppWebViewSettings(
+          javaScriptEnabled: true,
+          supportZoom: false,
+        ),
+        onLoadStop: (controller, loadedUrl) async {
+          try {
+            final title = (await controller.getTitle()) ?? '';
+            final bodySnippet = (await _js(controller,
+                    "document.body ? document.body.innerHTML.slice(0, 3000) : ''")) ??
+                '';
+            _logger.debug('Headless load stopped',
+                tag: 'ChallengeSolver',
+                metadata: {'title': title, 'url': loadedUrl.toString()});
+            if (isChallengePage(title: title, bodySnippet: bodySnippet)) {
+              return; // challenge page; wait for next load
+            }
+            // Not ready yet (readyState != complete)? Just wait — the poll
+            // loop picks the page up. Never complete with null here: that
+            // used to kill the solve right after the challenge was cleared.
+            final html = await _captureHtml(controller);
+            if (shouldCompleteFromLoadStop(title, html) &&
+                !completer.isCompleted) {
+              completer.complete(html);
+            }
+          } catch (e) {
+            _logger.debug('Headless onLoadStop check failed',
+                tag: 'ChallengeSolver', metadata: {'error': e.toString()});
+          }
+        },
+        onWebViewCreated: (controller) {
+          if (!controllerHolder.isCompleted) {
+            controllerHolder.complete(controller);
+          }
+        },
+      );
+
+      unawaited(headless.run());
+      final deadline = DateTime.now().add(timeout);
+      InAppWebViewController? controller;
+      while (DateTime.now().isBefore(deadline)) {
+        if (completer.isCompleted) break;
+        // Headless webviews can stop loading without an onLoadStop for the
+        // final page; also poll the controller directly.
+        try {
+          controller ??= await _waitForController(controllerHolder);
+          if (controller != null) {
+            final title = (await controller.getTitle()) ?? '';
+            if (title.isNotEmpty &&
+                !isChallengePage(title: title, bodySnippet: '')) {
+              final html = await _captureHtml(controller);
+              if (html != null && html.isNotEmpty && !completer.isCompleted) {
+                completer.complete(html);
+              }
+            }
+          }
+        } catch (_) {}
+        await Future.delayed(const Duration(milliseconds: 1000));
+      }
+
+      // The only place the completer may complete with null: the deadline.
+      if (!completer.isCompleted) completer.complete(null);
+      return await completer.future;
+    } catch (e, st) {
+      _logger.error('Headless challenge solver failed',
+          tag: 'ChallengeSolver', error: e, stackTrace: st);
+      return null;
+    } finally {
+      try {
+        await headless?.dispose();
+      } catch (_) {}
+    }
+  }
+
+  static Future<InAppWebViewController?> _waitForController(
+      Completer<InAppWebViewController> completer) async {
+    if (completer.isCompleted) return await completer.future;
+    // Poll the completer without a typed onTimeout closure.
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      if (completer.isCompleted) return await completer.future;
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------
+  // SHARED HELPERS
+  // ------------------------------------------------------------------
+
+  /// Captures outerHTML once the document is complete and settled.
+  static Future<String?> _captureHtml(InAppWebViewController controller) async {
+    final ready = await _js(controller, "document.readyState") ?? '';
+    if (ready != 'complete') return null;
+    // Settle delay so late XHR content lands in the DOM.
+    await Future.delayed(const Duration(milliseconds: 2000));
+    final html =
+        await _js(controller, "document.documentElement.outerHTML");
+    return html;
+  }
+
+  /// Evaluates JS and decodes the result, handling JSON-encoded bridges.
+  /// Uses the flutter_inappwebview 6.x API (`evaluateJavascript`, named
+  /// `source:`) — upstream's v5-spelled `evaluateJavaScript` does not
+  /// exist in v6.
+  static Future<String?> _js(InAppWebViewController controller, String script) async {
+    try {
+      final result = await controller.evaluateJavascript(source: script);
+      if (result == null) return null;
+      var s = result.toString();
+      if (s == 'null') return null;
+      // WebKit and inappwebview bridges may return strings JSON-encoded.
+      if (s.length >= 2 && s.startsWith('"') && s.endsWith('"')) {
+        try {
+          final decoded = json.decode(s);
+          if (decoded is String) return decoded;
+        } catch (_) {}
+        return s.substring(1, s.length - 1);
+      }
+      return s;
+    } catch (_) {
+      return null;
+    }
+  }
 }

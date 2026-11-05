@@ -110,6 +110,8 @@ const Map<String, String> zh = {
   'source_annas_archive': "Anna's Archive",
   'source': '来源',
   'annas_download_coming_soon': "Anna's Archive 下载功能将在后续版本中提供。",
+  'verifying_access': '正在验证访问…',
+  'verifying_access_hint': '请在浏览器页内完成验证，通过后会自动返回。',
   'book_details': '书籍详情',
   'description': '简介',
   'publication_info': '出版信息',

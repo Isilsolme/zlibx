@@ -379,6 +379,81 @@ class AnnasArchieve {
     );
   }
 
+  /// WebView fallback for a search whose Dio attempts all failed without a
+  /// response (timeout / connection killed — the DDoS-Guard signature when
+  /// it drops non-browser clients). Builds the search URL for the first
+  /// (easiest) mirror and solves it in a real browser engine. Returns the
+  /// parsed books, or null when the solve failed or the user backed out.
+  Future<List<BookData>?> _solveSearchViaWebView({
+    required String searchQuery,
+    required String content,
+    required String sort,
+    required String fileType,
+    required String language,
+    required String year,
+    required String author,
+    required String publisher,
+    required bool enableFilters,
+    required int page,
+  }) async {
+    final urls =
+        await _instanceManager.enabledUrls(MirrorService.annasArchive);
+    if (urls.isEmpty) return null;
+    final baseUrl = urls.first;
+    final targetUrl = urlEncoder(
+      searchQuery: searchQuery,
+      content: content,
+      sort: sort,
+      fileType: fileType,
+      language: language,
+      year: year,
+      author: author,
+      publisher: publisher,
+      enableFilters: enableFilters,
+      currentBaseUrl: baseUrl,
+      page: page,
+    );
+    _logger.info('All mirrors timed out, solving search URL in WebView',
+        tag: 'AnnasArchive', metadata: {'url': targetUrl});
+    final html =
+        await WebviewChallengeSolver.fetchHtmlAfterChallenge(targetUrl);
+    if (html == null || html.length <= 1000) {
+      _logger.warning('WebView solve returned no usable HTML for search',
+          tag: 'AnnasArchive');
+      return null;
+    }
+    return _parser(html, fileType, baseUrl);
+  }
+
+  /// WebView fallback for a bookInfo whose Dio attempts all failed without
+  /// a response. Solves the detail URL (re-hosted onto the first mirror,
+  /// same replacement the request closure does) in a real browser engine.
+  /// Returns the parsed details, or null when the solve failed or the
+  /// user backed out.
+  Future<BookInfoData?> _solveBookInfoViaWebView(String url) async {
+    final urls =
+        await _instanceManager.enabledUrls(MirrorService.annasArchive);
+    if (urls.isEmpty) return null;
+    final baseUrl = urls.first;
+    final urlParsed = Uri.parse(url);
+    final currentParsed = Uri.parse(baseUrl);
+    var adjustedUrl = url;
+    if (urlParsed.host != currentParsed.host) {
+      adjustedUrl =
+          '$baseUrl${urlParsed.path}${urlParsed.query.isNotEmpty ? "?${urlParsed.query}" : ""}';
+    }
+    _logger.info('All mirrors timed out, solving book URL in WebView',
+        tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
+    final html =
+        await WebviewChallengeSolver.fetchHtmlAfterChallenge(adjustedUrl);
+    if (html == null || html.length <= 1000) {
+      _logger.warning('WebView solve returned no usable HTML for bookInfo',
+          tag: 'AnnasArchive');
+      return null;
+    }
+    return _bookInfoParser(html, adjustedUrl, baseUrl);
+  }
+
   Future<List<BookData>> searchBooks(
       {required String searchQuery,
       String content = "",
@@ -498,6 +573,29 @@ class AnnasArchieve {
           _logger.warning('Webview solver returned no usable HTML',
               tag: 'AnnasArchive');
         }
+      }
+      // Dio never got a response at all: every mirror timed out (DDoS-Guard
+      // drops non-browser connections without serving a challenge page, so
+      // there is no cloudflareBlock to catch — the device-verified Stage 1
+      // failure). Solve the first mirror's search URL in a real browser
+      // engine instead. A longer Dio timeout would only fail slower: a
+      // dropped connection never answers.
+      if ((networkErr.type == NetworkErrorType.timeout ||
+              networkErr.type == NetworkErrorType.serverUnavailable) &&
+          WebviewChallengeSolver.isSupported) {
+        final solved = await _solveSearchViaWebView(
+          searchQuery: searchQuery,
+          content: content,
+          sort: sort,
+          fileType: fileType,
+          language: language,
+          year: year,
+          author: author,
+          publisher: publisher,
+          enableFilters: enableFilters,
+          page: page,
+        );
+        if (solved != null) return solved;
       }
       // Re-throw NetworkError as-is for UI to handle if solver failed or unavailable
       rethrow;
@@ -690,6 +788,15 @@ class AnnasArchieve {
           _logger.warning('Webview solver returned no usable HTML for bookInfo',
               tag: 'AnnasArchive');
         }
+      }
+      // Same timeout fallback as searchBooks: Dio got no response from any
+      // mirror. Solve this book's detail URL (on the first mirror) in a
+      // real browser engine instead.
+      if ((networkErr.type == NetworkErrorType.timeout ||
+              networkErr.type == NetworkErrorType.serverUnavailable) &&
+          WebviewChallengeSolver.isSupported) {
+        final solved = await _solveBookInfoViaWebView(url);
+        if (solved != null) return solved;
       }
       // Re-throw NetworkError as-is for UI to handle if solver failed or unavailable
       rethrow;

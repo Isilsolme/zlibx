@@ -112,6 +112,8 @@ const Map<String, String> en = {
   'source_annas_archive': "Anna's Archive",
   'source': 'Source',
   'annas_download_coming_soon': "Anna's Archive downloads will be available in a later version.",
+  'verifying_access': 'Verifying access...',
+  'verifying_access_hint': 'Complete the check in the browser page; the app returns automatically once it passes.',
   'book_details': 'Book Details',
   'description': 'Description',
   'publication_info': 'Publication Details',
