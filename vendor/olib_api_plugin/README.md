@@ -8,6 +8,12 @@ shipped: `pubspec.yaml` references this package as `path: vendor/olib_api_plugin
 Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 `ApiResponse<T>`.
 
+> **兼容实现，与原作者无关。** Independent compatibility implementation,
+> not affiliated with or endorsed by the original Olib author, and not the
+> official plugin. Written from the public app's call sites only; it
+> contains no code from the private upstream plugin, which was never
+> published.
+
 ## Interface contract (from call sites, verified by grep)
 
 - `ZLibraryApi()` — no-arg constructor; default domain `bookroom.lifestyle`
@@ -50,8 +56,11 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 ## What is NOT verified
 
 No Flutter/Dart toolchain exists on this machine, and no Z-Library
-account was used, so this package has **not** been compiled, analyzed,
-or run against a live mirror. In particular:
+account was used, so this package was written without being compiled,
+analyzed, or run against a live mirror. It has since been compiled by CI
+and exercised on device for the main flows (login, search, book detail);
+the inferred rows above stay as marked until each is individually
+confirmed. In particular:
 
 - The inferred endpoints above may 404 or return a different JSON shape;
   the parsers accept camelCase/snake_case variants and several quota
@@ -72,14 +81,14 @@ or run against a live mirror. In particular:
   (cross-domain links and redirect hops are fetched without it), and
   redirects are followed manually (max 5 hops) for the same reason.
 
-First real check, in order: `flutter pub get` (resolves the path
-dependency), `flutter analyze` (plugin + app), then a logged-in run of
-login → search → book info → saved → download on a mirror the user can
-reach. Only that run can promote the inferred rows above to "confirmed".
+The first live check (login → search → book info) has since passed on
+device (2026-11-05); the remaining inferred rows are promoted only by
+individual confirmation.
 
 ## Publishing note
 
-`vendor/` is in the app's `.gitignore`, so this directory is NOT part
-of a normal git push of olib-mobile-lite. To ship it in the repo, either
-remove the `vendor/` line from `.gitignore` or force-add this directory
-— a repo-layout decision, not something done silently here.
+`vendor/olib_api_plugin/` is tracked in this repo (the `vendor/` ignore
+was removed when the rewrite landed). Interface shapes were cross-checked
+against public third-party clients, including heartleo/zlib (MIT) — no
+code, structure, or comments were taken from them; only the endpoint and
+payload shapes were confirmed.
