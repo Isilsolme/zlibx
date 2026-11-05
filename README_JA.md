@@ -4,15 +4,15 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![AI Built](https://img.shields.io/badge/AI%20構築-🤖-purple?style=for-the-badge)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/オープンソース-❤️-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**🤖 AIアシスタンスで完全に構築されたオープンソース電子書籍リーダー**
+**スリムなAndroid専用電子書籍リーダー —— 64ビットのみ、AI機能なし、WeReadなし**
 
 **サードパーティクライアント • フロントエンドインターフェースのみ • 外部ソースからのデータ**
 
-[APKをダウンロード](https://github.com/minglaiyo/olib-mobile-lite/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
+[APKをダウンロード](https://github.com/minglaiyo/olib-lite/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **日本語** | **[한국어](README_KO.md)**
 
@@ -34,13 +34,13 @@
 | 🔗 **マルチドメイン** | 複数のサーバーラインから選択 |
 | 🆓 **完全無料** | 広告なし、サブスクリプションなし、隠れたコストなし |
 
-## 🤖 AI構築プロジェクト
+## ✂️ このフォークについて
 
-このプロジェクトは**完全にAIアシスタンスで構築**されました：
-- AIによるアーキテクチャ設計
-- AIによるコード実装
-- AIによるUI/UXデザイン
-- AIによるドキュメント作成
+olib lite は shiyi-0x7f/olib-mobile をスリム化したフォークです：
+- Android専用、64ビット（`arm64-v8a`）のみ
+- AI機能を削除（処方箋検索、AI検索、バックエンド認証）
+- WeReadを削除
+- 元の非公開プラグインをこのリポジトリ内で書き直し
 
 ## 📱 スクリーンショット
 
@@ -60,10 +60,10 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/minglaiyo/olib-mobile-lite.git
+git clone https://github.com/minglaiyo/olib-lite.git
 
 # プロジェクトディレクトリに移動
-cd olib-mobile
+cd olib-lite
 
 # 依存関係をインストール
 flutter pub get
@@ -122,7 +122,7 @@ lib/
 
 ## 💖 謝辞
 
-- 🤖 AIアシスタンスで構築
+- shiyi-0x7f/olib-mobile（MIT）を基にスリム化
 - 💙 Flutterフレームワーク
 - ❤️ オープンソースコミュニティ
 
@@ -132,6 +132,6 @@ lib/
 
 **[⬆ トップに戻る](#-olib)**
 
-🤖 AI構築 • オープンソース • 永久に無料
+オープンソース • 永久に無料
 
 </div>

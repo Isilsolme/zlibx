@@ -49,7 +49,7 @@ class AboutSection extends StatelessWidget {
                 title: Text(isZh ? 'GitHub 开源' : 'GitHub Open Source'),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
-                    _launchUrl('https://github.com/minglaiyo/olib-mobile-lite'),
+                    _launchUrl('https://github.com/minglaiyo/olib-lite'),
               ),
             ],
           ),
@@ -172,7 +172,7 @@ class AboutSection extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              _launchUrl('https://github.com/minglaiyo/olib-mobile-lite');
+              _launchUrl('https://github.com/minglaiyo/olib-lite');
             },
             icon: const Icon(Icons.code, size: 16),
             label: Text(isZh ? '查看源码' : 'View Source'),

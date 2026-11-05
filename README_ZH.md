@@ -4,15 +4,15 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![AI Built](https://img.shields.io/badge/AI%20构建-🤖-purple?style=for-the-badge)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/开源-❤️-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**🤖 完全由 AI 辅助构建的开源电子书阅读器**
+**精简的纯安卓电子书阅读器 —— 仅 64 位，无 AI 功能，无微信读书**
 
 **第三方客户端 • 仅提供前端界面 • 数据来自外部源**
 
-[下载 APK](https://github.com/minglaiyo/olib-mobile-lite/releases) • [报告问题](../../issues) • [功能建议](../../issues)
+[下载 APK](https://github.com/minglaiyo/olib-lite/releases) • [报告问题](../../issues) • [功能建议](../../issues)
 
 **[English](README.md)** | **简体中文** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -34,13 +34,13 @@
 | 🔗 **多线路** | 多个服务器线路可选 |
 | 🆓 **完全免费** | 无广告、无订阅、无隐藏费用 |
 
-## 🤖 AI 构建项目
+## ✂️ 关于本精简版
 
-本项目**完全由 AI 辅助构建**：
-- AI 设计架构
-- AI 实现代码
-- AI 设计界面
-- AI 编写文档
+olib lite 是 shiyi-0x7f/olib-mobile 的精简版：
+- 仅安卓，仅 64 位（`arm64-v8a`）
+- 已去除 AI 功能（寻书、AI 搜索、后端鉴权）
+- 已去除微信读书
+- 原私有插件已在本仓库内重写
 
 ## 📱 截图
 
@@ -60,10 +60,10 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/minglaiyo/olib-mobile-lite.git
+git clone https://github.com/minglaiyo/olib-lite.git
 
 # 进入项目目录
-cd olib-mobile
+cd olib-lite
 
 # 安装依赖
 flutter pub get
@@ -122,7 +122,7 @@ lib/
 
 ## 💖 致谢
 
-- 🤖 AI 辅助构建
+- 基于 shiyi-0x7f/olib-mobile（MIT）精简修改
 - 💙 Flutter 框架
 - ❤️ 开源社区
 
@@ -132,6 +132,6 @@ lib/
 
 **[⬆ 返回顶部](#-olib)**
 
-🤖 AI 构建 • 开源 • 永久免费
+开源 • 永久免费
 
 </div>

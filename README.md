@@ -4,15 +4,15 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![AI Built](https://img.shields.io/badge/AI%20Built-🤖-purple?style=for-the-badge)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/Open%20Source-❤️-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**🤖 An open-source ebook reader built entirely with AI assistance**
+**A slim, Android-only ebook reader — 64-bit, no AI features, no WeRead**
 
 **Third-party client • Frontend interface only • All data from external sources**
 
-[Download](https://github.com/minglaiyo/olib-mobile-lite/releases) • [Report Bug](../../issues) • [Request Feature](../../issues)
+[Download](https://github.com/minglaiyo/olib-lite/releases) • [Report Bug](../../issues) • [Request Feature](../../issues)
 
 **English** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -34,13 +34,13 @@
 | 🔗 **Multi-Domain** | Choose from multiple server lines |
 | 🆓 **100% Free** | No ads, no subscriptions, no hidden costs |
 
-## 🤖 AI-Built Project
+## ✂️ About this fork
 
-This project was built **entirely with AI assistance**:
-- Architecture design by AI
-- Code implementation by AI
-- UI/UX design by AI
-- Documentation by AI
+olib lite is a slimmed-down fork of shiyi-0x7f/olib-mobile:
+- Android only, 64-bit (`arm64-v8a`) only
+- AI features removed (prescriber, AI search, backend auth)
+- WeRead removed
+- The original private plugin was rewritten from scratch in this repo
 
 ## 📱 Screenshots
 
@@ -60,10 +60,10 @@ This project was built **entirely with AI assistance**:
 
 ```bash
 # Clone the repository
-git clone https://github.com/minglaiyo/olib-mobile-lite.git
+git clone https://github.com/minglaiyo/olib-lite.git
 
 # Navigate to project directory
-cd olib-mobile
+cd olib-lite
 
 # Install dependencies
 flutter pub get
@@ -122,7 +122,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💖 Acknowledgments
 
-- 🤖 Built with AI assistance
+- Based on shiyi-0x7f/olib-mobile (MIT), slimmed down
 - 💙 Flutter framework
 - ❤️ Open source community
 
@@ -132,6 +132,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **[⬆ Back to Top](#-olib)**
 
-Built with 🤖 AI • Open Source • Free Forever
+Open Source • Free Forever
 
 </div>

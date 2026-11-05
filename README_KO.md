@@ -4,15 +4,15 @@
 
 ![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![AI Built](https://img.shields.io/badge/AI%20구축-🤖-purple?style=for-the-badge)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/오픈소스-❤️-green?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-**🤖 AI 지원으로 완전히 구축된 오픈 소스 전자책 리더**
+**슬림한 Android 전용 전자책 리더 —— 64비트 전용, AI 기능 없음, WeRead 없음**
 
 **서드파티 클라이언트 • 프론트엔드 인터페이스만 제공 • 외부 소스에서 데이터**
 
-[APK 다운로드](https://github.com/minglaiyo/olib-mobile-lite/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
+[APK 다운로드](https://github.com/minglaiyo/olib-lite/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **한국어**
 
@@ -34,13 +34,13 @@
 | 🔗 **멀티 도메인** | 여러 서버 라인 중 선택 |
 | 🆓 **완전 무료** | 광고 없음, 구독 없음, 숨겨진 비용 없음 |
 
-## 🤖 AI 구축 프로젝트
+## ✂️ 이 포크에 대해
 
-이 프로젝트는 **완전히 AI 지원으로 구축**되었습니다:
-- AI에 의한 아키텍처 설계
-- AI에 의한 코드 구현
-- AI에 의한 UI/UX 디자인
-- AI에 의한 문서 작성
+olib lite는 shiyi-0x7f/olib-mobile을 경량화한 포크입니다:
+- Android 전용, 64비트(`arm64-v8a`) 전용
+- AI 기능 제거(처방 검색, AI 검색, 백엔드 인증)
+- WeRead 제거
+- 기존 비공개 플러그인을 이 저장소에서 처음부터 다시 작성
 
 ## 📱 스크린샷
 
@@ -60,10 +60,10 @@
 
 ```bash
 # 저장소 복제
-git clone https://github.com/minglaiyo/olib-mobile-lite.git
+git clone https://github.com/minglaiyo/olib-lite.git
 
 # 프로젝트 디렉토리로 이동
-cd olib-mobile
+cd olib-lite
 
 # 종속성 설치
 flutter pub get
@@ -122,7 +122,7 @@ lib/
 
 ## 💖 감사의 말
 
-- 🤖 AI 지원으로 구축
+- shiyi-0x7f/olib-mobile(MIT) 기반 경량화
 - 💙 Flutter 프레임워크
 - ❤️ 오픈 소스 커뮤니티
 
@@ -132,6 +132,6 @@ lib/
 
 **[⬆ 맨 위로](#-olib)**
 
-🤖 AI 구축 • 오픈 소스 • 영원히 무료
+오픈 소스 • 영원히 무료
 
 </div>
