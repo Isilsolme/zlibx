@@ -5,81 +5,150 @@ import 'app_colors.dart';
 /// cheap (it composes ColorScheme + all the sub-themes + text themes), so
 /// computing it on every MaterialApp rebuild is wasted work and a noticeable
 /// hitch when the user toggles theme mode.
+///
+/// Dynamic color (Material You, Android 12+): pass the wallpaper-derived
+/// ColorScheme from DynamicColorBuilder via [lightThemeFromScheme] /
+/// [darkThemeFromScheme]. The sub-themes are built from the scheme, so a
+/// dynamic palette recolors the whole app; when no dynamic scheme is
+/// available the built-in forest-green palette below is used instead.
+/// Dynamic themes are memoized by scheme value, so toggling theme mode
+/// doesn't rebuild them.
 class AppTheme {
   static final ThemeData lightTheme = _buildLightTheme();
   static final ThemeData darkTheme = _buildDarkTheme();
 
+  // Built-in fallback palettes (used when dynamic color is unavailable).
+  static const ColorScheme _lightColorScheme = ColorScheme.light(
+    primary: AppColors.primary,
+    onPrimary: Colors.white,
+    primaryContainer: AppColors.primaryLight,
+    onPrimaryContainer: AppColors.primary,
+
+    secondary: AppColors.accent,
+    onSecondary: Colors.white,
+    secondaryContainer: AppColors.accentLight,
+    onSecondaryContainer: AppColors.accent,
+
+    surface: AppColors.surface,
+    onSurface: AppColors.textPrimary,
+    onSurfaceVariant: AppColors.textSecondary,
+    surfaceContainerHighest: Color(0xFFEEF2EF),
+    surfaceContainer: Color(0xFFF2F5F2),
+    surfaceContainerLow: Color(0xFFF6F8F6),
+    surfaceContainerLowest: AppColors.surface,
+
+    outline: AppColors.border,
+    outlineVariant: AppColors.divider,
+    shadow: Colors.black,
+
+    error: AppColors.error,
+    onError: Colors.white,
+  );
+
+  static const ColorScheme _darkColorScheme = ColorScheme.dark(
+    primary: AppColors.primaryDark, // brighter forest green
+    onPrimary: Colors.black,
+    primaryContainer: Color(0xFF1F3F2F),
+    onPrimaryContainer: AppColors.primaryDark,
+
+    secondary: AppColors.accent,
+    onSecondary: Colors.black,
+    secondaryContainer: Color(0xFF3B231C),
+    onSecondaryContainer: AppColors.accent,
+
+    surface: Color(0xFF1B221C), // cards
+    onSurface: Color(0xFFE6ECE7), // primary text
+    onSurfaceVariant: Color(0xFFB2BDB4), // secondary text
+    surfaceContainerHighest: Color(0xFF252D26), // chips, info panels
+    surfaceContainer: Color(0xFF1F2620),
+    surfaceContainerLow: Color(0xFF181D18),
+    surfaceContainerLowest: Color(0xFF121712), // scaffold
+
+    outline: Color(0xFF3A4239),
+    outlineVariant: Color(0xFF2A2F2A),
+    shadow: Colors.black,
+
+    error: AppColors.error,
+    onError: Colors.white,
+  );
+
+  static ColorScheme? _lastLightScheme;
+  static ThemeData? _lastLightTheme;
+  static ColorScheme? _lastDarkScheme;
+  static ThemeData? _lastDarkTheme;
+
+  /// Light theme for a dynamic [scheme]; null falls back to [lightTheme].
+  static ThemeData lightThemeFromScheme(ColorScheme? scheme) {
+    if (scheme == null) return lightTheme;
+    if (scheme == _lastLightScheme && _lastLightTheme != null) {
+      return _lastLightTheme!;
+    }
+    _lastLightScheme = scheme;
+    return _lastLightTheme = _buildLightTheme(scheme);
+  }
+
+  /// Dark theme for a dynamic [scheme]; null falls back to [darkTheme].
+  static ThemeData darkThemeFromScheme(ColorScheme? scheme) {
+    if (scheme == null) return darkTheme;
+    if (scheme == _lastDarkScheme && _lastDarkTheme != null) {
+      return _lastDarkTheme!;
+    }
+    _lastDarkScheme = scheme;
+    return _lastDarkTheme = _buildDarkTheme(scheme);
+  }
+
   // ── Light ─────────────────────────────────────────────────────────
-  static ThemeData _buildLightTheme() {
-    const cs = ColorScheme.light(
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
-      primaryContainer: AppColors.primaryLight,
-      onPrimaryContainer: AppColors.primary,
-
-      secondary: AppColors.accent,
-      onSecondary: Colors.white,
-      secondaryContainer: AppColors.accentLight,
-      onSecondaryContainer: AppColors.accent,
-
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      onSurfaceVariant: AppColors.textSecondary,
-      surfaceContainerHighest: Color(0xFFEEF2EF),
-      surfaceContainer: Color(0xFFF2F5F2),
-      surfaceContainerLow: Color(0xFFF6F8F6),
-      surfaceContainerLowest: AppColors.surface,
-
-      outline: AppColors.border,
-      outlineVariant: AppColors.divider,
-      shadow: Colors.black,
-
-      error: AppColors.error,
-      onError: Colors.white,
-    );
+  static ThemeData _buildLightTheme([ColorScheme? scheme]) {
+    final cs = scheme ?? _lightColorScheme;
+    // Without a dynamic scheme we keep the warm-paper scaffold/app-bar
+    // background; a dynamic scheme uses its own surface instead.
+    final background =
+        scheme == null ? AppColors.background : cs.surface;
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: AppColors.background,
+      primaryColor: cs.primary,
+      scaffoldBackgroundColor: background,
       colorScheme: cs,
 
-      cardTheme: const CardThemeData(
-        color: AppColors.surface,
+      cardTheme: CardThemeData(
+        color: cs.surface,
         elevation: 2,
-        shadowColor: Color(0x0D000000),
-        shape: RoundedRectangleBorder(
+        shadowColor: const Color(0x0D000000),
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
-        margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       ),
 
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: background,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
+          color: cs.onSurface,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: IconThemeData(color: AppColors.textPrimary),
+        iconTheme: IconThemeData(color: cs.onSurface),
       ),
 
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: cs.surface,
+        indicatorColor: cs.secondaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(fontSize: 12, fontWeight: FontWeight.bold);
+          }
+          return const TextStyle(
+              fontSize: 12, fontWeight: FontWeight.normal);
+        }),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: cs.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
@@ -90,17 +159,17 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: cs.primary, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        hintStyle: const TextStyle(color: AppColors.textSecondary),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
@@ -113,102 +182,67 @@ class AppTheme {
         ),
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: AppColors.divider,
+      dividerTheme: DividerThemeData(
+        color: cs.outlineVariant,
         thickness: 1,
       ),
     );
   }
 
   // ── Dark ──────────────────────────────────────────────────────────
-  static ThemeData _buildDarkTheme() {
-    // Forest-green palette tweaked for dark backgrounds.
-    const darkBg = Color(0xFF121712);            // scaffold
-    const darkSurface = Color(0xFF1B221C);       // cards
-    const darkSurfaceHigh = Color(0xFF252D26);   // chips, info panels
-    const darkSurfaceMid = Color(0xFF1F2620);
-    const darkSurfaceLow = Color(0xFF181D18);
-
-    const onSurface = Color(0xFFE6ECE7);         // primary text
-    const onSurfaceVariant = Color(0xFFB2BDB4);  // secondary text — visible on dark
-    const outline = Color(0xFF3A4239);
-    const outlineVariant = Color(0xFF2A2F2A);
-
-    const cs = ColorScheme.dark(
-      primary: AppColors.primaryDark,           // brighter forest green
-      onPrimary: Colors.black,
-      primaryContainer: Color(0xFF1F3F2F),
-      onPrimaryContainer: AppColors.primaryDark,
-
-      secondary: AppColors.accent,
-      onSecondary: Colors.black,
-      secondaryContainer: Color(0xFF3B231C),
-      onSecondaryContainer: AppColors.accent,
-
-      surface: darkSurface,
-      onSurface: onSurface,
-      onSurfaceVariant: onSurfaceVariant,
-      surfaceContainerHighest: darkSurfaceHigh,
-      surfaceContainer: darkSurfaceMid,
-      surfaceContainerLow: darkSurfaceLow,
-      surfaceContainerLowest: darkBg,
-
-      outline: outline,
-      outlineVariant: outlineVariant,
-      shadow: Colors.black,
-
-      error: AppColors.error,
-      onError: Colors.white,
-    );
+  static ThemeData _buildDarkTheme([ColorScheme? scheme]) {
+    final cs = scheme ?? _darkColorScheme;
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: AppColors.primaryDark,
-      scaffoldBackgroundColor: darkBg,
+      primaryColor: cs.primary,
+      scaffoldBackgroundColor: cs.surfaceContainerLowest,
       colorScheme: cs,
 
       // Make all default text colors honor onSurface/onSurfaceVariant so
       // widgets that don't explicitly read colorScheme still pick up the
       // right color when the user is in dark mode.
-      textTheme: const TextTheme().apply(
-        bodyColor: onSurface,
-        displayColor: onSurface,
+      textTheme: TextTheme().apply(
+        bodyColor: cs.onSurface,
+        displayColor: cs.onSurface,
       ),
 
-      cardTheme: const CardThemeData(
-        color: darkSurface,
+      cardTheme: CardThemeData(
+        color: cs.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          side: BorderSide(color: outlineVariant),
-          borderRadius: BorderRadius.all(Radius.circular(20)),
+          side: BorderSide(color: cs.outlineVariant),
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
         ),
       ),
 
-      appBarTheme: const AppBarTheme(
-        backgroundColor: darkBg,
+      appBarTheme: AppBarTheme(
+        backgroundColor: cs.surfaceContainerLowest,
         elevation: 0,
         titleTextStyle: TextStyle(
-          color: onSurface,
+          color: cs.onSurface,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
-        iconTheme: IconThemeData(color: onSurface),
+        iconTheme: IconThemeData(color: cs.onSurface),
       ),
 
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: darkSurface,
-        selectedItemColor: AppColors.primaryDark,
-        unselectedItemColor: onSurfaceVariant,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: cs.surface,
+        indicatorColor: cs.secondaryContainer,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(fontSize: 12, fontWeight: FontWeight.bold);
+          }
+          return const TextStyle(
+              fontSize: 12, fontWeight: FontWeight.normal);
+        }),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: darkSurfaceHigh,
+        fillColor: cs.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
@@ -219,26 +253,25 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
-          borderSide:
-              const BorderSide(color: AppColors.primaryDark, width: 1.5),
+          borderSide: BorderSide(color: cs.primary, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        hintStyle: const TextStyle(color: onSurfaceVariant),
+        hintStyle: TextStyle(color: cs.onSurfaceVariant),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primaryDark,
-          foregroundColor: Colors.black,
+          backgroundColor: cs.primary,
+          foregroundColor: cs.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
         ),
       ),
 
-      dividerTheme: const DividerThemeData(
-        color: outlineVariant,
+      dividerTheme: DividerThemeData(
+        color: cs.outlineVariant,
         thickness: 1,
       ),
     );

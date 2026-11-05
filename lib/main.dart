@@ -1,3 +1,4 @@
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -75,46 +76,54 @@ class _MyAppState extends ConsumerState<MyApp> {
         themeMode = ThemeMode.system;
     }
 
-    return MaterialApp(
-      navigatorKey: rootNavigatorKey,
-      title: 'olib lite',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-      
-      // Localization
-      locale: locale,
-      supportedLocales: supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      
-      initialRoute: AppRoutes.splash,
-      routes: {
-        AppRoutes.splash: (context) => const SplashScreen(),
-        AppRoutes.login: (context) => const LoginScreen(),
-        // AppRoutes.register: (context) => const RegisterScreen(), // Disabled
-        AppRoutes.home: (context) => const HomeScreen(),
-        AppRoutes.search: (context) => const SearchScreen(),
-        AppRoutes.bookDetail: (context) => const BookDetailScreen(),
-        AppRoutes.favorites: (context) => const FavoritesScreen(),
-        AppRoutes.history: (context) => const HistoryScreen(),
-        AppRoutes.downloads: (context) => const LocalDownloadsScreen(),
-        AppRoutes.settings: (context) => const SettingsScreen(),
-        AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
-        AppRoutes.reader: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as ReaderArgs;
-          return ReaderScreen(
-            url: args.url,
-            title: args.title,
-            remixUserId: args.remixUserId,
-            remixUserKey: args.remixUserKey,
-          );
-        },
+    // Material You dynamic color (Android 12+): the ColorScheme comes from
+    // the wallpaper; where dynamic color is unavailable the schemes are
+    // null and AppTheme falls back to the built-in palette.
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        return MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          title: 'olib lite',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightThemeFromScheme(lightDynamic),
+          darkTheme: AppTheme.darkThemeFromScheme(darkDynamic),
+          themeMode: themeMode,
+
+          // Localization
+          locale: locale,
+          supportedLocales: supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+
+          initialRoute: AppRoutes.splash,
+          routes: {
+            AppRoutes.splash: (context) => const SplashScreen(),
+            AppRoutes.login: (context) => const LoginScreen(),
+            // AppRoutes.register: (context) => const RegisterScreen(), // Disabled
+            AppRoutes.home: (context) => const HomeScreen(),
+            AppRoutes.search: (context) => const SearchScreen(),
+            AppRoutes.bookDetail: (context) => const BookDetailScreen(),
+            AppRoutes.favorites: (context) => const FavoritesScreen(),
+            AppRoutes.history: (context) => const HistoryScreen(),
+            AppRoutes.downloads: (context) => const LocalDownloadsScreen(),
+            AppRoutes.settings: (context) => const SettingsScreen(),
+            AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
+            AppRoutes.reader: (context) {
+              final args =
+                  ModalRoute.of(context)!.settings.arguments as ReaderArgs;
+              return ReaderScreen(
+                url: args.url,
+                title: args.title,
+                remixUserId: args.remixUserId,
+                remixUserKey: args.remixUserKey,
+              );
+            },
+          },
+        );
       },
     );
   }

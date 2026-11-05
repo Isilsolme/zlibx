@@ -23,12 +23,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
 
+  // Only the home tab lives in the stack; bookshelf/downloads are pushed
+  // as routes, and search is opened from the home search box (no nav tab).
   final List<Widget> _screens = [
     const _HomeTab(),
-    // These are placeholders as navigation is handled via pushNamed
-    const SizedBox(),
-    const SizedBox(),
-    const SizedBox(),
   ];
 
   @override
@@ -48,46 +46,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
           elevation: 0,
           backgroundColor: cs.surface,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: cs.primary,
-          unselectedItemColor: cs.onSurfaceVariant,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 12),
-          showUnselectedLabels: true,
-          onTap: (index) {
+          onDestinationSelected: (index) {
             if (index == 1) {
-              Navigator.of(context).pushNamed(AppRoutes.search);
-            } else if (index == 2) {
               Navigator.of(context).pushNamed(AppRoutes.favorites);
-            } else if (index == 3) {
+            } else if (index == 2) {
               Navigator.of(context).pushNamed(AppRoutes.downloads);
             } else {
               setState(() => _selectedIndex = index);
             }
           },
-          items: [
-            BottomNavigationBarItem(
+          destinations: [
+            NavigationDestination(
               icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
+              selectedIcon: const Icon(Icons.home),
               label: AppLocalizations.of(context).get('home'),
             ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.search_outlined),
-              activeIcon: const Icon(Icons.search),
-              label: AppLocalizations.of(context).get('search'),
-            ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: const Icon(Icons.library_books_outlined),
-              activeIcon: const Icon(Icons.library_books),
+              selectedIcon: const Icon(Icons.library_books),
               label: AppLocalizations.of(context).get('bookshelf'),
             ),
-            BottomNavigationBarItem(
+            NavigationDestination(
               icon: const Icon(Icons.cloud_download_outlined),
-              activeIcon: const Icon(Icons.cloud_download),
+              selectedIcon: const Icon(Icons.cloud_download),
               label: AppLocalizations.of(context).get('downloads'),
             ),
           ],
