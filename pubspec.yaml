@@ -55,7 +55,10 @@ dependencies:
   hive_flutter: ^1.1.0
   # Credentials (account session, backend token) live here, never in Hive:
   # flutter_secure_storage is backed by Android Keystore / iOS Keychain.
-  flutter_secure_storage: ^9.0.0
+  # ^11.2.0 (not ^9.0.0): v9's Windows impl pins win32 ^5.0.0, which
+  # conflicts with file_picker 12.0.0-beta.7's win32 ^6.3.0 and breaks
+  # `flutter pub get` (run #3 failure 2026-11-05); v11 resolves it.
+  flutter_secure_storage: ^11.2.0
 
   path_provider: ^2.1.4
   permission_handler: ^12.0.1
