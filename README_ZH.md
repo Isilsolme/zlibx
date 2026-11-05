@@ -6,7 +6,7 @@
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/开源-❤️-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
 
 **精简的纯安卓电子书阅读器 —— 仅 64 位，无 AI 功能，无微信读书**
 
@@ -112,7 +112,7 @@ lib/
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件。
+本项目采用 GNU Affero 通用公共许可证 v3.0（AGPL-3.0）- 详见 [LICENSE](LICENSE) 文件。源自 shiyi-0x7f/olib-mobile 的部分仍采用 MIT 许可证（已保留在 LICENSE 文件中）。
 
 > ⚠️ **法律声明**: 
 > - 这是一个独立的第三方客户端，**非**官方应用
@@ -123,6 +123,7 @@ lib/
 ## 💖 致谢
 
 - 基于 shiyi-0x7f/olib-mobile（MIT）精简修改
+- 安娜 / LibGen 书源来自 warreth/OpenlibExtended（AGPL-3.0）
 - 💙 Flutter 框架
 - ❤️ 开源社区
 

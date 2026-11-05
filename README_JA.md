@@ -6,7 +6,7 @@
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/オープンソース-❤️-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
 
 **スリムなAndroid専用電子書籍リーダー —— 64ビットのみ、AI機能なし、WeReadなし**
 
@@ -112,7 +112,7 @@ lib/
 
 ## 📄 ライセンス
 
-このプロジェクトはMITライセンスの下でライセンスされています - 詳細は[LICENSE](LICENSE)ファイルをご覧ください。
+このプロジェクトはGNU Affero General Public License v3.0（AGPL-3.0）の下でライセンスされています - 詳細は[LICENSE](LICENSE)ファイルをご覧ください。shiyi-0x7f/olib-mobile由来の部分はMITライセンスのままです（LICENSEファイルに保持）。
 
 > ⚠️ **法的通知**: 
 > - これは独立したサードパーティクライアントであり、公式アプリケーションではありません
@@ -123,6 +123,7 @@ lib/
 ## 💖 謝辞
 
 - shiyi-0x7f/olib-mobile（MIT）を基にスリム化
+- Anna's Archive / LibGen ソースは warreth/OpenlibExtended（AGPL-3.0）より
 - 💙 Flutterフレームワーク
 - ❤️ オープンソースコミュニティ
 

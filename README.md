@@ -6,7 +6,7 @@
 ![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Open Source](https://img.shields.io/badge/Open%20Source-❤️-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
 
 **A slim, Android-only ebook reader — 64-bit, no AI features, no WeRead**
 
@@ -112,7 +112,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE](LICENSE) file for details. Portions derived from shiyi-0x7f/olib-mobile remain under the MIT License (preserved in the LICENSE file).
 
 > ⚠️ **Legal Notice**: 
 > - This is an independent third-party client, NOT an official application
@@ -123,6 +123,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 💖 Acknowledgments
 
 - Based on shiyi-0x7f/olib-mobile (MIT), slimmed down
+- Anna's Archive / LibGen sources from warreth/OpenlibExtended (AGPL-3.0)
 - 💙 Flutter framework
 - ❤️ Open source community
 
