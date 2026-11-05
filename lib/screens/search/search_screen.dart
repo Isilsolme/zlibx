@@ -40,10 +40,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _isListView = false;
   bool _isQueryEmpty = true;
   List<String> _recentSearches = [];
+  // Search source: Z-Library by default; the (unused) initialSource route
+  // parameter is the entry point for opening the screen on Anna's Archive.
+  late BookSource _source;
 
   @override
   void initState() {
     super.initState();
+    _source = widget.initialSource ?? BookSource.zlibrary;
     final savedSearches = HiveService.settingsBox.get(_recentSearchesKey);
     if (savedSearches is List) {
       final seen = <String>{};
@@ -163,14 +167,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      ref.read(searchProvider.notifier).loadMore();
+      if (_source == BookSource.annasArchive) {
+        ref.read(externalSearchProvider.notifier).loadMore();
+      } else {
+        ref.read(searchProvider.notifier).loadMore();
+      }
     }
   }
 
   void _openBook(DisplayBook book) {
+    // Anna results have no z站 Book: pass the DisplayBook itself; the
+    // detail page branches on DisplayBook.source.
     Navigator.of(context).pushNamed(
       AppRoutes.bookDetail,
-      arguments: book.asZLibBook,
+      arguments: book.isAnnasArchive ? book : book.asZLibBook,
     );
   }
 
@@ -187,6 +197,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     final query = _searchController.text.trim();
+    // Anna's Archive: plain text search; the z站 filter panel (language /
+    // order / extension) does not apply and is hidden for this source.
+    if (_source == BookSource.annasArchive) {
+      ref.read(externalSearchProvider.notifier).search(query);
+      return true;
+    }
+
     ref
         .read(searchProvider.notifier)
         .search(
@@ -204,6 +221,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return true;
   }
 
+  void _switchSource(BookSource source) {
+    if (source == _source) return;
+    setState(() {
+      _source = source;
+      _showFilters = false;
+    });
+    // Stale results must not leak across sources.
+    ref.read(searchProvider.notifier).reset();
+    ref.read(externalSearchProvider.notifier).reset();
+    // Re-run the current query on the new source, if there is one.
+    if (_searchController.text.trim().isNotEmpty) _performSearch();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -211,13 +241,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final languageNames = getLanguageDisplayNames(locale);
     final orderNames = getOrderDisplayNames(locale);
     final extensionNames = getExtensionDisplayNames(locale);
+    final isAnna = _source == BookSource.annasArchive;
+    // Source-dependent search state: z站 (vendor Book) vs Anna (DisplayBook).
     final searchState = ref.watch(searchProvider);
-    final books = searchState.books.map((book) => book.toDisplay()).toList();
+    final externalState = ref.watch(externalSearchProvider);
+    final books = isAnna
+        ? externalState.books
+        : searchState.books.map((book) => book.toDisplay()).toList();
     final resultCount = books.length;
-    final hasSearched = searchState.hasSearched;
-    final isLoading = searchState.isLoading;
-    final isLoadingMore = searchState.isLoadingMore;
-    final error = searchState.error;
+    final hasSearched =
+        isAnna ? externalState.hasSearched : searchState.hasSearched;
+    final isLoading = isAnna ? externalState.isLoading : searchState.isLoading;
+    final isLoadingMore =
+        isAnna ? externalState.isLoadingMore : searchState.isLoadingMore;
+    final error = isAnna ? externalState.error : searchState.error;
+    final currentPage =
+        isAnna ? externalState.currentPage : searchState.currentPage;
+    // Anna has no total_pages: '…' while more pages may exist, the current
+    // page number once the last (empty) page has been reached.
+    final totalPagesText = isAnna
+        ? (externalState.hasMore ? '…' : '${externalState.currentPage}')
+        : '${searchState.totalPages}';
 
     return Scaffold(
       appBar: GradientAppBar(title: l10n.get('search_books')),
@@ -234,22 +278,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                          Icons.tune,
-                          color: _showFilters ? Theme.of(context).colorScheme.primary : null,
+                    // The filter panel is z站-only; Anna search is plain text.
+                    if (!isAnna)
+                      IconButton(
+                        icon: Icon(
+                            Icons.tune,
+                            color: _showFilters ? Theme.of(context).colorScheme.primary : null,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showFilters = !_showFilters;
+                            });
+                          },
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _showFilters = !_showFilters;
-                          });
-                        },
-                      ),
                     IconButton(
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
                         ref.read(searchProvider.notifier).reset();
+                        ref.read(externalSearchProvider.notifier).reset();
                       },
                     ),
                   ],
@@ -257,6 +304,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _performSearch(),
+            ),
+          ),
+
+          // Source Selector (Z-Library / Anna's Archive)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: SegmentedButton<BookSource>(
+                segments: [
+                  ButtonSegment<BookSource>(
+                    value: BookSource.zlibrary,
+                    label: Text(l10n.get('source_zlibrary')),
+                  ),
+                  ButtonSegment<BookSource>(
+                    value: BookSource.annasArchive,
+                    label: Text(l10n.get('source_annas_archive')),
+                  ),
+                ],
+                selected: {_source},
+                onSelectionChanged: (selected) => _switchSource(selected.first),
+                style: ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
             ),
           ),
 
@@ -353,11 +426,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       .get('search_page_progress')
                                       .replaceAll(
                                         '{current}',
-                                        '${searchState.currentPage}',
+                                        '$currentPage',
                                       )
                                       .replaceAll(
                                         '{total}',
-                                        '${searchState.totalPages}',
+                                        totalPagesText,
                                       ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -399,9 +472,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 child: Text(l10n.get('search_more_failed')),
                               ),
                               TextButton(
-                                onPressed: () => ref
-                                    .read(searchProvider.notifier)
-                                    .loadMore(),
+                                onPressed: () {
+                                  if (isAnna) {
+                                    ref
+                                        .read(externalSearchProvider.notifier)
+                                        .loadMore();
+                                  } else {
+                                    ref
+                                        .read(searchProvider.notifier)
+                                        .loadMore();
+                                  }
+                                },
                                 child: Text(l10n.get('search_retry')),
                               ),
                             ],

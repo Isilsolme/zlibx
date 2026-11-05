@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +22,7 @@ import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_share_codec.dart';
 import 'services/share_intent_handler.dart';
+import 'services/instance_manager.dart';
 import 'l10n/app_localizations.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -27,6 +30,13 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+
+  // Warm the Anna's Archive / LibGen mirror catalogue (open-slum.org) so
+  // the first external search does not wait on it. refreshOnStartup is
+  // the startup variant of InstanceManager.refresh(): it restores the
+  // cached list first and never throws. Fire-and-forget on purpose —
+  // startup must not block on the mirror list.
+  unawaited(InstanceManager().refreshOnStartup());
 
   runApp(
     const ProviderScope(

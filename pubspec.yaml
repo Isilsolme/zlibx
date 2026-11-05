@@ -52,6 +52,8 @@ dependencies:
   dio_cookie_manager: ^3.1.1
   cookie_jar: ^4.0.8
   http: ^1.2.0
+  # HTML parsing for the external book sources (Anna's Archive / LibGen).
+  html: ^0.15.6
   
   # Storage
   hive: ^2.2.3

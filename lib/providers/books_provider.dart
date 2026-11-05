@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../models/display_book.dart';
+import '../services/annas_archieve.dart';
+import '../services/external_search.dart';
+import '../services/network_error.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
 
@@ -173,6 +176,143 @@ final bookDetailsProvider = FutureProvider.family<Book, BookIdentifier>((
   }
   return book;
 });
+
+// ── External Search (Anna's Archive) ─────────────────────────────────
+//
+// Mirrors SearchNotifier's shape, but over AnnasArchiveProvider. Anna has
+// no total_pages in its HTML search results, so pagination runs until an
+// empty page comes back (hasMore = the last page returned books).
+
+class ExternalSearchState {
+  final List<DisplayBook> books;
+  final int currentPage;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasSearched;
+  final bool hasMore;
+  final String? error;
+
+  const ExternalSearchState({
+    this.books = const [],
+    this.currentPage = 0,
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasSearched = false,
+    this.hasMore = true,
+    this.error,
+  });
+
+  ExternalSearchState copyWith({
+    List<DisplayBook>? books,
+    int? currentPage,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasSearched,
+    bool? hasMore,
+    String? error,
+  }) {
+    return ExternalSearchState(
+      books: books ?? this.books,
+      currentPage: currentPage ?? this.currentPage,
+      isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasSearched: hasSearched ?? this.hasSearched,
+      hasMore: hasMore ?? this.hasMore,
+      error: error,
+    );
+  }
+}
+
+class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
+  final AnnasArchiveProvider _provider;
+  String? _lastQuery;
+  int _requestId = 0;
+
+  ExternalSearchNotifier(this._provider) : super(const ExternalSearchState());
+
+  Future<void> search(String query) async {
+    final requestId = ++_requestId;
+    _lastQuery = query;
+    state = const ExternalSearchState(isLoading: true, hasSearched: true);
+
+    try {
+      final books = await _provider.search(SearchQuery(text: query, page: 1));
+      if (requestId != _requestId) return;
+      state = ExternalSearchState(
+        books: books.map((b) => b.toDisplay()).toList(),
+        currentPage: 1,
+        hasSearched: true,
+        hasMore: books.isNotEmpty,
+      );
+    } catch (e) {
+      if (requestId != _requestId) return;
+      state = ExternalSearchState(
+        hasSearched: true,
+        error: _errorMessage(e),
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_lastQuery == null ||
+        state.isLoadingMore ||
+        !state.hasMore) {
+      return;
+    }
+
+    final nextPage = state.currentPage + 1;
+    final requestId = _requestId;
+    state = state.copyWith(isLoadingMore: true);
+
+    try {
+      final books = await _provider.search(
+        SearchQuery(text: _lastQuery!, page: nextPage),
+      );
+      if (requestId != _requestId) return;
+      state = state.copyWith(
+        books: [...state.books, ...books.map((b) => b.toDisplay())],
+        currentPage: nextPage,
+        isLoadingMore: false,
+        hasMore: books.isNotEmpty,
+      );
+    } catch (e) {
+      if (requestId != _requestId) return;
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: _errorMessage(e),
+      );
+    }
+  }
+
+  void reset() {
+    _requestId++;
+    _lastQuery = null;
+    state = const ExternalSearchState();
+  }
+
+  /// NetworkError carries a human-readable userMessage (its toString is
+  /// just "NetworkError.<type>"); surface that, fall back to toString.
+  static String _errorMessage(Object e) {
+    if (e is NetworkError) return e.userMessage;
+    return e.toString();
+  }
+}
+
+final externalSearchProvider =
+    StateNotifierProvider<ExternalSearchNotifier, ExternalSearchState>((ref) {
+      return ExternalSearchNotifier(AnnasArchiveProvider());
+    });
+
+// ── Anna's Archive Book Details ──────────────────────────────────────
+//
+// [link] is the BookData.link from a search result (relative "/md5/…"
+// URL). AnnasArchieve.bookInfo throws on failure (Cloudflare block, no
+// mirror, parse failure), so the provider surfaces the error as-is.
+final annasBookDetailsProvider =
+    FutureProvider.family<BookInfoData, String>((ref, link) async {
+      final archive = AnnasArchieve();
+      return archive.bookInfo(url: link);
+    });
 
 class BookIdentifier {
   final String bookId;
