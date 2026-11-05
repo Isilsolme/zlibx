@@ -10,7 +10,6 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
-import '../../theme/app_colors.dart';
 
 /// Arguments for SimilarBooksScreen
 class SimilarBooksArgs {
@@ -107,7 +106,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.book_outlined, color: AppColors.primary, size: 20),
+                Icon(Icons.book_outlined, color: Theme.of(context).colorScheme.primary, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -158,7 +157,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                     IconButton(
                                       icon: Icon(
                                         _isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,
-                                        color: AppColors.primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                         size: 22,
                                       ),
                                       tooltip: _isListView ? l10n.get('grid_view') : l10n.get('list_view'),

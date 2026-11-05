@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../models/unified_shelf_item.dart';
-import '../../../theme/app_colors.dart';
 
 /// 封面 + 书名/作者的网格卡片，与首页、搜索页的卡片语言保持一致。
 class ShelfGridItem extends StatelessWidget {
@@ -72,7 +71,7 @@ class ShelfGridItem extends StatelessWidget {
                     right: 6,
                     bottom: 6,
                     child: _CircleBadge(
-                      color: AppColors.primary,
+                      color: cs.primary,
                       child: const Icon(
                         Icons.download_done_rounded,
                         size: 13,
@@ -330,29 +329,29 @@ class _ShelfCover extends StatelessWidget {
                     fit: BoxFit.cover,
                     memCacheWidth: cacheWidth > 0 ? cacheWidth : null,
                     fadeInDuration: const Duration(milliseconds: 250),
-                    placeholder: (_, __) => _fallback(dark),
-                    errorWidget: (_, __, ___) => _fallback(dark),
+                    placeholder: (_, __) => _fallback(cs, dark),
+                    errorWidget: (_, __, ___) => _fallback(cs, dark),
                   )
-                : _fallback(dark),
+                : _fallback(cs, dark),
           ),
         );
       },
     );
   }
 
-  Widget _fallback(bool dark) => DecoratedBox(
+  Widget _fallback(ColorScheme cs, bool dark) => DecoratedBox(
     decoration: BoxDecoration(
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: dark
             ? [
-                AppColors.primary.withValues(alpha: 0.45),
-                AppColors.primary.withValues(alpha: 0.2),
+                cs.primary.withValues(alpha: 0.45),
+                cs.primary.withValues(alpha: 0.2),
               ]
             : [
-                AppColors.primary.withValues(alpha: 0.85),
-                AppColors.primary.withValues(alpha: 0.6),
+                cs.primary.withValues(alpha: 0.85),
+                cs.primary.withValues(alpha: 0.6),
               ],
       ),
     ),
@@ -389,12 +388,13 @@ class _CoverPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Tooltip(
       message: text,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.92),
+          color: cs.primary.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(

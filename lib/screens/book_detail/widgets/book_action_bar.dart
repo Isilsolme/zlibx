@@ -6,7 +6,6 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/domain_provider.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/update_service.dart';
 import '../../../routes/app_routes.dart';
@@ -223,12 +222,12 @@ class BookActionBar extends ConsumerWidget {
               ? '这本书已经下载过了。\n\n您可以打开现有文件或重新下载。'
               : 'This book has already been downloaded.\n\nYou can open the existing file or download again.',
           btnCancelText: isZh ? '打开文件' : 'Open File',
-          btnCancelColor: Colors.green,
+          btnCancelColor: Theme.of(context).colorScheme.primary,
           btnCancelOnPress: () {
             OpenFilex.open(existingPath);
           },
           btnOkText: isZh ? '重新下载' : 'Download Again',
-          btnOkColor: AppColors.primary,
+          btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             _kickoffDownload(context, ref);
           },

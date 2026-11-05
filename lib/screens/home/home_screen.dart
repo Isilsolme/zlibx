@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/update_service.dart';
-import '../../theme/app_colors.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
@@ -153,7 +152,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
             textColor: Colors.white,
             onPressed: () => showUpdateDialog(context),
           ),
-          backgroundColor: AppColors.primary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -185,7 +184,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                AppColors.primary.withValues(alpha:0.05),
+                cs.primary.withValues(alpha:0.05),
                 theme.scaffoldBackgroundColor,
               ],
             ),
@@ -281,7 +280,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: cs.primary,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
@@ -296,8 +295,8 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   // 推荐书籍标题
                   Row(
                     children: [
-                      const Icon(Icons.local_fire_department_rounded,
-                          color: AppColors.primary, size: 22),
+                      Icon(Icons.local_fire_department_rounded,
+                          color: cs.primary, size: 22),
                       const SizedBox(width: 6),
                       Text(
                         Localizations.localeOf(context).languageCode == 'zh'

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/settings_provider.dart';
-import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
@@ -147,7 +146,7 @@ class LanguageSection extends ConsumerWidget {
         ),
       ),
       trailing: isSelected
-          ? const Icon(Icons.check_circle, color: AppColors.primary)
+          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
           : null,
       onTap: () {
         if (key == null) {

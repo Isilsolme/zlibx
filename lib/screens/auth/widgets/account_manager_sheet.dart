@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
-import '../../../theme/app_colors.dart';
 
 enum AccountManagerResult { switched, addAccount }
 
@@ -92,7 +91,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
             child: Text(l10n.get('remove')),
           ),
         ],
@@ -302,9 +301,9 @@ class _AccountTile extends StatelessWidget {
                   value: 'remove',
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.delete_outline_rounded,
-                        color: AppColors.error,
+                        color: cs.error,
                       ),
                       const SizedBox(width: 12),
                       Text(l10n.get('remove_account')),

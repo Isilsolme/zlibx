@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -8,14 +7,15 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: AppColors.primary,
+            decoration: BoxDecoration(
+              color: cs.primary,
               shape: BoxShape.circle,
             ),
             child: const CircularProgressIndicator(

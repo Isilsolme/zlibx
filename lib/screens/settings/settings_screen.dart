@@ -6,7 +6,6 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/update_dialog.dart';
 import '../../routes/app_routes.dart';
-import '../../theme/app_colors.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/locale_utils.dart' as locale_utils;
 import '../auth/login_screen.dart';
@@ -110,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
               icon: const Icon(Icons.logout, size: 18),
               label: Text(t.get('logout')),
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.error,
+                foregroundColor: Theme.of(context).colorScheme.error,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -156,7 +155,7 @@ class SettingsScreen extends ConsumerWidget {
       btnCancelText: isZh ? '取消' : 'Cancel',
       btnCancelOnPress: () {},
       btnOkText: isZh ? '退出' : 'Log out',
-      btnOkColor: AppColors.error,
+      btnOkColor: Theme.of(context).colorScheme.error,
       btnOkOnPress: () async {
         await ref.read(authProvider.notifier).logout();
         if (context.mounted) {

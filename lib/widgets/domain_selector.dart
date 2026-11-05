@@ -19,6 +19,7 @@ class DomainSelector extends ConsumerWidget {
     // Find line number for current domain
     final idx = domains.indexOf(currentDomain);
     final label = idx >= 0 ? 'Line ${idx + 1}' : 'Custom';
+    final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
 
     if (compact) {
       return IconButton(
@@ -35,10 +36,10 @@ class DomainSelector extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: (color ?? AppColors.primary).withValues(alpha: 0.1),
+          color: effectiveColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: (color ?? AppColors.primary).withValues(alpha: 0.3),
+            color: effectiveColor.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
@@ -47,19 +48,19 @@ class DomainSelector extends ConsumerWidget {
             Icon(
               Icons.dns_outlined,
               size: 18,
-              color: color ?? AppColors.primary,
+              color: effectiveColor,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: color ?? AppColors.primary,
+                color: effectiveColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_drop_down, color: color ?? AppColors.primary),
+            Icon(Icons.arrow_drop_down, color: effectiveColor),
           ],
         ),
       ),
@@ -137,8 +138,8 @@ class DomainSelectionDialog extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: speedState.onlineCount > 0
-                          ? Colors.green
-                          : Colors.grey,
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
           ),
@@ -216,7 +217,7 @@ class DomainSelectionDialog extends ConsumerWidget {
         child: CircularProgressIndicator(strokeWidth: 1.5),
       );
     } else if (status == DomainLatencyStatus.unavailable) {
-      trailing = const Icon(Icons.close, size: 16, color: AppColors.error);
+      trailing = Icon(Icons.close, size: 16, color: Theme.of(context).colorScheme.error);
     } else {
       final latColor = status == DomainLatencyStatus.normal
           ? AppColors.success
@@ -235,14 +236,14 @@ class DomainSelectionDialog extends ConsumerWidget {
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
       leading: isSelected
-          ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20)
           : const Icon(Icons.circle_outlined, size: 20, color: Colors.grey),
       title: Text(
         label,
         style: TextStyle(
           fontSize: 14,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-          color: isSelected ? AppColors.primary : null,
+          color: isSelected ? Theme.of(context).colorScheme.primary : null,
         ),
       ),
       trailing: trailing,
@@ -266,7 +267,7 @@ class DomainSelectionDialog extends ConsumerWidget {
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
       leading: isCustom
-          ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20)
           : const Icon(Icons.edit_outlined, size: 20, color: Colors.grey),
       title: Text(
         isCustom
@@ -275,7 +276,7 @@ class DomainSelectionDialog extends ConsumerWidget {
         style: TextStyle(
           fontSize: 14,
           fontWeight: isCustom ? FontWeight.w700 : FontWeight.normal,
-          color: isCustom ? AppColors.primary : Colors.grey,
+          color: isCustom ? Theme.of(context).colorScheme.primary : Colors.grey,
         ),
       ),
       trailing: const Icon(Icons.chevron_right, size: 18),

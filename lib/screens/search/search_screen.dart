@@ -14,7 +14,6 @@ import '../../models/display_book.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/search_filters.dart';
-import '../../theme/app_colors.dart';
 import '../../services/update_service.dart';
 import '../../services/hive_service.dart';
 
@@ -238,7 +237,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     IconButton(
                       icon: Icon(
                           Icons.tune,
-                          color: _showFilters ? AppColors.primary : null,
+                          color: _showFilters ? Theme.of(context).colorScheme.primary : null,
                         ),
                         onPressed: () {
                           setState(() {
@@ -558,10 +557,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       child: ChoiceChip(
                         label: Text(entry.value),
                         selected: _selectedExtension == entry.key,
-                        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                        selectedColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                         labelStyle: TextStyle(
                           color: _selectedExtension == entry.key
-                              ? AppColors.primary
+                              ? Theme.of(context).colorScheme.primary
                               : null,
                           fontWeight: _selectedExtension == entry.key
                               ? FontWeight.bold
@@ -614,7 +613,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         iconStyleData: IconStyleData(
           icon: const Icon(Icons.keyboard_arrow_down_rounded),
           iconSize: 20,
-          iconEnabledColor: AppColors.primary,
+          iconEnabledColor: Theme.of(context).colorScheme.primary,
         ),
         dropdownStyleData: DropdownStyleData(
           maxHeight: 300,

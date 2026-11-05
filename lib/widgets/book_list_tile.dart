@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/display_book.dart';
-import '../theme/app_colors.dart';
 
 /// Compact list tile for books.
 class BookListTile extends StatelessWidget {
@@ -86,7 +85,7 @@ class BookListTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
-                ).textTheme.labelSmall?.copyWith(color: AppColors.primary),
+                ).textTheme.labelSmall?.copyWith(color: cs.primary),
               ),
             ],
             const SizedBox(height: 4),
@@ -100,13 +99,13 @@ class BookListTile extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.15),
+                      color: cs.secondary.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       book.tag!,
-                      style: const TextStyle(
-                        color: AppColors.accent,
+                      style: TextStyle(
+                        color: cs.secondary,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
@@ -133,10 +132,10 @@ class BookListTile extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.star_rounded,
                         size: 14,
-                        color: AppColors.accent,
+                        color: cs.secondary,
                       ),
                       const SizedBox(width: 2),
                       Text(

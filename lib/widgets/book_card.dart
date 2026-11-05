@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../l10n/app_localizations.dart';
 import '../models/display_book.dart';
-import '../theme/app_colors.dart';
 import 'book_cover_backdrop.dart';
 
 class BookCard extends StatefulWidget {
@@ -421,8 +420,8 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
               widget.book.tag!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.accent,
+              style: TextStyle(
+                color: cs.secondary,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
@@ -457,7 +456,7 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
     return Row(
       children: [
         if (hasScore) ...[
-          const Icon(Icons.star_rounded, size: 14, color: AppColors.accent),
+          Icon(Icons.star_rounded, size: 14, color: cs.secondary),
           const SizedBox(width: 4),
           Text(
             widget.book.score!,
@@ -483,6 +482,7 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
 
   /// Placeholder when no cover or load error — gradient background + book icon
   Widget _buildPlaceholder({bool showBookInfo = false}) {
+    final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final background = Container(
       decoration: BoxDecoration(
@@ -491,19 +491,19 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  AppColors.primary.withValues(alpha:0.15),
-                  AppColors.primary.withValues(alpha:0.08),
+                  cs.primary.withValues(alpha:0.15),
+                  cs.primary.withValues(alpha:0.08),
                 ]
               : [
-                  AppColors.primary.withValues(alpha:0.08),
-                  AppColors.primary.withValues(alpha:0.04),
+                  cs.primary.withValues(alpha:0.08),
+                  cs.primary.withValues(alpha:0.04),
                 ],
         ),
       ),
       child: Center(
         child: Icon(
           Icons.auto_stories_rounded,
-          color: AppColors.primary.withValues(alpha:isDark ? 0.4 : 0.25),
+          color: cs.primary.withValues(alpha:isDark ? 0.4 : 0.25),
           size: 36,
         ),
       ),

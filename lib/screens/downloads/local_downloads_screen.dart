@@ -61,8 +61,8 @@ class LocalDownloadsScreen extends ConsumerWidget {
             ),
           ],
           bottom: TabBar(
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
+            indicatorColor: Theme.of(context).colorScheme.primary,
+            labelColor: Theme.of(context).colorScheme.primary,
             tabs: [
               Tab(text: '${l.get('ongoing')} (${ongoing.length})'),
               Tab(text: '${l.get('completed')} (${completed.length})'),
@@ -334,9 +334,9 @@ class _DownloadItem extends ConsumerWidget {
     final (label, color) = switch (task.status) {
       DownloadStatus.pending => (
         l.get('download_preparing'),
-        AppColors.primary,
+        Theme.of(context).colorScheme.primary,
       ),
-      DownloadStatus.downloading => (l.get('downloading'), AppColors.primary),
+      DownloadStatus.downloading => (l.get('downloading'), Theme.of(context).colorScheme.primary),
       DownloadStatus.completed => (l.get('completed'), AppColors.success),
       DownloadStatus.error => (
         l.get('download_failed'),

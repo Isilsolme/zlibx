@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
@@ -79,21 +78,21 @@ class AboutSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: cs.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.auto_stories,
-                color: AppColors.primary,
+                color: cs.primary,
                 size: 28,
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
+            Text(
               'olib lite',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+                color: cs.primary,
               ),
             ),
           ],
@@ -144,8 +143,8 @@ class AboutSection extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.star,
-                        color: AppColors.primary, size: 20),
+                    Icon(Icons.star,
+                        color: cs.primary, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -177,7 +176,7 @@ class AboutSection extends StatelessWidget {
             icon: const Icon(Icons.code, size: 16),
             label: Text(isZh ? '查看源码' : 'View Source'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: cs.primary,
               foregroundColor: Colors.white,
             ),
           ),

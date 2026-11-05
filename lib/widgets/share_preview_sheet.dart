@@ -8,7 +8,6 @@ import '../screens/lan/lan_connect.dart';
 import '../services/booklist_share_codec.dart';
 import '../utils/booklist_file_utils.dart';
 import '../utils/share_utils.dart';
-import '../theme/app_colors.dart';
 import 'share_snapshot_widget.dart';
 
 class SharePreviewSheet extends StatefulWidget {
@@ -274,7 +273,7 @@ class _SharePreviewSheetState extends State<SharePreviewSheet> {
                     icon: const Icon(Icons.share_rounded, size: 20),
                     label: Text(l.get('share_image')),
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: Theme.of(context).colorScheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -321,16 +320,16 @@ class _SharePreviewSheetState extends State<SharePreviewSheet> {
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => setState(() => _selectedStyle = style),
-      selectedColor: AppColors.primary.withValues(alpha:0.2),
+      selectedColor: cs.primary.withValues(alpha:0.2),
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.primary : cs.onSurfaceVariant,
+        color: isSelected ? cs.primary : cs.onSurfaceVariant,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
       ),
       backgroundColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? AppColors.primary : cs.outlineVariant,
+          color: isSelected ? cs.primary : cs.outlineVariant,
         ),
       ),
     );

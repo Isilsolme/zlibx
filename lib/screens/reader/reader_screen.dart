@@ -6,7 +6,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../theme/app_colors.dart';
 
 class ReaderScreen extends StatefulWidget {
   final String url;
@@ -149,7 +148,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         actions: [
           if (_probeEnabled) ...[
@@ -295,8 +294,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               right: 0,
               child: LinearProgressIndicator(
                 value: _progress,
-                backgroundColor: Colors.grey[200],
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                backgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
               ),
             ),
         ],

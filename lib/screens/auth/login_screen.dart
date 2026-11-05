@@ -4,7 +4,6 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../theme/app_colors.dart';
 import '../../services/update_service.dart';
 import '../../widgets/domain_selector.dart';
 import '../../widgets/update_dialog.dart';
@@ -72,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             label: isZh ? '更新' : 'Update',
             onPressed: () => showUpdateDialog(context),
           ),
-          backgroundColor: AppColors.primary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -148,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           btnCancelText: isZh ? '关闭' : 'Close',
           btnCancelOnPress: () {},
           btnOkText: isZh ? '切换线路' : 'Switch Line',
-          btnOkColor: AppColors.primary,
+          btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             showDialog(
               context: context,
@@ -170,7 +169,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ? '登录失败，暂时无法确认原因。\n线路：$lineName\n时间：$occurredAt\n\n错误详情：${safeLoginErrorDetail(error, email, password)}\n\n请截图此弹窗反馈。'
                     : 'Login failed for an unknown reason.\nLine: $lineName\nTime: $occurredAt\n\nError details: ${safeLoginErrorDetail(error, email, password)}\n\nPlease screenshot this dialog and send it with your feedback.'),
           btnOkText: isZh ? '确定' : 'OK',
-          btnOkColor: AppColors.primary,
+          btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
         ).show();
       }
@@ -226,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ],
       ),
       body: Container(
-        decoration: const BoxDecoration(color: AppColors.primary),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -386,7 +385,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,

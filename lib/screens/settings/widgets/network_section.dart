@@ -130,7 +130,7 @@ class _LineStatus extends StatelessWidget {
       );
     }
     if (status == DomainLatencyStatus.unavailable) {
-      return (isZh ? '不可用' : 'Unavailable', AppColors.error);
+      return (isZh ? '不可用' : 'Unavailable', cs.error);
     }
     if (status == DomainLatencyStatus.normal) {
       return ('${latency!}ms', AppColors.success);

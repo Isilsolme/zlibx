@@ -6,7 +6,6 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/lan_client.dart';
-import '../../theme/app_colors.dart';
 
 /// 从电脑导入（LAN 取书）：扫桌面「无线传书」二维码进入。
 /// 流程：GET /api/info 确认对端 → GET /api/files 列表 → 勾选下载，
@@ -203,11 +202,11 @@ class _LanImportScreenState extends ConsumerState<LanImportScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          color: AppColors.primary.withValues(alpha: 0.06),
+          color: cs.primary.withValues(alpha: 0.06),
           child: Row(
             children: [
-              const Icon(Icons.laptop_mac_rounded,
-                  size: 18, color: AppColors.primary),
+              Icon(Icons.laptop_mac_rounded,
+                  size: 18, color: cs.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -254,15 +253,15 @@ class _LanImportScreenState extends ConsumerState<LanImportScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
+        color: cs.primary.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         ext.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.primary,
+          color: cs.primary,
         ),
       ),
     );

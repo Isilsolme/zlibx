@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../providers/settings_provider.dart';
-import '../../../theme/app_colors.dart';
 import '../../../utils/file_utils.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
@@ -88,8 +87,8 @@ class DownloadPathSection extends ConsumerWidget {
                   // On Android 10+, MediaStore handles downloads automatically
                   if (Platform.isAndroid) ...[
                     ListTile(
-                      leading: const Icon(
-                          Icons.download, color: AppColors.primary),
+                      leading: Icon(
+                          Icons.download, color: Theme.of(context).colorScheme.primary),
                       title: Text(
                           isZh ? '系统下载文件夹' : 'System Downloads Folder'),
                       subtitle: Text(
@@ -101,13 +100,16 @@ class DownloadPathSection extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           isZh ? '推荐' : 'Recommended',
-                          style: const TextStyle(
-                            color: Colors.green,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -175,8 +177,8 @@ class DownloadPathSection extends ConsumerWidget {
                     ...[
                       // On desktop platforms, use file picker
                       ListTile(
-                        leading: const Icon(
-                            Icons.folder_open, color: AppColors.primary),
+                        leading: Icon(
+                            Icons.folder_open, color: Theme.of(context).colorScheme.primary),
                         title: Text(isZh ? '选择文件夹' : 'Select Folder'),
                         subtitle: Text(isZh
                             ? '选择自定义下载目录'

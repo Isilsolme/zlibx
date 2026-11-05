@@ -7,7 +7,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../providers/speed_test_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../theme/app_colors.dart';
 import '../../widgets/domain_selector.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -153,6 +152,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<_LineAction?> _showLineUnavailableDialog() async {
+    final cs = Theme.of(context).colorScheme;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     return showDialog<_LineAction>(
       context: context,
@@ -186,7 +186,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               if (ctx.mounted) Navigator.pop(ctx, _LineAction.retry);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: cs.primary,
               foregroundColor: Colors.white,
             ),
             child: Text(isZh ? '切换线路' : 'Switch Line'),
@@ -255,16 +255,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1B4332), // Deeper forest
-              AppColors.primary,  // Core primary
-              Color(0xFF40916C), // Lighter forest
+              Color.lerp(cs.primary, Colors.black, 0.35)!,
+              cs.primary,  // Core primary
+              cs.primaryContainer,
             ],
             stops: [0.0, 0.5, 1.0],
           ),

@@ -57,7 +57,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.error ?? AppLocalizations.of(context).get('failed_send_code')),
-          backgroundColor: AppColors.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -89,7 +89,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error ?? AppLocalizations.of(context).get('registration_failed')),
-          backgroundColor: AppColors.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -111,8 +111,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       extendBodyBehindAppBar: true,
       body: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
         ),
         child: SafeArea(
           child: Center(
@@ -233,7 +233,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   ? null
                                   : (_codeSent ? _register : _sendCode),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
+                                backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
