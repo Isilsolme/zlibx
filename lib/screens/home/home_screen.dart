@@ -66,6 +66,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     bool hideNavOnScroll,
     bool navVisible,
   ) {
+    // Coolapk-style destinations: the selected tab gets a primaryContainer
+    // pill that wraps both the icon and the label (the fork's
+    // LiquidNavigationBar does the same), instead of the M3 NavigationBar
+    // indicator which only wraps the icon.
+    const destinations = [
+      (
+        icon: Icons.local_fire_department_outlined,
+        selectedIcon: Icons.local_fire_department,
+        labelKey: 'recommended',
+      ),
+      (
+        icon: Icons.library_books_outlined,
+        selectedIcon: Icons.library_books,
+        labelKey: 'bookshelf',
+      ),
+      (
+        icon: Icons.cloud_download_outlined,
+        selectedIcon: Icons.cloud_download,
+        labelKey: 'downloads',
+      ),
+      (
+        icon: Icons.settings_outlined,
+        selectedIcon: Icons.settings,
+        labelKey: 'settings',
+      ),
+    ];
+
     Widget navBar = Container(
       decoration: BoxDecoration(
         color: blurEnabled ? cs.surface.withValues(alpha: 0.7) : cs.surface,
@@ -77,45 +104,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
       ),
-      child: NavigationBar(
-        selectedIndex: _selectedIndex,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        onDestinationSelected: (index) {
-          if (index == 0) {
-            // Recommended: the home tab, scrolled to the top.
-            _homeTabKey.currentState?.scrollToTop();
-            setState(() => _selectedIndex = 0);
-          } else if (index == 1) {
-            Navigator.of(context).pushNamed(AppRoutes.favorites);
-          } else if (index == 2) {
-            Navigator.of(context).pushNamed(AppRoutes.downloads);
-          } else if (index == 3) {
-            Navigator.of(context).pushNamed(AppRoutes.settings);
-          }
-        },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.local_fire_department_outlined),
-            selectedIcon: const Icon(Icons.local_fire_department),
-            label: AppLocalizations.of(context).get('recommended'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.library_books_outlined),
-            selectedIcon: const Icon(Icons.library_books),
-            label: AppLocalizations.of(context).get('bookshelf'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.cloud_download_outlined),
-            selectedIcon: const Icon(Icons.cloud_download),
-            label: AppLocalizations.of(context).get('downloads'),
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
-            label: AppLocalizations.of(context).get('settings'),
-          ),
-        ],
+      child: SizedBox(
+        height: 80,
+        child: Row(
+          children: [
+            for (var i = 0; i < destinations.length; i++)
+              Expanded(
+                child: Stack(
+                  children: [
+                    if (_selectedIndex == i)
+                      Positioned.fill(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 2,
+                            vertical: 4,
+                          ),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: cs.primaryContainer,
+                              borderRadius: BorderRadius.circular(40),
+                            ),
+                          ),
+                        ),
+                      ),
+                    Positioned.fill(
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _onDestinationSelected(context, i),
+                          borderRadius: BorderRadius.circular(40),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _selectedIndex == i
+                                    ? destinations[i].selectedIcon
+                                    : destinations[i].icon,
+                                color: _selectedIndex == i
+                                    ? cs.onPrimaryContainer
+                                    : cs.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).get(destinations[i].labelKey),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: _selectedIndex == i
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: _selectedIndex == i
+                                      ? cs.onPrimaryContainer
+                                      : cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
     if (!blurEnabled) {
@@ -140,6 +193,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       curve: Curves.easeInOut,
       child: navBar,
     );
+  }
+
+  void _onDestinationSelected(BuildContext context, int index) {
+    if (index == 0) {
+      // Recommended: the home tab, scrolled to the top.
+      _homeTabKey.currentState?.scrollToTop();
+      setState(() => _selectedIndex = 0);
+    } else if (index == 1) {
+      Navigator.of(context).pushNamed(AppRoutes.favorites);
+    } else if (index == 2) {
+      Navigator.of(context).pushNamed(AppRoutes.downloads);
+    } else if (index == 3) {
+      Navigator.of(context).pushNamed(AppRoutes.settings);
+    }
   }
 
   /// Floating style: detach the bar from the bottom edge as a rounded

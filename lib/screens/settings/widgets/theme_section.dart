@@ -42,9 +42,15 @@ class ThemeSection extends ConsumerWidget {
             title: Text(t.get('appearance')),
             subtitle: Text(summary),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => showDialog(
+            onTap: () => showModalBottomSheet(
               context: context,
-              builder: (_) => const AppearanceDialog(),
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              builder: (_) => const AppearanceSheet(),
             ),
           ),
         ),
@@ -53,11 +59,12 @@ class ThemeSection extends ConsumerWidget {
   }
 }
 
-/// Appearance popup — the five switches (follow system, dark mode, blur
-/// effect, floating bar, hide on scroll), in the same AlertDialog style
-/// as the network-line picker.
-class AppearanceDialog extends ConsumerWidget {
-  const AppearanceDialog({super.key});
+/// Appearance bottom sheet — the five switches (follow system, dark mode,
+/// blur effect, floating bar, hide on scroll), in the same bottom-sheet
+/// style as the language picker (drag handle, centred bold title,
+/// divider). Dismiss by dragging down or tapping outside; no Close button.
+class AppearanceSheet extends ConsumerWidget {
+  const AppearanceSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -69,77 +76,85 @@ class AppearanceDialog extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final followingSystem = themeMode == AppThemeMode.system;
 
-    return AlertDialog(
-      title: Text(t.get('appearance')),
-      contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              title: Text(t.get('system')),
-              value: followingSystem,
-              activeColor: cs.primary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onChanged: (value) {
-                ref.read(themeModeProvider.notifier).setThemeMode(
-                      value ? AppThemeMode.system : AppThemeMode.light,
-                    );
-              },
-            ),
-            SwitchListTile(
-              title: Text(t.get('dark_mode')),
-              value: themeMode == AppThemeMode.dark,
-              activeColor: cs.primary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onChanged: followingSystem
-                  ? null
-                  : (value) {
-                      ref.read(themeModeProvider.notifier).setThemeMode(
-                            value ? AppThemeMode.dark : AppThemeMode.light,
-                          );
-                    },
-            ),
-            SwitchListTile(
-              title: Text(t.get('blur_effect')),
-              value: blurEnabled,
-              activeColor: cs.primary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onChanged: (value) {
-                ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
-              },
-            ),
-            SwitchListTile(
-              title: Text(t.get('floating_nav')),
-              value: floatingNav,
-              activeColor: cs.primary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onChanged: (value) {
-                ref.read(floatingNavProvider.notifier).setFloatingNav(value);
-              },
-            ),
-            SwitchListTile(
-              title: Text(t.get('hide_nav_on_scroll')),
-              value: hideNavOnScroll,
-              activeColor: cs.primary,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-              onChanged: floatingNav
-                  ? (value) {
-                      ref
-                          .read(hideNavOnScrollProvider.notifier)
-                          .setHideNavOnScroll(value);
-                    }
-                  : null,
-            ),
-          ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Handle bar
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          width: 40,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(t.get('close')),
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            t.get('appearance'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
         ),
+        const Divider(height: 1),
+        SwitchListTile(
+          title: Text(t.get('system')),
+          value: followingSystem,
+          activeColor: cs.primary,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onChanged: (value) {
+            ref.read(themeModeProvider.notifier).setThemeMode(
+                  value ? AppThemeMode.system : AppThemeMode.light,
+                );
+          },
+        ),
+        SwitchListTile(
+          title: Text(t.get('dark_mode')),
+          value: themeMode == AppThemeMode.dark,
+          activeColor: cs.primary,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onChanged: followingSystem
+              ? null
+              : (value) {
+                  ref.read(themeModeProvider.notifier).setThemeMode(
+                        value ? AppThemeMode.dark : AppThemeMode.light,
+                      );
+                },
+        ),
+        SwitchListTile(
+          title: Text(t.get('blur_effect')),
+          value: blurEnabled,
+          activeColor: cs.primary,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onChanged: (value) {
+            ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
+          },
+        ),
+        SwitchListTile(
+          title: Text(t.get('floating_nav')),
+          value: floatingNav,
+          activeColor: cs.primary,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onChanged: (value) {
+            ref.read(floatingNavProvider.notifier).setFloatingNav(value);
+          },
+        ),
+        SwitchListTile(
+          title: Text(t.get('hide_nav_on_scroll')),
+          value: hideNavOnScroll,
+          activeColor: cs.primary,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          onChanged: floatingNav
+              ? (value) {
+                  ref
+                      .read(hideNavOnScrollProvider.notifier)
+                      .setHideNavOnScroll(value);
+                }
+              : null,
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
