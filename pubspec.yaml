@@ -103,7 +103,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   image_path: "assets/icons/olib-app-logo.png"
-  adaptive_icon_background: "#EAF1E9"
+  adaptive_icon_background: "#FFEBCC"
   adaptive_icon_foreground: "assets/icons/olib-app-logo.png"
   min_sdk_android: 21
 
