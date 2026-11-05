@@ -208,6 +208,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (_) {
       // WebView never initialized — nothing to clear.
     }
+    try {
+      await WebStorageManager.instance().deleteAllData();
+    } catch (_) {}
+    try {
+      await InAppWebViewController.clearAllCache();
+    } catch (_) {}
     state = AuthState();
   }
 

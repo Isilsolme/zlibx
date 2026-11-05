@@ -57,15 +57,27 @@ android {
         release {
             // Release signing requires key.properties + keystore. Refuse to
             // build a release with the debug key: fail here, loudly.
-            val releaseSigning = signingConfigs.getByName("release")
-            signingConfig = if (releaseSigning.storeFile != null) {
-                releaseSigning
-            } else {
-                error("Release signing requires android/key.properties with a valid keystore; refusing to sign a release build with the debug key.")
-            }
+            // Never the debug key. A missing keystore is rejected in the
+            // taskGraph check below, so debug builds / tests still configure.
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
         }
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val wantsRelease = allTasks.any { t ->
+        val n = t.name
+        n.contains("Release") &&
+            (n.startsWith("assemble") || n.startsWith("bundle") ||
+                n.startsWith("package") || n.startsWith("validateSigning"))
+    }
+    if (wantsRelease && android.signingConfigs.getByName("release").storeFile == null) {
+        throw GradleException(
+            "Release signing requires android/key.properties with a valid keystore; " +
+                "refusing to sign a release build with the debug key."
+        )
     }
 }
 

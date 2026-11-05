@@ -20,10 +20,10 @@ export 'update/update_manifest.dart' show UpdateLink;
 class UpdateService {
   /// GitHub Releases 数据源
   static const String _releaseApiUrl =
-      'https://api.github.com/repos/shiyi-0x7f/olib-mobile/releases/latest';
+      'https://api.github.com/repos/minglaiyo/olib-mobile-lite/releases/latest';
 
   /// 官网项目页（MindSet `olib-mobile`），PanSync 发版时同步网盘链接到这里
-  static const String _downloadUrl = 'https://www.11xy.cn/projects/olib-mobile';
+  static const String _downloadUrl = 'https://github.com/minglaiyo/olib-mobile-lite/releases';
 
   static const String _lastCheckKey = 'last_update_check';
   static const String _dismissedVersionKey = 'dismissed_version';

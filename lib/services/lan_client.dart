@@ -25,11 +25,37 @@ class LanPeer {
     if (uri == null) return null;
     if (uri.scheme != 'http' && uri.scheme != 'https') return null;
     if (uri.host.isEmpty) return null;
+    // 只允许局域网 / 本机地址：扫到恶意二维码时，token 不会被送往公网主机。
+    if (!_isLanHost(uri.host)) return null;
     final token = uri.queryParameters['token'];
     final base =
         '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
     return LanPeer(baseUrl: base, token: (token?.isEmpty ?? true) ? null : token);
   }
+}
+
+/// 私网 IPv4（10/8、172.16/12、192.168/16）、链路本地（169.254/16）、
+/// 回环、`localhost`、`*.local`，以及 IPv6 的回环 / 链路本地 / ULA。
+bool _isLanHost(String rawHost) {
+  final host = rawHost.toLowerCase();
+  if (host == 'localhost' || host.endsWith('.local')) return true;
+  final v4 = RegExp(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$').firstMatch(host);
+  if (v4 != null) {
+    final o = [for (var i = 1; i <= 4; i++) int.parse(v4.group(i)!)];
+    if (o.any((n) => n > 255)) return false;
+    return o[0] == 10 ||
+        o[0] == 127 ||
+        (o[0] == 172 && o[1] >= 16 && o[1] <= 31) ||
+        (o[0] == 192 && o[1] == 168) ||
+        (o[0] == 169 && o[1] == 254);
+  }
+  if (host.contains(':')) {
+    return host == '::1' ||
+        host.startsWith('fe80:') ||
+        host.startsWith('fc') ||
+        host.startsWith('fd');
+  }
+  return false;
 }
 
 /// `GET /api/info` 响应 — 对端身份。

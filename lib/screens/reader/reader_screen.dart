@@ -42,9 +42,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
   /// 初始阅读页 host：站内导航只允许它及其子域，其余一律外部打开。
   String get _initialHost => Uri.tryParse(widget.url)?.host ?? '';
 
-  bool _isAllowedHost(String host) {
-    if (_initialHost.isEmpty) return false;
-    return host == _initialHost || host.endsWith('.$_initialHost');
+  bool _isAllowedHost(String rawHost) {
+    final host = rawHost.toLowerCase();
+    final initial = _initialHost.toLowerCase();
+    if (initial.isEmpty) return false;
+    return host == initial || host.endsWith('.$initial');
   }
 
   /// 会话改走 WebView Cookie（HttpOnly + Secure），不再拼进 URL。
@@ -186,6 +188,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
               javaScriptEnabled: true,
               domStorageEnabled: true,
               databaseEnabled: true,
+              allowFileAccess: false,
+              allowContentAccess: false,
+              mixedContentMode: MixedContentMode.MIXED_CONTENT_NEVER_ALLOW,
               useWideViewPort: true,
               loadWithOverviewMode: true,
               supportZoom: true,
@@ -210,12 +215,30 @@ class _ReaderScreenState extends State<ReaderScreen> {
               if (uri == null || uri.host.isEmpty) {
                 return NavigationActionPolicy.CANCEL;
               }
-              if (!_isAllowedHost(uri.host)) {
-                // 站外链接不在 WebView 里打开，避免带会话的页面被带走。
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              // 只处理 http(s)：intent:// 等其他 scheme 一律拒绝。
+              final scheme = uri.scheme.toLowerCase();
+              if (scheme != 'https' && scheme != 'http') {
                 return NavigationActionPolicy.CANCEL;
               }
-              return NavigationActionPolicy.ALLOW;
+              if (!_isAllowedHost(uri.host)) {
+                // 站外链接不在 WebView 里打开，避免带会话的页面被带走。
+                if (scheme == 'https') {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+                return NavigationActionPolicy.CANCEL;
+              }
+              // 站内也只放行 https，避免会话页面降级到明文。
+              return scheme == 'https'
+                  ? NavigationActionPolicy.ALLOW
+                  : NavigationActionPolicy.CANCEL;
+            },
+            onCreateWindow: (controller, action) async {
+              // window.open / target=_blank：不开新 WebView，https 交给系统浏览器。
+              final uri = action.request.url;
+              if (uri != null && uri.scheme.toLowerCase() == 'https') {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+              return false;
             },
             onLoadStart: (controller, url) {
               setState(() {

@@ -34,17 +34,25 @@ class AuthStorage {
     'backend_device_id',
   ];
 
-  static bool _migrationDone = false;
+  static Future<void>? _migration;
 
   /// One-time move of legacy plaintext Hive credentials into secure
-  /// storage. Runs once per process; safe to call before every operation.
-  Future<void> _migrateLegacyIfNeeded() async {
-    if (_migrationDone) return;
-    _migrationDone = true;
+  /// storage. Single-flight: concurrent callers all await the same run, so
+  /// nobody reads an empty secure store while the move is in progress. On
+  /// failure the legacy data is left untouched and the next call retries.
+  Future<void> _migrateLegacyIfNeeded() {
+    return _migration ??= _runMigration().catchError((Object e, StackTrace s) {
+      _migration = null;
+      Error.throwWithStackTrace(e, s);
+    });
+  }
+
+  Future<void> _runMigration() async {
     final box = HiveService.authBox;
     final hasLegacy = box.containsKey(_keyUserId) ||
         box.containsKey(_keyUserKey) ||
         box.containsKey(_keyAccounts) ||
+        box.containsKey(_legacyKeyPassword) ||
         _legacyBackendKeys.any((key) => box.containsKey(key));
     if (!hasLegacy) return;
 
@@ -58,6 +66,7 @@ class AuthStorage {
     if (name != null) await SecureStorage.write(_keyUserName, name);
 
     // Saved accounts: same entries minus passwords.
+    String? accountsJson;
     final rawAccounts = box.get(_keyAccounts, defaultValue: []);
     if (rawAccounts is List && rawAccounts.isNotEmpty) {
       final cleaned = rawAccounts.map((e) {
@@ -65,7 +74,18 @@ class AuthStorage {
         m.remove('password');
         return m;
       }).toList();
-      await SecureStorage.write(_keyAccounts, jsonEncode(cleaned));
+      accountsJson = jsonEncode(cleaned);
+      await SecureStorage.write(_keyAccounts, accountsJson);
+    }
+
+    // Read everything back before touching the legacy copy: if secure
+    // storage silently failed, keep the old data and retry next time.
+    if ((userId != null && await SecureStorage.read(_keyUserId) != userId) ||
+        (userKey != null &&
+            await SecureStorage.read(_keyUserKey) != userKey) ||
+        (accountsJson != null &&
+            await SecureStorage.read(_keyAccounts) != accountsJson)) {
+      throw StateError('secure storage write verification failed');
     }
 
     // Delete every legacy plaintext key, password included, plus the
@@ -79,6 +99,9 @@ class AuthStorage {
     for (final key in _legacyBackendKeys) {
       await box.delete(key);
     }
+    // Hive only appends: without compaction the deleted plaintext values
+    // stay readable in the box file.
+    await box.compact();
   }
 
   /// Save authentication credentials (session keys only — no password).
@@ -161,6 +184,7 @@ class AuthStorage {
 
   /// Remove an account.
   Future<void> removeAccount(String userId) async {
+    await _migrateLegacyIfNeeded();
     final accounts = await getStoredAccounts();
     accounts.removeWhere((a) => a['userId'] == userId);
     await SecureStorage.write(_keyAccounts, jsonEncode(accounts));

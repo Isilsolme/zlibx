@@ -132,7 +132,13 @@ class DomainNotifier extends StateNotifier<String> {
     if (host.isEmpty) return false;
     // IPv4.
     if (RegExp(r'^\d{1,3}(\.\d{1,3}){3}$').hasMatch(host)) {
-      return host.split('.').every((p) => (int.tryParse(p) ?? 256) <= 255);
+      final o = host.split('.').map((p) => int.tryParse(p) ?? 256).toList();
+      if (o.any((n) => n > 255)) return false;
+      // 回环 / 0.0.0.0 / 链路本地（含云元数据 169.254.169.254）不是镜像站。
+      if (o[0] == 0 || o[0] == 127 || (o[0] == 169 && o[1] == 254)) {
+        return false;
+      }
+      return true;
     }
     // DNS hostname: dot-separated labels, no leading/trailing hyphen/dot.
     if (host.startsWith('.') ||
@@ -158,7 +164,7 @@ class DomainNotifier extends StateNotifier<String> {
     while (clean.endsWith('/')) {
       clean = clean.substring(0, clean.length - 1);
     }
-    return clean;
+    return clean.toLowerCase();
   }
 
   /// Validate + switch to a custom line. Returns false when the input is

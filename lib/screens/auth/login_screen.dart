@@ -94,11 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         !_isLoading) {
       final lastAccount = savedAccounts.last;
       final email = lastAccount['email'] as String?;
-      final password = lastAccount['password'] as String?;
 
-      if (email != null && password != null) {
+      // Passwords are never persisted: only the email can be prefilled.
+      if (email != null && email.isNotEmpty) {
         _emailController.text = email;
-        _passwordController.text = password;
       }
     }
 
