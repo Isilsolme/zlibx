@@ -10,6 +10,7 @@ import 'widgets/book_hero_section.dart';
 import 'widgets/book_info_section.dart';
 import 'widgets/book_action_bar.dart';
 import 'widgets/download_quota_dialog.dart';
+import 'widgets/external_book_action_bar.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   const BookDetailScreen({super.key});
@@ -25,9 +26,10 @@ class BookDetailScreen extends ConsumerWidget {
         : raw is DisplayBook
         ? BookDetailArgs.fromDisplayBook(displayBook: raw)
         : BookDetailArgs(book: raw as Book);
-    // Anna's Archive detail (Stage 1: search + detail, no download).
-    if (args.isAnnasArchive) {
-      return _AnnaBookDetail(displayBook: args.displayBook!);
+    // External detail (Anna's Archive / LibGen): search + detail, and
+    // download via the external resolver (Stage 3).
+    if (args.isAnnasArchive || args.isLibGen) {
+      return _ExternalBookDetail(displayBook: args.displayBook!);
     }
     // Z-Library (unchanged): BookDetailArgs or a raw vendor Book.
     // 兼容两种 arg：BookDetailArgs 和直接的 Book（旧调用方）。
@@ -122,25 +124,34 @@ class BookDetailScreen extends ConsumerWidget {
   }
 }
 
-/// Anna's Archive detail page (Stage 1).
+/// External detail page (Anna's Archive / LibGen).
 ///
 /// The search-result DisplayBook supplies title/author/cover for the hero;
-/// [annasBookDetailsProvider] fetches the full BookInfoData (description,
-/// publisher, format). No bottom action bar in Stage 1: Anna download
-/// (slow/fast) lands in Stage 3, so there is no download button to show.
-class _AnnaBookDetail extends ConsumerWidget {
+/// the matching details provider fetches the full BookInfoData
+/// (description, publisher, format). Once the info loads, the bottom bar
+/// offers the external download (resolved by external_download.dart).
+class _ExternalBookDetail extends ConsumerWidget {
   final DisplayBook displayBook;
 
-  const _AnnaBookDetail({required this.displayBook});
+  const _ExternalBookDetail({required this.displayBook});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bookData = displayBook.asAnnaBookData!;
-    final details = ref.watch(annasBookDetailsProvider(bookData.link));
+    final bookData = displayBook.isLibGen
+        ? displayBook.asLibgenBookData!
+        : displayBook.asAnnaBookData!;
+    final detailsProvider = displayBook.isLibGen
+        ? libgenBookDetailsProvider(bookData.link)
+        : annasBookDetailsProvider(bookData.link);
+    final details = ref.watch(detailsProvider);
     final info = details.valueOrNull;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return Scaffold(
+      // Download only makes sense once the info (mirror + md5) is known.
+      bottomNavigationBar: info != null
+          ? ExternalBookActionBar(displayBook: displayBook, info: info)
+          : null,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -166,9 +177,7 @@ class _AnnaBookDetail extends ConsumerWidget {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => ref.invalidate(
-                        annasBookDetailsProvider(bookData.link),
-                      ),
+                      onPressed: () => ref.invalidate(detailsProvider),
                       child: Text(isZh ? '重试' : 'Retry'),
                     ),
                   ],

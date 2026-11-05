@@ -304,8 +304,11 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       // a partial book under its final name.
       final alreadyExists = await File(finalPath).exists();
       if (!alreadyExists && presetUrl != null) {
-        // presetUrl 路径（LAN 传书）：直接 stream 到本地
+        // presetUrl 路径（LAN 传书 / 外部源解析链接）：直接 stream 到本地
         // 用独立 Dio，不带 z站 cookie / auth；LAN token 走 header。
+        // followRedirects 必须为 true：LibGen get.php 307 跳到 CDN 文件，
+        // 不跟随会把重定向响应本身存成文件。LAN 不发重定向，不受影响；
+        // 外部下载不带 presetHeaders，不存在 token 外泄问题。
         final dio = Dio();
         await dio.download(
           presetUrl,
@@ -317,7 +320,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
             }
           },
           cancelToken: cancelToken,
-          options: Options(headers: presetHeaders, followRedirects: false),
+          options: Options(headers: presetHeaders, followRedirects: true),
         );
       } else if (!alreadyExists) {
         // 默认路径：用户自己 z站 账号查 URL + 下载

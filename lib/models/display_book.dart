@@ -5,7 +5,7 @@ import '../core/annas_archive.dart';
 import '../services/annas_archieve.dart';
 
 /// 数据源标识
-enum BookSource { zlibrary, annasArchive }
+enum BookSource { zlibrary, annasArchive, libgen }
 
 /// 统一书籍展示模型
 ///
@@ -62,12 +62,18 @@ class DisplayBook {
   /// 是否来自 Anna's Archive
   bool get isAnnasArchive => source == BookSource.annasArchive;
 
+  /// 是否来自 LibGen
+  bool get isLibGen => source == BookSource.libgen;
+
   /// 获取原始 z站 Book 对象（仅当 source == zlibrary 时有效）
   Book? get asZLibBook => isZLibrary ? original as Book? : null;
 
   /// 获取原始 Anna's Archive BookData（仅当 source == annasArchive 时有效）
   BookData? get asAnnaBookData =>
       isAnnasArchive ? original as BookData? : null;
+
+  /// 获取原始 LibGen BookData（仅当 source == libgen 时有效）
+  BookData? get asLibgenBookData => isLibGen ? original as BookData? : null;
 
 }
 
@@ -111,6 +117,20 @@ extension BookDataToDisplay on BookData {
     cover: thumbnail,
     tag: ArchiveParsing.formatFromInfo(info),
     source: BookSource.annasArchive,
+    original: this,
+  );
+
+  /// LibGen BookData → DisplayBook. Same shape as Anna's: id is the md5
+  /// (or, when the search row carried no md5 link, the edition id or the
+  /// title — see LibgenProvider). Search rows carry no thumbnail, so the
+  /// cover stays null until the detail page parses one from ads.php.
+  DisplayBook toLibgenDisplayBook() => DisplayBook(
+    id: md5,
+    title: title,
+    author: author,
+    cover: thumbnail,
+    tag: ArchiveParsing.formatFromInfo(info),
+    source: BookSource.libgen,
     original: this,
   );
 }

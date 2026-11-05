@@ -12,6 +12,7 @@ import '../auth/login_screen.dart';
 import '../auth/widgets/account_manager_sheet.dart';
 import 'widgets/user_profile_section.dart';
 import 'widgets/download_path_section.dart';
+import 'widgets/donation_key_section.dart';
 import 'widgets/about_section.dart';
 import 'widgets/language_section.dart';
 import 'widgets/theme_section.dart';
@@ -54,6 +55,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const DownloadPathSection(),
+          const DonationKeySection(),
 
           const SizedBox(height: 20),
 

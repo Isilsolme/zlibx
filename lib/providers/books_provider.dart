@@ -3,6 +3,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../models/display_book.dart';
 import '../services/annas_archieve.dart';
 import '../services/external_search.dart';
+import '../services/libgen_service.dart';
 import '../services/network_error.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
@@ -177,10 +178,11 @@ final bookDetailsProvider = FutureProvider.family<Book, BookIdentifier>((
   return book;
 });
 
-// ── External Search (Anna's Archive) ─────────────────────────────────
+// ── External Search (Anna's Archive + LibGen) ────────────────────────
 //
-// Mirrors SearchNotifier's shape, but over AnnasArchiveProvider. Anna has
-// no total_pages in its HTML search results, so pagination runs until an
+// Mirrors SearchNotifier's shape, but over a swappable external provider
+// (Anna's Archive or LibGen, chosen by the search screen). Neither has
+// total_pages in its HTML search results, so pagination runs until an
 // empty page comes back (hasMore = the last page returned books).
 
 class ExternalSearchState {
@@ -224,22 +226,37 @@ class ExternalSearchState {
 }
 
 class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
-  final AnnasArchiveProvider _provider;
+  SearchProvider _provider;
+  BookSource _source;
   String? _lastQuery;
   int _requestId = 0;
 
-  ExternalSearchNotifier(this._provider) : super(const ExternalSearchState());
+  ExternalSearchNotifier()
+      : _provider = AnnasArchiveProvider(),
+        _source = BookSource.annasArchive,
+        super(const ExternalSearchState());
 
-  Future<void> search(String query) async {
+  static SearchProvider _providerFor(BookSource source) =>
+      source == BookSource.libgen ? LibgenProvider() : AnnasArchiveProvider();
+
+  /// Maps a provider's BookData with the converter matching the source
+  /// that produced it (Anna and LibGen both return BookData).
+  DisplayBook _toDisplay(BookData book) => _source == BookSource.libgen
+      ? book.toLibgenDisplayBook()
+      : book.toAnnaDisplayBook();
+
+  Future<void> search(String query, BookSource source) async {
     final requestId = ++_requestId;
     _lastQuery = query;
+    _source = source;
+    _provider = _providerFor(source);
     state = const ExternalSearchState(isLoading: true, hasSearched: true);
 
     try {
       final books = await _provider.search(SearchQuery(text: query, page: 1));
       if (requestId != _requestId) return;
       state = ExternalSearchState(
-        books: books.map<DisplayBook>((b) => b.toAnnaDisplayBook()).toList(),
+        books: books.map<DisplayBook>(_toDisplay).toList(),
         currentPage: 1,
         hasSearched: true,
         hasMore: books.isNotEmpty,
@@ -272,7 +289,7 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
       state = state.copyWith(
         books: [
           ...state.books,
-          ...books.map<DisplayBook>((b) => b.toAnnaDisplayBook()),
+          ...books.map<DisplayBook>(_toDisplay),
         ],
         currentPage: nextPage,
         isLoadingMore: false,
@@ -303,7 +320,7 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
 
 final externalSearchProvider =
     StateNotifierProvider<ExternalSearchNotifier, ExternalSearchState>((ref) {
-      return ExternalSearchNotifier(AnnasArchiveProvider());
+      return ExternalSearchNotifier();
     });
 
 // ── Anna's Archive Book Details ──────────────────────────────────────
@@ -315,6 +332,19 @@ final annasBookDetailsProvider =
     FutureProvider.family<BookInfoData, String>((ref, link) async {
       final archive = AnnasArchieve();
       return archive.bookInfo(url: link);
+    });
+
+// ── LibGen Book Details ──────────────────────────────────────────────
+//
+// [link] is the BookData.link from a search result (an absolute
+// "ads.php?md5=…" URL). LibgenService.bookInfo returns null on failure
+// (no mirror, non-200, parse failure), so the provider turns that into
+// a StateError for the detail page's error UI.
+final libgenBookDetailsProvider =
+    FutureProvider.family<BookInfoData, String>((ref, link) async {
+      final info = await LibgenService().bookInfo(link);
+      if (info == null) throw StateError('Failed to load book details');
+      return info;
     });
 
 class BookIdentifier {

@@ -167,7 +167,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      if (_source == BookSource.annasArchive) {
+      if (_source != BookSource.zlibrary) {
         ref.read(externalSearchProvider.notifier).loadMore();
       } else {
         ref.read(searchProvider.notifier).loadMore();
@@ -176,11 +176,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _openBook(DisplayBook book) {
-    // Anna results have no z站 Book: pass the DisplayBook itself; the
-    // detail page branches on DisplayBook.source.
+    // External results (Anna / LibGen) have no z站 Book: pass the
+    // DisplayBook itself; the detail page branches on DisplayBook.source.
     Navigator.of(context).pushNamed(
       AppRoutes.bookDetail,
-      arguments: book.isAnnasArchive ? book : book.asZLibBook,
+      arguments: book.isZLibrary ? book.asZLibBook : book,
     );
   }
 
@@ -197,10 +197,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
 
     final query = _searchController.text.trim();
-    // Anna's Archive: plain text search; the z站 filter panel (language /
-    // order / extension) does not apply and is hidden for this source.
-    if (_source == BookSource.annasArchive) {
-      ref.read(externalSearchProvider.notifier).search(query);
+    // External sources (Anna's Archive / LibGen): plain text search; the
+    // z站 filter panel (language / order / extension) does not apply and
+    // is hidden for these sources.
+    if (_source != BookSource.zlibrary) {
+      ref.read(externalSearchProvider.notifier).search(query, _source);
       return true;
     }
 
@@ -241,25 +242,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final languageNames = getLanguageDisplayNames(locale);
     final orderNames = getOrderDisplayNames(locale);
     final extensionNames = getExtensionDisplayNames(locale);
-    final isAnna = _source == BookSource.annasArchive;
-    // Source-dependent search state: z站 (vendor Book) vs Anna (DisplayBook).
+    final isExternal = _source != BookSource.zlibrary;
+    // Source-dependent search state: z站 (vendor Book) vs external
+    // (Anna / LibGen, DisplayBook).
     final searchState = ref.watch(searchProvider);
     final externalState = ref.watch(externalSearchProvider);
-    final books = isAnna
+    final books = isExternal
         ? externalState.books
         : searchState.books.map((book) => book.toDisplay()).toList();
     final resultCount = books.length;
     final hasSearched =
-        isAnna ? externalState.hasSearched : searchState.hasSearched;
-    final isLoading = isAnna ? externalState.isLoading : searchState.isLoading;
+        isExternal ? externalState.hasSearched : searchState.hasSearched;
+    final isLoading =
+        isExternal ? externalState.isLoading : searchState.isLoading;
     final isLoadingMore =
-        isAnna ? externalState.isLoadingMore : searchState.isLoadingMore;
-    final error = isAnna ? externalState.error : searchState.error;
+        isExternal ? externalState.isLoadingMore : searchState.isLoadingMore;
+    final error = isExternal ? externalState.error : searchState.error;
     final currentPage =
-        isAnna ? externalState.currentPage : searchState.currentPage;
-    // Anna has no total_pages: '…' while more pages may exist, the current
-    // page number once the last (empty) page has been reached.
-    final totalPagesText = isAnna
+        isExternal ? externalState.currentPage : searchState.currentPage;
+    // External sources have no total_pages: '…' while more pages may
+    // exist, the current page number once the last (empty) page has
+    // been reached.
+    final totalPagesText = isExternal
         ? (externalState.hasMore ? '…' : '${externalState.currentPage}')
         : '${searchState.totalPages}';
 
@@ -278,8 +282,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // The filter panel is z站-only; Anna search is plain text.
-                    if (!isAnna)
+                    // The filter panel is z站-only; external search is
+                    // plain text.
+                    if (!isExternal)
                       IconButton(
                         icon: Icon(
                             Icons.tune,
@@ -307,7 +312,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
 
-          // Source Selector (Z-Library / Anna's Archive)
+          // Source Selector (Z-Library / Anna's Archive / LibGen)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
             child: Align(
@@ -321,6 +326,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ButtonSegment<BookSource>(
                     value: BookSource.annasArchive,
                     label: Text(l10n.get('source_annas_archive')),
+                  ),
+                  ButtonSegment<BookSource>(
+                    value: BookSource.libgen,
+                    label: Text(l10n.get('source_libgen')),
                   ),
                 ],
                 selected: {_source},
@@ -473,7 +482,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               TextButton(
                                 onPressed: () {
-                                  if (isAnna) {
+                                  if (isExternal) {
                                     ref
                                         .read(externalSearchProvider.notifier)
                                         .loadMore();
