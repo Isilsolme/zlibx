@@ -170,7 +170,7 @@ jobs:
         run: |
           cd build/app/outputs/flutter-apk
           v="${{ steps.pubspec.outputs.version }}"
-          apk="olib-lite-v$v.apk"
+          apk="zlibx-v$v.apk"
           # build-tools includes apksigner; pick the latest available version
           apksigner_bin=$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n1)
           if [ -z "$apksigner_bin" ]; then
@@ -190,7 +190,7 @@ jobs:
         with:
           name: zlibx-android-v${{ steps.pubspec.outputs.version }}
           path: |
-            build/app/outputs/flutter-apk/olib-*.apk
+            build/app/outputs/flutter-apk/zlibx-*.apk
             build/app/outputs/flutter-apk/sha256sums.txt
           retention-days: 30
 
@@ -204,6 +204,6 @@ jobs:
           # action 更新已有 Release 时 body 为空会保留原正文。
           fail_on_unmatched_files: true
           files: |
-            build/app/outputs/flutter-apk/olib-*.apk
+            build/app/outputs/flutter-apk/zlibx-*.apk
             build/app/outputs/flutter-apk/sha256sums.txt
 
