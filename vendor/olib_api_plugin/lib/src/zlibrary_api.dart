@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 
@@ -57,6 +58,13 @@ class ZLibraryApi {
   static String _cleanDomain(String domain) {
     var d = domain.trim();
     d = d.replaceFirst(RegExp(r'^https?://'), '');
+    // Drop anything that is not the host (path / query / fragment / userinfo
+    // would otherwise be baked into every request URL and could smuggle a
+    // different host past the caller).
+    final cut = d.indexOf(RegExp(r'[/?#]'));
+    if (cut >= 0) d = d.substring(0, cut);
+    final at = d.lastIndexOf('@');
+    if (at >= 0) d = d.substring(at + 1);
     while (d.endsWith('/')) {
       d = d.substring(0, d.length - 1);
     }
@@ -691,6 +699,12 @@ class ZLibraryApi {
   /// the file to [savePath]. Throws on failure (the app catches it and
   /// re-checks the download quota via [getProfile]).
   ///
+  /// Link safety: an absolute link must be `https`; anything else is
+  /// refused outright. The session Cookie is only sent to our own domain —
+  /// a cross-domain link (e.g. a storage CDN) is fetched without it, and
+  /// redirects are followed manually for the same reason (Dio would
+  /// re-send the Cookie header to whatever host a 302 points at).
+  ///
   /// `onProgress` receives `(received, total)`; `cancelToken` is the
   /// caller's Dio token (the app checks `isCancelled` itself).
   Future<void> downloadBook(
@@ -700,17 +714,46 @@ class ZLibraryApi {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final link = await _resolveDownloadLink(bookId, hash);
-    await _dio.download(
-      link,
-      savePath,
-      onReceiveProgress: onProgress,
-      cancelToken: cancelToken,
-      options: Options(
-        headers: _headers,
-        receiveTimeout: const Duration(seconds: 300),
-      ),
-    );
+    var link = await _resolveDownloadLink(bookId, hash);
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(link).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    for (var hop = 0; hop < 5; hop++) {
+      final res = await _dio.download(
+        link,
+        savePath,
+        onReceiveProgress: onProgress,
+        cancelToken: cancelToken,
+        options: Options(
+          headers: headers,
+          receiveTimeout: const Duration(seconds: 300),
+          followRedirects: false,
+          validateStatus: (status) => status != null && status < 400,
+        ),
+      );
+      final code = res.statusCode ?? 0;
+      if (code != 301 &&
+          code != 302 &&
+          code != 303 &&
+          code != 307 &&
+          code != 308) {
+        return;
+      }
+      final location = res.headers.value(HttpHeaders.locationHeader);
+      if (location == null || location.isEmpty) {
+        throw StateError('download redirect without location');
+      }
+      final next = Uri.parse(link).resolveUri(Uri.parse(location));
+      if (next.scheme != 'https') {
+        throw StateError('download redirect to non-https URL');
+      }
+      link = next.toString();
+      if (next.host != Uri.parse(_base).host) {
+        headers = Map<String, String>.from(headers)..remove('Cookie');
+      }
+    }
+    throw StateError('too many download redirects');
   }
 
   Future<String> _resolveDownloadLink(String bookId, String hash) async {
@@ -729,6 +772,10 @@ class ZLibraryApi {
         if (decoded is Map<String, dynamic>) {
           final link = _findLink(decoded);
           if (link != null && link.isNotEmpty) {
+            final uri = Uri.tryParse(link);
+            if (uri != null && uri.hasScheme && uri.scheme != 'https') {
+              throw StateError('download link is not https');
+            }
             return link.startsWith('/') ? '$_base$link' : link;
           }
           final err = (decoded['error'] ?? decoded['message'])?.toString();

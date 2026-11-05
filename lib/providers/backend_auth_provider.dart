@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/backend_response.dart';
 import '../services/backend_api.dart';
 import '../services/hive_service.dart';
+import '../services/secure_storage.dart';
 
 // ---------- Hive Keys ----------
 const _kJwt = 'backend_jwt';
@@ -122,19 +123,53 @@ class BackendAuthNotifier extends StateNotifier<BackendAuthState> {
   final BackendApi _api;
   Timer? _pollTimer;
 
+  /// Last successful authorization, kept in memory: the persisted value
+  /// lives in secure storage (async), but the UI reads it synchronously.
+  DateTime? _lastAuthorizedAt;
+
   BackendAuthNotifier(this._api) : super(const BackendAuthState()) {
     _init();
   }
 
-  /// 初始化：从 Hive 恢复 SCC token，本地校验 exp/type 即可（离线可用）。
-  /// 无效（含存量 wxauth JWT）→ 清除，等用户下次进入功能时扫码重登。
-  Future<void> _init() async {
+  /// One-time move of the legacy plaintext Hive backend token into secure
+  /// storage. The bearer JWT is a login credential and must not sit in
+  /// an unencrypted box (same reason as the Z-Library session keys).
+  Future<void> _migrateLegacyIfNeeded() async {
     final box = HiveService.authBox;
     // 清理 wxauth 时代遗留 key
     await box.delete(_kLegacyRole);
     await box.delete(_kLegacyDeviceId);
 
     final jwt = box.get(_kJwt) as String?;
+    if (jwt == null &&
+        box.get(_kUserId) == null &&
+        box.get(_kUnionid) == null &&
+        box.get(_kLastAuthorizedAt) == null) {
+      return;
+    }
+    if (jwt != null) await SecureStorage.write(_kJwt, jwt);
+    final userId = box.get(_kUserId);
+    if (userId != null) {
+      await SecureStorage.write(_kUserId, userId.toString());
+    }
+    final unionid = box.get(_kUnionid) as String?;
+    if (unionid != null) await SecureStorage.write(_kUnionid, unionid);
+    final lastAt = box.get(_kLastAuthorizedAt);
+    if (lastAt != null) {
+      await SecureStorage.write(_kLastAuthorizedAt, lastAt.toString());
+    }
+    await box.delete(_kJwt);
+    await box.delete(_kUserId);
+    await box.delete(_kUnionid);
+    await box.delete(_kLastAuthorizedAt);
+  }
+
+  /// 初始化：从安全存储恢复 SCC token，本地校验 exp/type 即可（离线可用）。
+  /// 无效（含存量 wxauth JWT）→ 清除，等用户下次进入功能时扫码重登。
+  Future<void> _init() async {
+    await _migrateLegacyIfNeeded();
+
+    final jwt = await SecureStorage.read(_kJwt);
     if (jwt == null) {
       state = const BackendAuthState(status: BackendAuthStatus.unauthorized);
       return;
@@ -143,16 +178,21 @@ class BackendAuthNotifier extends StateNotifier<BackendAuthState> {
     final payload = decodeJwtPayload(jwt);
     if (!_isValidSccToken(payload)) {
       debugPrint('[BackendAuth] 本地 token 无效/过期（或为存量 wxauth token），已清除');
-      await box.delete(_kJwt);
+      await SecureStorage.delete(_kJwt);
       state = const BackendAuthState(status: BackendAuthStatus.unauthorized);
       return;
     }
 
+    final userIdStr = await SecureStorage.read(_kUserId);
+    final lastAtStr = await SecureStorage.read(_kLastAuthorizedAt);
+    _lastAuthorizedAt = lastAtStr == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(int.tryParse(lastAtStr) ?? 0);
     state = BackendAuthState(
       status: BackendAuthStatus.authorized,
       jwt: jwt,
-      userId: box.get(_kUserId) as int?,
-      unionid: box.get(_kUnionid) as String?,
+      userId: int.tryParse(userIdStr ?? ''),
+      unionid: await SecureStorage.read(_kUnionid),
       expiresAt: _tokenExpiry(payload!),
     );
   }
@@ -228,11 +268,18 @@ class BackendAuthNotifier extends StateNotifier<BackendAuthState> {
 
   Future<void> _saveAuth(AuthStatusResponse response) async {
     final jwt = response.token!;
-    final box = HiveService.authBox;
-    await box.put(_kJwt, jwt);
-    if (response.userId != null) await box.put(_kUserId, response.userId);
-    if (response.unionid != null) await box.put(_kUnionid, response.unionid);
-    await box.put(_kLastAuthorizedAt, DateTime.now().millisecondsSinceEpoch);
+    await SecureStorage.write(_kJwt, jwt);
+    if (response.userId != null) {
+      await SecureStorage.write(_kUserId, response.userId.toString());
+    }
+    if (response.unionid != null) {
+      await SecureStorage.write(_kUnionid, response.unionid!);
+    }
+    _lastAuthorizedAt = DateTime.now();
+    await SecureStorage.write(
+      _kLastAuthorizedAt,
+      _lastAuthorizedAt!.millisecondsSinceEpoch.toString(),
+    );
 
     if (mounted) {
       final payload = decodeJwtPayload(jwt);
@@ -246,21 +293,17 @@ class BackendAuthNotifier extends StateNotifier<BackendAuthState> {
     }
   }
 
-  /// 返回上次授权成功的时间；从未授权或 Hive 没记录返回 null。
-  DateTime? lastAuthorizedAt() {
-    final ms = HiveService.authBox.get(_kLastAuthorizedAt) as int?;
-    if (ms == null) return null;
-    return DateTime.fromMillisecondsSinceEpoch(ms);
-  }
+  /// 返回上次授权成功的时间；从未授权或安全存储没记录返回 null。
+  DateTime? lastAuthorizedAt() => _lastAuthorizedAt;
 
   /// 登出 — 清除所有认证数据
   Future<void> logout() async {
     stopPolling();
-    final box = HiveService.authBox;
-    await box.delete(_kJwt);
-    await box.delete(_kUserId);
-    await box.delete(_kUnionid);
-    await box.delete(_kLastAuthorizedAt);
+    await SecureStorage.delete(_kJwt);
+    await SecureStorage.delete(_kUserId);
+    await SecureStorage.delete(_kUnionid);
+    await SecureStorage.delete(_kLastAuthorizedAt);
+    _lastAuthorizedAt = null;
     state = const BackendAuthState(status: BackendAuthStatus.unauthorized);
   }
 

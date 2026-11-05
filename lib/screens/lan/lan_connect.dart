@@ -65,14 +65,27 @@ Future<String?> _promptManualAddress(
     context: context,
     builder: (ctx) => AlertDialog(
       title: Text(l.get('lan_manual_title')),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        keyboardType: TextInputType.url,
-        decoration: InputDecoration(
-          hintText: l.get('lan_manual_hint'),
-          border: const OutlineInputBorder(),
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              hintText: l.get('lan_manual_hint'),
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l.get('lan_plaintext_warning'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+          ),
+        ],
       ),
       actions: [
         TextButton(

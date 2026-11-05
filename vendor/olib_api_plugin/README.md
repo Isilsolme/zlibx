@@ -67,6 +67,10 @@ or run against a live mirror. In particular:
   carries no quota fields, and `null` must never be read as "exhausted"
   — a 0 default once made the app show the quota dialog before any
   download was even attempted (2026-11-05 device report).
+- Download links: an absolute link from the `/file` response must be
+  `https`; the session Cookie is sent only to the API's own domain
+  (cross-domain links and redirect hops are fetched without it), and
+  redirects are followed manually (max 5 hops) for the same reason.
 
 First real check, in order: `flutter pub get` (resolves the path
 dependency), `flutter analyze` (plugin + app), then a logged-in run of

@@ -87,7 +87,11 @@ class _LanImportScreenState extends ConsumerState<LanImportScreen> {
     final files = _files.where((f) => _selected.contains(f.name));
     var count = 0;
     for (final f in files) {
-      notifier.startDownload(_toBook(f), presetUrl: _client.downloadUrl(f.name));
+      notifier.startDownload(
+        _toBook(f),
+        presetUrl: _client.downloadUrl(f.name),
+        presetHeaders: _client.downloadHeaders(),
+      );
       count++;
     }
     if (count == 0) return;

@@ -9,7 +9,8 @@ plugins {
 }
 
 // Load android/key.properties if present. Absent on fresh clones — release
-// builds then transparently fall back to the debug signing config below.
+// builds then FAIL loudly instead of silently falling back to the debug
+// signing config (a debug-signed "release" must never be distributed).
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) load(FileInputStream(file))
@@ -54,17 +55,16 @@ android {
 
     buildTypes {
         release {
-            // Use release signing when key.properties + keystore are present.
-            // Otherwise sign with the debug key so fresh clones can still
-            // produce installable test builds (do NOT distribute these).
+            // Release signing requires key.properties + keystore. Refuse to
+            // build a release with the debug key: fail here, loudly.
             val releaseSigning = signingConfigs.getByName("release")
             signingConfig = if (releaseSigning.storeFile != null) {
                 releaseSigning
             } else {
-                signingConfigs.getByName("debug")
+                error("Release signing requires android/key.properties with a valid keystore; refusing to sign a release build with the debug key.")
             }
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
         }
     }
 }

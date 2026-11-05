@@ -66,7 +66,7 @@ class UpdateManifest {
         if (key.toLowerCase() == 'min_version') {
           final v = value.startsWith('v') ? value.substring(1) : value;
           if (v.isNotEmpty) minVersion = v;
-        } else if (_isHttpUrl(value) &&
+        } else if (_isHttpsUrl(value) &&
             key.isNotEmpty &&
             key.runes.length <= _maxNameChars &&
             links.length < _maxLinks) {
@@ -95,9 +95,10 @@ class UpdateManifest {
     );
   }
 
-  static bool _isHttpUrl(String s) =>
-      (s.startsWith('https://') || s.startsWith('http://')) &&
-      !s.contains(RegExp(r'\s'));
+  /// Update-channel links must be https: an http:// link can be hijacked
+  /// by a middlebox onto a malicious download page.
+  static bool _isHttpsUrl(String s) =>
+      s.startsWith('https://') && !s.contains(RegExp(r'\s'));
 }
 
 /// 语义化版本比较：`latest` 是否比 `current` 新（只比较数字段，非数字段按 0）

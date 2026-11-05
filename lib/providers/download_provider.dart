@@ -7,9 +7,6 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
 
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-
 enum DownloadStatus { pending, downloading, completed, error, cancelled }
 
 class DownloadTask {
@@ -166,31 +163,26 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     return (await getApplicationDocumentsDirectory()).path;
   }
 
-  /// Android 公共下载目录 `<当前用户存储>/Download/Olib`。
+  /// Android 应用专属外部目录 `<...>/Android/data/<pkg>/files/Olib`。
   ///
-  /// 不能写死 `/storage/emulated/0`：应用分身 / 第二空间 / 工作资料运行在
-  /// 其他用户空间，访问 0 号用户存储会被系统拒绝（PathAccessException）。
-  /// 公共目录不可用时退回应用专属外部目录（无需任何权限）。
+  /// 不再用公共 `Download/Olib`：公共目录里的书可被任何有存储权限的
+  /// 应用读取，且写公共目录需要 MANAGE_EXTERNAL_STORAGE。专属目录无需
+  /// 任何存储权限，卸载时随应用一起清除；历史记录里的旧路径仍可打开。
   Future<Directory> _androidDownloadDir() async {
     // 形如 /storage/emulated/<user>/Android/data/<pkg>/files
     final appExternal = await getExternalStorageDirectory();
     if (appExternal == null) return getApplicationDocumentsDirectory();
 
-    final marker = appExternal.path.indexOf('/Android/');
-    if (marker > 0) {
-      final publicDir = Directory(
-        '${appExternal.path.substring(0, marker)}/Download/Olib',
-      );
-      try {
-        if (!await publicDir.exists()) {
-          await publicDir.create(recursive: true);
-        }
-        return publicDir;
-      } on FileSystemException catch (e) {
-        debugPrint('Public download dir unavailable, fallback: $e');
+    final dir = Directory('${appExternal.path}/Olib');
+    try {
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
       }
+      return dir;
+    } on FileSystemException catch (e) {
+      debugPrint('App download dir unavailable, fallback: $e');
+      return appExternal;
     }
-    return appExternal;
   }
 
   /// Check if file already exists for a book
@@ -259,8 +251,14 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   /// 默认走 ZLibraryApi（用户自己账号查 URL + 下载）。
   /// [presetUrl] 传入时跳过 URL 获取，直接用此 URL 下文件 —
   /// 用于 AI 寻书结果走 backend 拿到的签名 URL，不消耗用户自己的 z站
-  /// 配额（但消耗已在 backend 端记账的免费下载配额）。
-  Future<void> startDownload(Book book, {String? presetUrl}) async {
+  /// 配额（但消耗已在 backend 端记账的免费下载配额），以及 LAN 传书。
+  /// [presetHeaders] 随 presetUrl 请求发送的 header（LAN token 走
+  /// `X-Olib-Token`，绝不拼进 URL）。
+  Future<void> startDownload(
+    Book book, {
+    String? presetUrl,
+    Map<String, String>? presetHeaders,
+  }) async {
     final id = book.id.toString();
 
     // Check if already downloading
@@ -287,29 +285,8 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
     String? temporaryPath;
     try {
-      if (Platform.isAndroid) {
-        // Request MANAGE_EXTERNAL_STORAGE permission for Android 11+
-        final androidInfo = await DeviceInfoPlugin().androidInfo;
-
-        if (androidInfo.version.sdkInt >= 30) {
-          // Android 11+: Request full storage access
-          if (!await Permission.manageExternalStorage.isGranted) {
-            final status = await Permission.manageExternalStorage.request();
-            if (!status.isGranted) {
-              throw Exception("需要文件访问权限才能下载。请在设置中授予权限。");
-            }
-          }
-        } else if (androidInfo.version.sdkInt >= 23) {
-          // Android 6-10: Request regular storage permission
-          if (!await Permission.storage.isGranted) {
-            final status = await Permission.storage.request();
-            if (!status.isGranted) {
-              throw Exception("需要存储权限才能下载。");
-            }
-          }
-        }
-      }
-
+      // Downloads go to the app-specific external dir: no storage
+      // permission is needed on any Android version.
       final finalPath =
           '${await _resolveSaveDir()}/${_buildSafeFileName(book)}';
 
@@ -329,7 +306,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       final alreadyExists = await File(finalPath).exists();
       if (!alreadyExists && presetUrl != null) {
         // AI 寻书路径：backend 已签发 URL，直接 stream 到本地
-        // 用独立 Dio，不带 z站 cookie / auth
+        // 用独立 Dio，不带 z站 cookie / auth；LAN token 走 header。
         final dio = Dio();
         await dio.download(
           presetUrl,
@@ -341,6 +318,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
             }
           },
           cancelToken: cancelToken,
+          options: Options(headers: presetHeaders),
         );
       } else if (!alreadyExists) {
         // 默认路径：用户自己 z站 账号查 URL + 下载

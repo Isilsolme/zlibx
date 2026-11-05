@@ -187,14 +187,16 @@ class BookActionBar extends ConsumerWidget {
     url = url.replaceAll(RegExp(r'reader\.[a-zA-Z0-9.-]+'), readerDomain);
     url = url.replaceAll(RegExp(r'z-library\.[a-zA-Z]+'), customDomain);
 
-    if (user != null) {
-      final separator = url.contains('?') ? '&' : '?';
-      url = '$url${separator}remix_userkey=${user.remixUserkey}&remix_userid=${user.id}';
-    }
-
+    // 会话密钥绝不拼进 URL（query 会进 JS、Referer、历史与日志）。
+    // ReaderScreen 改为在加载前用 CookieManager 把会话写进 WebView。
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
-      arguments: ReaderArgs(url: url, title: book.title),
+      arguments: ReaderArgs(
+        url: url,
+        title: book.title,
+        remixUserId: user?.id,
+        remixUserKey: user?.remixUserkey,
+      ),
     );
   }
 

@@ -153,6 +153,12 @@ const Map<String, String> zh = {
   // Network
   'select_network': '选择线路',
   'custom_domain': '自定义域名',
+  'custom_domain_invalid': '域名格式无效，请输入如 example.com 的域名',
+  'custom_domain_warning_title': '自定义线路风险',
+  'custom_domain_warning_body':
+      '该域名不在内置线路列表中。切换后不会自动发送已保存的登录会话，请确认你信任这个域名，并在切换后重新登录。',
+  'custom_domain_switch_anyway': '仍要切换',
+  'custom_domain_relogin_hint': '已切换到自定义线路，请重新登录',
   'recheck': '重新检测',
 
   // History Screen
@@ -236,6 +242,7 @@ const Map<String, String> zh = {
   'lan_manual_title': '输入电脑地址',
   'lan_manual_hint': '例如 http://192.168.1.5:8765/?token=…',
   'lan_scan_hint': '对准电脑上的「无线传书」二维码',
+  'lan_plaintext_warning': '局域网传输为明文，同一网络下可能被窃听；令牌仅在本机与电脑之间使用。',
   'lan_connecting': '正在连接电脑…',
   'lan_sending': '正在发送到电脑…',
   'lan_upload_success': '已发送到电脑',

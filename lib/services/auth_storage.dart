@@ -1,96 +1,152 @@
-import '../services/hive_service.dart';
+import 'dart:convert';
 
+import 'hive_service.dart';
+import 'secure_storage.dart';
+
+/// Account credentials at rest.
+///
+/// Session keys (`remix_userid` / `remix_userkey`), profile fields and the
+/// saved-accounts list live in [SecureStorage] (Android Keystore /
+/// iOS Keychain), NEVER in the plaintext Hive boxes.
+///
+/// Passwords are never persisted: login needs the password only for the
+/// request itself, and account switching re-uses the stored session keys
+/// via `loginWithToken`. Any password found in the legacy Hive box is
+/// deleted during migration, not carried over.
 class AuthStorage {
   static const String _keyUserId = 'remix_userid';
   static const String _keyUserKey = 'remix_userkey';
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserName = 'user_name';
-  static const String _keyUserPassword = 'user_password';
-
   static const String _keyAccounts = 'saved_accounts';
 
-  /// Save authentication credentials
+  // Legacy plaintext Hive keys, deleted by migration (password included).
+  static const String _legacyKeyPassword = 'user_password';
+
+  static bool _migrationDone = false;
+
+  /// One-time move of legacy plaintext Hive credentials into secure
+  /// storage. Runs once per process; safe to call before every operation.
+  Future<void> _migrateLegacyIfNeeded() async {
+    if (_migrationDone) return;
+    _migrationDone = true;
+    final box = HiveService.authBox;
+    final hasLegacy = box.containsKey(_keyUserId) ||
+        box.containsKey(_keyUserKey) ||
+        box.containsKey(_keyAccounts);
+    if (!hasLegacy) return;
+
+    final userId = box.get(_keyUserId) as String?;
+    final userKey = box.get(_keyUserKey) as String?;
+    final email = box.get(_keyUserEmail) as String?;
+    final name = box.get(_keyUserName) as String?;
+    if (userId != null) await SecureStorage.write(_keyUserId, userId);
+    if (userKey != null) await SecureStorage.write(_keyUserKey, userKey);
+    if (email != null) await SecureStorage.write(_keyUserEmail, email);
+    if (name != null) await SecureStorage.write(_keyUserName, name);
+
+    // Saved accounts: same entries minus passwords.
+    final rawAccounts = box.get(_keyAccounts, defaultValue: []);
+    if (rawAccounts is List && rawAccounts.isNotEmpty) {
+      final cleaned = rawAccounts.map((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        m.remove('password');
+        return m;
+      }).toList();
+      await SecureStorage.write(_keyAccounts, jsonEncode(cleaned));
+    }
+
+    // Delete every legacy plaintext key, password included.
+    await box.delete(_keyUserId);
+    await box.delete(_keyUserKey);
+    await box.delete(_keyUserEmail);
+    await box.delete(_keyUserName);
+    await box.delete(_legacyKeyPassword);
+    await box.delete(_keyAccounts);
+  }
+
+  /// Save authentication credentials (session keys only — no password).
   Future<void> saveCredentials({
     required String userId,
     required String userKey,
     String? email,
     String? name,
-    String? password,
   }) async {
-    final box = HiveService.authBox;
-    await box.put(_keyUserId, userId);
-    await box.put(_keyUserKey, userKey);
-    if (email != null) await box.put(_keyUserEmail, email);
-    if (name != null) await box.put(_keyUserName, name);
-    if (password != null) await box.put(_keyUserPassword, password);
+    await _migrateLegacyIfNeeded();
+    await SecureStorage.write(_keyUserId, userId);
+    await SecureStorage.write(_keyUserKey, userKey);
+    if (email != null) await SecureStorage.write(_keyUserEmail, email);
+    if (name != null) await SecureStorage.write(_keyUserName, name);
 
-    // Also save to accounts list
+    // Also save to accounts list (without password).
     await saveAccount({
       'userId': userId,
       'userKey': userKey,
       'email': email,
       'name': name,
-      'password': password,
     });
   }
 
-  /// Retrieve stored credentials
+  /// Retrieve stored credentials.
   Future<Map<String, String?>> getCredentials() async {
-    final box = HiveService.authBox;
+    await _migrateLegacyIfNeeded();
     return {
-      'userId': box.get(_keyUserId),
-      'userKey': box.get(_keyUserKey),
-      'email': box.get(_keyUserEmail),
-      'name': box.get(_keyUserName),
-      'password': box.get(_keyUserPassword),
+      'userId': await SecureStorage.read(_keyUserId),
+      'userKey': await SecureStorage.read(_keyUserKey),
+      'email': await SecureStorage.read(_keyUserEmail),
+      'name': await SecureStorage.read(_keyUserName),
     };
   }
 
-  /// Check if credentials are stored
+  /// Check if credentials are stored.
   Future<bool> hasStoredCredentials() async {
-    final box = HiveService.authBox;
-    return box.containsKey(_keyUserId) && box.containsKey(_keyUserKey);
+    await _migrateLegacyIfNeeded();
+    final userId = await SecureStorage.read(_keyUserId);
+    final userKey = await SecureStorage.read(_keyUserKey);
+    return userId != null && userKey != null;
   }
 
-  /// Clear all stored credentials
+  /// Clear all stored credentials, including the saved-accounts list:
+  /// after logout nothing that can log back in may remain on disk.
   Future<void> clearCredentials() async {
-    final box = HiveService.authBox;
-    await box.delete(_keyUserId);
-    await box.delete(_keyUserKey);
-    await box.delete(_keyUserEmail);
-    await box.delete(_keyUserName);
-    await box.delete(_keyUserPassword);
+    await _migrateLegacyIfNeeded();
+    await SecureStorage.delete(_keyUserId);
+    await SecureStorage.delete(_keyUserKey);
+    await SecureStorage.delete(_keyUserEmail);
+    await SecureStorage.delete(_keyUserName);
+    await SecureStorage.delete(_keyAccounts);
   }
 
-  /// Save an account to the list
+  /// Save an account to the list (session keys only — no password).
   Future<void> saveAccount(Map<String, dynamic> account) async {
-    final box = HiveService.authBox;
-    final List<dynamic> accounts = box.get(_keyAccounts, defaultValue: []);
+    await _migrateLegacyIfNeeded();
+    final accounts = await getStoredAccounts();
     final existingIndex = accounts.indexWhere(
       (a) => a['userId'] == account['userId'],
     );
-
     if (existingIndex != -1) {
       accounts.removeAt(existingIndex);
     }
     // Keep the most recently used account at the end of the list.
-    accounts.add(account);
-    await box.put(_keyAccounts, accounts);
+    final entry = Map<String, dynamic>.from(account)..remove('password');
+    accounts.add(entry);
+    await SecureStorage.write(_keyAccounts, jsonEncode(accounts));
   }
 
-  /// Get all stored accounts
+  /// Get all stored accounts.
   Future<List<Map<dynamic, dynamic>>> getStoredAccounts() async {
-    final box = HiveService.authBox;
-    final List<dynamic> rawList = box.get(_keyAccounts, defaultValue: []);
-    // Cast to List<Map> safely
-    return rawList.map((e) => Map<dynamic, dynamic>.from(e as Map)).toList();
+    await _migrateLegacyIfNeeded();
+    final raw = await SecureStorage.read(_keyAccounts);
+    if (raw == null || raw.isEmpty) return [];
+    final decoded = jsonDecode(raw);
+    if (decoded is! List) return [];
+    return decoded.map((e) => Map<dynamic, dynamic>.from(e as Map)).toList();
   }
 
-  /// Remove an account
+  /// Remove an account.
   Future<void> removeAccount(String userId) async {
-    final box = HiveService.authBox;
-    final List<dynamic> accounts = box.get(_keyAccounts, defaultValue: []);
+    final accounts = await getStoredAccounts();
     accounts.removeWhere((a) => a['userId'] == userId);
-    await box.put(_keyAccounts, accounts);
+    await SecureStorage.write(_keyAccounts, jsonEncode(accounts));
   }
 }

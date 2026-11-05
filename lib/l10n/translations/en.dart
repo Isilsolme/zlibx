@@ -155,6 +155,12 @@ const Map<String, String> en = {
   // Network
   'select_network': 'Select Network',
   'custom_domain': 'Custom Domain',
+  'custom_domain_invalid': 'Invalid domain format. Enter a domain like example.com.',
+  'custom_domain_warning_title': 'Custom Line Risk',
+  'custom_domain_warning_body':
+      'This domain is not in the built-in line list. Your saved login session will not be sent automatically after switching. Only continue if you trust this domain, and log in again after switching.',
+  'custom_domain_switch_anyway': 'Switch Anyway',
+  'custom_domain_relogin_hint': 'Switched to a custom line. Please log in again.',
   'recheck': 'Re-check',
 
   // History Screen
@@ -242,6 +248,8 @@ const Map<String, String> en = {
   'lan_manual_title': 'Enter Computer Address',
   'lan_manual_hint': 'e.g. http://192.168.1.5:8765/?token=…',
   'lan_scan_hint': 'Point at the "Wireless Transfer" QR code on your computer',
+  'lan_plaintext_warning':
+      'LAN transfer is plaintext and can be sniffed on the same network; the token is only for use between this device and your computer.',
   'lan_connecting': 'Connecting to computer…',
   'lan_sending': 'Sending to computer…',
   'lan_upload_success': 'Sent to computer',

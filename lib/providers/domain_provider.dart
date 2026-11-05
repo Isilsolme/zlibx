@@ -23,51 +23,52 @@ const _retiredBuiltInDomains = {
 };
 
 /// All available mirror domains (flat list).
+const kBuiltInDomains = [
+  'bookroom.lifestyle',
+  'bibliotheca.world',
+  'bibliotheca.study',
+  'bibliotheca.lifestyle',
+  'luto.top',
+  'bibliotheca.life',
+  'anthology.lifestyle',
+  'elaborate.monster',
+  's0u1.top',
+  '26h2.tech',
+  'orangerain.space',
+  'zouwu.top',
+  'xn--t8j0bxa8hymnb.jp',
+  '553211.xyz',
+  'loves.works',
+  'z-library.im',
+  'ireadhuang.sbs',
+  'elaborate.quest',
+  'elaborate.wtf',
+  '9libmirror.tech',
+  'shunfei.shop',
+  'elaboratethinking.online',
+  'bookorg.tech',
+  'booook.me',
+  '95427279.xyz',
+  'zkoo.site',
+  'adsblaze.com',
+  '817523.xyz',
+  'toffeeboba.com',
+  'interflow.ch',
+  'free2read.cc',
+  '8964520.xyz',
+  'umq.me',
+  '110434.xyz',
+  'frank9527.site',
+  'freebooks.lol',
+  '226272.xyz',
+  'jdbooks.xyz',
+  'arcfoxxxxxx.site',
+  '86110101.xyz',
+  '909190.xyz',
+];
+
 final domainListProvider = Provider<List<String>>((ref) {
-  const base = [
-    'bookroom.lifestyle',
-    'bibliotheca.world',
-    'bibliotheca.study',
-    'bibliotheca.lifestyle',
-    'luto.top',
-    'bibliotheca.life',
-    'anthology.lifestyle',
-    'elaborate.monster',
-    's0u1.top',
-    '26h2.tech',
-    'orangerain.space',
-    'zouwu.top',
-    'xn--t8j0bxa8hymnb.jp',
-    '553211.xyz',
-    'loves.works',
-    'z-library.im',
-    'ireadhuang.sbs',
-    'elaborate.quest',
-    'elaborate.wtf',
-    '9libmirror.tech',
-    'shunfei.shop',
-    'elaboratethinking.online',
-    'bookorg.tech',
-    'booook.me',
-    '95427279.xyz',
-    'zkoo.site',
-    'adsblaze.com',
-    '817523.xyz',
-    'toffeeboba.com',
-    'interflow.ch',
-    'free2read.cc',
-    '8964520.xyz',
-    'umq.me',
-    '110434.xyz',
-    'frank9527.site',
-    'freebooks.lol',
-    '226272.xyz',
-    'jdbooks.xyz',
-    'arcfoxxxxxx.site',
-    '86110101.xyz',
-    '909190.xyz',
-  ];
-  return base;
+  return kBuiltInDomains;
 });
 
 final domainProvider = StateNotifierProvider<DomainNotifier, String>((ref) {
@@ -99,27 +100,88 @@ class DomainNotifier extends StateNotifier<String> {
   /// Switch to a new line. Fire-and-forget: callers don't need to await.
   /// Internally we re-establish cookies on the new domain (reverify) and
   /// invalidate data providers so they refetch against the new line.
-  void setDomain(String domain) {
+  ///
+  /// [reverifySession] must be false for non-built-in domains: the stored
+  /// session is never auto-sent to an arbitrary host. The line is flagged
+  /// unavailable instead, and the user logs in again explicitly if they
+  /// trust the domain.
+  void setDomain(String domain, {bool reverifySession = true}) {
     if (domain == state) return;
     state = domain;
     HiveService.settingsBox.put('domain', domain);
     _api.setDomain(domain);
-    _refreshAfterSwitch();
+    _refreshAfterSwitch(reverifySession: reverifySession);
   }
 
-  void setCustomDomain(String domain) {
-    String cleanDomain = domain.replaceAll(RegExp(r'^https?://'), '');
-    if (cleanDomain.endsWith('/')) {
-      cleanDomain = cleanDomain.substring(0, cleanDomain.length - 1);
+  /// A custom domain is valid when it is a plain hostname (or IPv4) with
+  /// an optional port — no userinfo, path, query or fragment.
+  static bool isValidCustomDomain(String domain) {
+    final d = domain.trim();
+    if (d.isEmpty || d.length > 253) return false;
+    if (d.contains(RegExp(r'[\s/@?#;]'))) return false;
+    final parts = d.split(':');
+    if (parts.length > 2) return false;
+    if (parts.length == 2) {
+      final port = int.tryParse(parts[1]);
+      if (port == null || port < 1 || port > 65535) return false;
     }
-    setDomain(cleanDomain);
+    final host = parts.first;
+    if (host.isEmpty) return false;
+    // IPv4.
+    if (RegExp(r'^\d{1,3}(\.\d{1,3}){3}$').hasMatch(host)) {
+      return host.split('.').every((p) => (int.tryParse(p) ?? 256) <= 255);
+    }
+    // DNS hostname: dot-separated labels, no leading/trailing hyphen/dot.
+    if (host.startsWith('.') ||
+        host.endsWith('.') ||
+        host.startsWith('-') ||
+        host.endsWith('-')) {
+      return false;
+    }
+    final label = RegExp(r'^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$');
+    return host.split('.').every((part) => label.hasMatch(part));
   }
 
-  Future<void> _refreshAfterSwitch() async {
-    // Cookies are domain-scoped — re-issue remix_userid/remix_userkey on the
-    // new domain and re-fetch profile. This also clears the lineUnavailable
-    // flag on success.
-    await _ref.read(authProvider.notifier).reverify();
+  static bool isBuiltInDomain(String domain) {
+    final host = domain.trim().split(':').first.toLowerCase();
+    return host == defaultDomain || kBuiltInDomains.contains(host);
+  }
+
+  /// Strip scheme and any path / query / fragment a pasted URL may carry.
+  static String normalizeCustomDomain(String domain) {
+    var clean = domain.trim().replaceAll(RegExp(r'^https?://'), '');
+    final cut = clean.indexOf(RegExp(r'[/?#]'));
+    if (cut >= 0) clean = clean.substring(0, cut);
+    while (clean.endsWith('/')) {
+      clean = clean.substring(0, clean.length - 1);
+    }
+    return clean;
+  }
+
+  /// Validate + switch to a custom line. Returns false when the input is
+  /// not a valid domain (caller keeps the dialog open). Non-built-in
+  /// domains switch WITHOUT re-sending the stored session.
+  bool setCustomDomain(String domain) {
+    final cleanDomain = normalizeCustomDomain(domain);
+    if (!isValidCustomDomain(cleanDomain)) return false;
+    setDomain(
+      cleanDomain,
+      reverifySession: isBuiltInDomain(cleanDomain),
+    );
+    return true;
+  }
+
+  Future<void> _refreshAfterSwitch({required bool reverifySession}) async {
+    if (reverifySession) {
+      // Cookies are domain-scoped — re-issue remix_userid/remix_userkey on the
+      // new domain and re-fetch profile. This also clears the lineUnavailable
+      // flag on success.
+      await _ref.read(authProvider.notifier).reverify();
+    } else {
+      // Custom domain: do NOT send the stored session here. Flag the line
+      // unavailable so the user explicitly logs in again if they trust it.
+      _ref.read(authProvider.notifier).flagLineUnavailable();
+    }
     // Bust caches for anything that depends on the line. List individual
     // providers explicitly so adding a new one is a deliberate decision.
     _ref.invalidate(bookDetailsProvider);

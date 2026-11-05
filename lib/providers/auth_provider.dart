@@ -1,3 +1,4 @@
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
@@ -123,7 +124,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userKey: user.remixUserkey,
           email: user.email,
           name: user.name,
-          password: password,
         );
 
         state = AuthState(user: user);
@@ -190,7 +190,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _storage.clearCredentials();
+    // Session cookies installed for the online reader live in the WebView
+    // cookie store; clear them too so logout really logs out everywhere.
+    try {
+      await CookieManager.instance().deleteAllCookies();
+    } catch (_) {
+      // WebView never initialized — nothing to clear.
+    }
     state = AuthState();
+  }
+
+  /// Mark the current line unavailable without sending any credentials:
+  /// used after switching to a custom domain, where the stored session
+  /// must not be auto-sent until the user explicitly logs in again.
+  void flagLineUnavailable() {
+    state = state.copyWith(lineUnavailable: true);
   }
 
   Future<void> refreshProfile() async {
@@ -237,7 +251,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final userId = account['userId']?.toString();
     final userKey = account['userKey']?.toString();
     final email = account['email']?.toString();
-    final password = account['password']?.toString();
 
     if (userId != null && userKey != null) {
       final success = await loginWithToken(userId, userKey);
@@ -247,13 +260,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userKey: userKey,
           email: state.user?.email ?? email,
           name: state.user?.name ?? account['name']?.toString(),
-          password: password,
         );
       }
       return success;
-    } else if (email != null && password != null) {
-      return await login(email, password);
     }
+    // No session keys and no stored password (passwords are never persisted):
+    // this account cannot be switched to without logging in again.
     return false;
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/domain_provider.dart';
 import '../providers/speed_test_provider.dart';
 import '../theme/app_colors.dart';
@@ -305,12 +306,56 @@ class DomainSelectionDialog extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              if (controller.text.isNotEmpty) {
-                ref
-                    .read(domainProvider.notifier)
-                    .setCustomDomain(controller.text);
-                Navigator.pop(context);
+              final raw = DomainNotifier.normalizeCustomDomain(
+                controller.text,
+              );
+              if (raw.isEmpty) return;
+              final l = AppLocalizations.of(context);
+              if (!DomainNotifier.isValidCustomDomain(raw)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l.get('custom_domain_invalid')),
+                  ),
+                );
+                return;
               }
+              if (DomainNotifier.isBuiltInDomain(raw)) {
+                ref.read(domainProvider.notifier).setCustomDomain(raw);
+                Navigator.pop(context);
+                return;
+              }
+              // Non-built-in domain: warn first. The saved session is
+              // NOT auto-sent there; the user logs in again afterwards.
+              showDialog(
+                context: context,
+                builder: (warnCtx) => AlertDialog(
+                  title: Text(l.get('custom_domain_warning_title')),
+                  content: Text(l.get('custom_domain_warning_body')),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(warnCtx),
+                      child: Text(isZh ? '取消' : 'Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        ref
+                            .read(domainProvider.notifier)
+                            .setCustomDomain(raw);
+                        Navigator.pop(warnCtx);
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              l.get('custom_domain_relogin_hint'),
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(l.get('custom_domain_switch_anyway')),
+                    ),
+                  ],
+                ),
+              );
             },
             child: Text(isZh ? '保存' : 'Save'),
           ),

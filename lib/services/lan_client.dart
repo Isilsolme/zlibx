@@ -9,7 +9,7 @@ import 'package:dio/dio.dart';
 /// - `POST /api/booklist` 推送书单（需 token）
 /// - `POST /api/upload` 推送书籍文件（multipart 字段 file，需 token）
 ///
-/// token 来自扫码 URL 的 `?token=` 参数，请求时以 query 或 `X-Olib-Token`
+/// token 来自扫码 URL 的 `?token=...` 参数，请求时以 `X-Olib-Token`
 /// header 携带；仅在配对会话内存中缓存（桌面重启即失效）。
 
 /// 扫码得到的对端地址（`http://IP:8765`，阶段 2 起带 `?token=`）。
@@ -140,13 +140,19 @@ class LanClient {
         .toList();
   }
 
-  /// 单文件下载 URL（download_provider 的 presetUrl 用裸 Dio，
-  /// token 走 query 参数携带）。
+  /// 单文件下载 URL（download_provider 的 presetUrl 用裸 Dio 下载）。
+  /// token 绝不拼进 URL：由 [downloadHeaders] 以 `X-Olib-Token` header
+  /// 携带（与本客户端其他请求一致），避免进代理/服务器日志与嗅探。
   String downloadUrl(String fileName) {
     final encoded = Uri.encodeComponent(fileName);
+    return '${peer.baseUrl}/download/$encoded';
+  }
+
+  /// presetUrl 下载时随请求发送的 header（含 LAN token）。
+  Map<String, String> downloadHeaders() {
     final token = peer.token;
-    return '${peer.baseUrl}/download/$encoded'
-        '${token != null ? '?token=${Uri.encodeQueryComponent(token)}' : ''}';
+    if (token == null) return const {};
+    return {'X-Olib-Token': token};
   }
 
   /// 推送书单（codec v1 结构原样），需 token。

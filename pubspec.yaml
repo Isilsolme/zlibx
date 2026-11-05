@@ -53,6 +53,9 @@ dependencies:
   # Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  # Credentials (account session, backend token) live here, never in Hive:
+  # flutter_secure_storage is backed by Android Keystore / iOS Keychain.
+  flutter_secure_storage: ^9.0.0
 
   path_provider: ^2.1.4
   permission_handler: ^12.0.1
