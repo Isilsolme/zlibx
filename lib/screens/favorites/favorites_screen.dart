@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +14,7 @@ import '../../routes/app_routes.dart';
 import '../../screens/book_detail/book_detail_screen.dart';
 import '../../screens/search/search_screen.dart';
 import '../../services/booklist_share_codec.dart';
+import '../../services/media_store.dart';
 import '../../services/share_intent_handler.dart';
 import 'widgets/shelf_book_item.dart';
 import 'widgets/shelf_filter_bar.dart';
@@ -743,10 +742,23 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   Future<void> _quickAction(UnifiedShelfItem item, DownloadTask? local) async {
     if (local?.filePath != null) {
       try {
-        if (!await File(local!.filePath!).exists()) {
+        // MediaStoreFiles.exists understands both plain paths and the
+        // content:// URIs of MediaStore-published downloads; File.exists
+        // returns false for a content URI and would wrongly report the
+        // file as missing.
+        if (!await MediaStoreFiles.exists(local!.filePath!)) {
           ref.read(downloadProvider.notifier).markMissingFile(local.id);
           if (mounted) {
             _message(AppLocalizations.of(context).get('download_file_missing'));
+          }
+          return;
+        }
+        // MediaStore-published downloads live at a content:// URI, which
+        // OpenFilex cannot open — those go through the platform channel.
+        if (MediaStoreFiles.isContentUri(local.filePath!)) {
+          final opened = await MediaStoreFiles.open(local.filePath!);
+          if (!opened && mounted) {
+            _message(AppLocalizations.of(context).get('open_file_failed'));
           }
           return;
         }

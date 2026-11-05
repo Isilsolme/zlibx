@@ -20,6 +20,7 @@ import '../../../models/display_book.dart';
 import '../../../providers/download_provider.dart';
 import '../../../services/annas_archieve.dart';
 import '../../../services/external_download.dart';
+import '../../../services/media_store.dart';
 
 class ExternalBookActionBar extends ConsumerStatefulWidget {
   final DisplayBook displayBook;
@@ -142,7 +143,7 @@ class _ExternalBookActionBarState
   ) async {
     final isCompleted = downloadTask?.status == DownloadStatus.completed;
     if (isCompleted && downloadTask?.filePath != null) {
-      OpenFilex.open(downloadTask!.filePath!);
+      await _openDownloadedFile(context, downloadTask!.filePath!);
       return;
     }
 
@@ -162,8 +163,8 @@ class _ExternalBookActionBarState
             : 'This book has already been downloaded.\n\nYou can open the existing file or download again.',
         btnCancelText: isZh ? '打开文件' : 'Open File',
         btnCancelColor: Theme.of(context).colorScheme.primary,
-        btnCancelOnPress: () {
-          OpenFilex.open(existingPath);
+        btnCancelOnPress: () async {
+          await _openDownloadedFile(context, existingPath);
         },
         btnOkText: isZh ? '重新下载' : 'Download Again',
         btnOkColor: Theme.of(context).colorScheme.primary,
@@ -208,6 +209,39 @@ class _ExternalBookActionBarState
       setState(() => _resolving = false);
       if (context.mounted) {
         _toast(context, AppLocalizations.of(context).get('download_failed'));
+      }
+    }
+  }
+
+  /// Open a downloaded file. MediaStore-published downloads live at a
+  /// content:// URI, which OpenFilex cannot open — those go through the
+  /// platform channel (same pattern as local_downloads_screen.dart).
+  /// Shows a snackbar when opening fails instead of failing silently.
+  Future<void> _openDownloadedFile(BuildContext context, String path) async {
+    try {
+      if (MediaStoreFiles.isContentUri(path)) {
+        final opened = await MediaStoreFiles.open(path);
+        if (!opened && context.mounted) {
+          _toast(
+            context,
+            AppLocalizations.of(context).get('open_file_failed'),
+          );
+        }
+        return;
+      }
+      final result = await OpenFilex.open(path);
+      if (result.type != ResultType.done && context.mounted) {
+        _toast(
+          context,
+          AppLocalizations.of(context).get('open_file_failed'),
+        );
+      }
+    } catch (_) {
+      if (context.mounted) {
+        _toast(
+          context,
+          AppLocalizations.of(context).get('open_file_failed'),
+        );
       }
     }
   }
