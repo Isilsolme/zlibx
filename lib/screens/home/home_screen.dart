@@ -466,8 +466,12 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
             return RefreshIndicator(
               onRefresh: _refreshRecommendations,
               color: Theme.of(context).colorScheme.primary,
+              // The spinner must appear below the floating glass header,
+              // not behind it (the header paints on top of the grid).
+              edgeOffset: topPadding,
               child: GridView.builder(
                 controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.fromLTRB(20, topPadding, 20, 96),
                 gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: maxCardWidth,
