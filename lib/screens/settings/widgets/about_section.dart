@@ -134,6 +134,38 @@ class AboutSection extends StatelessWidget {
                   height: 1.5,
                 ),
               ),
+              const SizedBox(height: 8),
+              InkWell(
+                onTap: () => _launchUrl(
+                    'https://github.com/shiyi-0x7f/olib-mobile'),
+                borderRadius: BorderRadius.circular(4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.link, size: 15, color: cs.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      isZh ? '原版：' : 'Original: ',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: cs.onSurfaceVariant,
+                        height: 1.5,
+                      ),
+                    ),
+                    Flexible(
+                      child: Text(
+                        'shiyi-0x7f/olib-mobile',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: cs.primary,
+                          decoration: TextDecoration.underline,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),

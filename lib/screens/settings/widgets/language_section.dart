@@ -13,6 +13,9 @@ class LanguageSection extends ConsumerWidget {
   static const allLanguages = {
     'en': {'flag': '🇺🇸', 'native': 'English', 'english': 'English'},
     'zh': {'flag': '🇨🇳', 'native': '简体中文', 'english': 'Simplified Chinese'},
+    'zh_Hant': {'flag': '🇹🇼', 'native': '繁體中文', 'english': 'Traditional Chinese'},
+    'ja': {'flag': '🇯🇵', 'native': '日本語', 'english': 'Japanese'},
+    'ko': {'flag': '🇰🇷', 'native': '한국어', 'english': 'Korean'},
   };
 
   @override
