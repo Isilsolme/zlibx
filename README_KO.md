@@ -1,4 +1,4 @@
-# 📚 Olib
+# 📚 olib lite
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 **서드파티 클라이언트 • 프론트엔드 인터페이스만 제공 • 외부 소스에서 데이터**
 
-[APK 다운로드](https://bookbook.space) • [버그 신고](../../issues) • [기능 요청](../../issues)
+[APK 다운로드](https://github.com/minglaiyo/olib-mobile-lite/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **한국어**
 
@@ -20,7 +20,7 @@
 
 ---
 
-> ⚠️ **면책 조항**: Olib은 독립적인 오픈 소스 서드파티 클라이언트입니다. 공식 클라이언트가 **아니며** 어떤 공식 서비스와도 관련이 없습니다. 이 프로젝트는 프론트엔드 인터페이스만 제공하며 모든 책 데이터는 외부 소스에서 가져옵니다. 본인의 판단에 따라 사용하세요.
+> ⚠️ **면책 조항**: olib lite은 독립적인 오픈 소스 서드파티 클라이언트입니다. 공식 클라이언트가 **아니며** 어떤 공식 서비스와도 관련이 없습니다. 이 프로젝트는 프론트엔드 인터페이스만 제공하며 모든 책 데이터는 외부 소스에서 가져옵니다. 본인의 판단에 따라 사용하세요.
 
 ## ✨ 기능
 
@@ -60,7 +60,7 @@
 
 ```bash
 # 저장소 복제
-git clone https://github.com/shiyi-0x7f/olib-mobile.git
+git clone https://github.com/minglaiyo/olib-mobile-lite.git
 
 # 프로젝트 디렉토리로 이동
 cd olib-mobile

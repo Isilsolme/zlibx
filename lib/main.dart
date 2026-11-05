@@ -77,7 +77,7 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     return MaterialApp(
       navigatorKey: rootNavigatorKey,
-      title: 'Olib',
+      title: 'olib lite',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

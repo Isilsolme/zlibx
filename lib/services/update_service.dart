@@ -22,7 +22,7 @@ class UpdateService {
   static const String _releaseApiUrl =
       'https://api.github.com/repos/minglaiyo/olib-mobile-lite/releases/latest';
 
-  /// 官网项目页（MindSet `olib-mobile`），PanSync 发版时同步网盘链接到这里
+  /// 项目 Releases 页（minglaiyo/olib-mobile-lite），PanSync 发版时同步网盘链接到这里
   static const String _downloadUrl = 'https://github.com/minglaiyo/olib-mobile-lite/releases';
 
   static const String _lastCheckKey = 'last_update_check';

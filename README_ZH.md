@@ -1,4 +1,4 @@
-# 📚 Olib
+# 📚 olib lite
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 **第三方客户端 • 仅提供前端界面 • 数据来自外部源**
 
-[下载 APK](https://bookbook.space) • [报告问题](../../issues) • [功能建议](../../issues)
+[下载 APK](https://github.com/minglaiyo/olib-mobile-lite/releases) • [报告问题](../../issues) • [功能建议](../../issues)
 
 **[English](README.md)** | **简体中文** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -20,7 +20,7 @@
 
 ---
 
-> ⚠️ **免责声明**: Olib 是一个独立的开源第三方客户端，**不是**官方客户端，与任何官方服务无关。本项目仅提供前端界面，所有书籍数据来自外部源。请谨慎使用。
+> ⚠️ **免责声明**: olib lite 是一个独立的开源第三方客户端，**不是**官方客户端，与任何官方服务无关。本项目仅提供前端界面，所有书籍数据来自外部源。请谨慎使用。
 
 ## ✨ 功能特点
 
@@ -60,7 +60,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/shiyi-0x7f/olib-mobile.git
+git clone https://github.com/minglaiyo/olib-mobile-lite.git
 
 # 进入项目目录
 cd olib-mobile

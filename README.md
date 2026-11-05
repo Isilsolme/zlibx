@@ -1,4 +1,4 @@
-# 📚 Olib
+# 📚 olib lite
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 **Third-party client • Frontend interface only • All data from external sources**
 
-[Download](https://bookbook.space) • [Report Bug](../../issues) • [Request Feature](../../issues)
+[Download](https://github.com/minglaiyo/olib-mobile-lite/releases) • [Report Bug](../../issues) • [Request Feature](../../issues)
 
 **English** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **[한국어](README_KO.md)**
 
@@ -20,7 +20,7 @@
 
 ---
 
-> ⚠️ **Disclaimer**: Olib is an independent, open-source third-party client. It is NOT an official client and is not affiliated with any official service. This project only provides the frontend interface - all book data comes from external sources. Use at your own discretion.
+> ⚠️ **Disclaimer**: olib lite is an independent, open-source third-party client. It is NOT an official client and is not affiliated with any official service. This project only provides the frontend interface - all book data comes from external sources. Use at your own discretion.
 
 ## ✨ Features
 
@@ -60,7 +60,7 @@ This project was built **entirely with AI assistance**:
 
 ```bash
 # Clone the repository
-git clone https://github.com/shiyi-0x7f/olib-mobile.git
+git clone https://github.com/minglaiyo/olib-mobile-lite.git
 
 # Navigate to project directory
 cd olib-mobile

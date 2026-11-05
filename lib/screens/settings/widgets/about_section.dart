@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
@@ -38,14 +37,6 @@ class AboutSection extends StatelessWidget {
               ),
               const SettingsDivider(),
               ListTile(
-                leading: const Icon(Icons.share_rounded),
-                title: Text(isZh ? '分享应用' : 'Share App'),
-                subtitle: Text(isZh ? '推荐给朋友' : 'Recommend to friends'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _shareApp(context),
-              ),
-              const SettingsDivider(),
-              ListTile(
                 leading: const Icon(Icons.book_outlined),
                 title: Text(
                     AppLocalizations.of(context).get('about_zlibrary')),
@@ -58,7 +49,7 @@ class AboutSection extends StatelessWidget {
                 title: Text(isZh ? 'GitHub 开源' : 'GitHub Open Source'),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
-                    _launchUrl('https://github.com/shiyi-0x7f/olib-mobile'),
+                    _launchUrl('https://github.com/minglaiyo/olib-mobile-lite'),
               ),
             ],
           ),
@@ -72,14 +63,6 @@ class AboutSection extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
-  }
-
-  void _shareApp(BuildContext context) {
-    final isZh = locale_utils.isZhLocale(context);
-    final text = isZh
-        ? '推荐一款开源电子书阅读器 Olib，由AI构建的第三方客户端！\n下载地址: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile'
-        : 'Check out Olib - an open-source ebook reader built with AI!\nDownload: https://bookbook.space\nGitHub: https://github.com/shiyi-0x7f/olib-mobile';
-    Share.share(text);
   }
 
   void _showAboutApp(BuildContext context) {
@@ -107,7 +90,7 @@ class AboutSection extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             const Text(
-              'Olib',
+              'olib lite',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primary,
@@ -133,10 +116,21 @@ class AboutSection extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 isZh
-                    ? 'Olib 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• Olib 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容'
-                    : 'Olib is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• Olib is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above',
+                    ? 'olib lite 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• olib lite 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容'
+                    : 'olib lite is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• olib lite is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above',
                 style: TextStyle(
                   fontSize: 14,
+                  color: cs.onSurfaceVariant,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isZh
+                    ? '致谢：本应用基于 shiyi-0x7f 的 olib-mobile 精简修改。'
+                    : 'Credits: based on olib-mobile by shiyi-0x7f, slimmed down.',
+                style: TextStyle(
+                  fontSize: 13,
                   color: cs.onSurfaceVariant,
                   height: 1.5,
                 ),
@@ -178,7 +172,7 @@ class AboutSection extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
-              _launchUrl('https://github.com/shiyi-0x7f/olib-mobile');
+              _launchUrl('https://github.com/minglaiyo/olib-mobile-lite');
             },
             icon: const Icon(Icons.code, size: 16),
             label: Text(isZh ? '查看源码' : 'View Source'),

@@ -1,4 +1,4 @@
-# 📚 Olib
+# 📚 olib lite
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 
 **サードパーティクライアント • フロントエンドインターフェースのみ • 外部ソースからのデータ**
 
-[APKをダウンロード](https://bookbook.space) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
+[APKをダウンロード](https://github.com/minglaiyo/olib-mobile-lite/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **日本語** | **[한국어](README_KO.md)**
 
@@ -20,7 +20,7 @@
 
 ---
 
-> ⚠️ **免責事項**: Olibは独立したオープンソースのサードパーティクライアントです。公式クライアントではなく、いかなる公式サービスとも関連していません。このプロジェクトはフロントエンドインターフェースのみを提供し、すべての書籍データは外部ソースから取得されます。ご自身の判断でお使いください。
+> ⚠️ **免責事項**: olib liteは独立したオープンソースのサードパーティクライアントです。公式クライアントではなく、いかなる公式サービスとも関連していません。このプロジェクトはフロントエンドインターフェースのみを提供し、すべての書籍データは外部ソースから取得されます。ご自身の判断でお使いください。
 
 ## ✨ 機能
 
@@ -60,7 +60,7 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/shiyi-0x7f/olib-mobile.git
+git clone https://github.com/minglaiyo/olib-mobile-lite.git
 
 # プロジェクトディレクトリに移動
 cd olib-mobile
