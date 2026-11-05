@@ -154,7 +154,7 @@ jobs:
           v="${{ steps.pubspec.outputs.version }}"
 
           # Rename to a clean, human-readable filename
-          mv app-release.apk "olib-lite-v$v.apk"
+          mv app-release.apk "zlibx-v$v.apk"
 
           # Drop any leftover unsigned/intermediate artifacts
           rm -f *.apk.sha1 *-debug.apk
@@ -188,7 +188,7 @@ jobs:
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: olib-lite-android-v${{ steps.pubspec.outputs.version }}
+          name: zlibx-android-v${{ steps.pubspec.outputs.version }}
           path: |
             build/app/outputs/flutter-apk/olib-*.apk
             build/app/outputs/flutter-apk/sha256sums.txt
@@ -199,7 +199,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: olib lite ${{ github.ref_name }}
+          name: zlibx ${{ github.ref_name }}
           # 正文不由工作流生成：发版时在草稿里写好说明；
           # action 更新已有 Release 时 body 为空会保留原正文。
           fail_on_unmatched_files: true
