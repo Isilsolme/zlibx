@@ -144,12 +144,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// Floating style: detach the bar from the bottom edge as a rounded
   /// pill with a soft shadow. Non-floating keeps the full-width bar.
+  /// Radius is half the NavigationBar height (80dp), i.e. a full pill —
+  /// the same shape as Coolapk's floating bar (the c001apk fork's
+  /// LiquidNavigationBar uses BorderRadius.circular(height / 2)).
   Widget _wrapNavBar(Widget navBar, bool floatingNav) {
     if (!floatingNav) return navBar;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(40),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.15),
@@ -159,7 +162,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(40),
         child: navBar,
       ),
     );
