@@ -118,6 +118,7 @@ class LanClient {
       baseUrl: peer.baseUrl,
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 15),
+      followRedirects: false,
       headers: {
         if (peer.token != null) 'X-Olib-Token': peer.token,
       },

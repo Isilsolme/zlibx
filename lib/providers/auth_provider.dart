@@ -2,6 +2,8 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
+import '../services/hive_service.dart';
+import 'domain_provider.dart';
 import 'zlibrary_provider.dart';
 
 class AuthState {
@@ -67,6 +69,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         name: credentials['name'] ?? 'User',
         remixUserkey: userKey,
       );
+
+      // A custom (non built-in) line persisted from a previous run must
+      // never receive the stored session automatically at boot.
+      final savedDomain =
+          (HiveService.settingsBox.get('domain') as String?) ?? defaultDomain;
+      if (!DomainNotifier.isBuiltInDomain(savedDomain)) {
+        state = AuthState(user: cachedUser(), lineUnavailable: true);
+        return;
+      }
 
       try {
         // Use loginWithToken — it sets remix_userid/remix_userkey cookies on

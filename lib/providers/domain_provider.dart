@@ -109,6 +109,9 @@ class DomainNotifier extends StateNotifier<String> {
     if (domain == state) return;
     state = domain;
     HiveService.settingsBox.put('domain', domain);
+    // The in-memory session must not follow the user to a new host; trusted
+    // (built-in) hosts get it back through reverify() below.
+    _api.clearSession();
     _api.setDomain(domain);
     _refreshAfterSwitch(reverifySession: reverifySession);
   }

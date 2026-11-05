@@ -317,7 +317,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
             }
           },
           cancelToken: cancelToken,
-          options: Options(headers: presetHeaders),
+          options: Options(headers: presetHeaders, followRedirects: false),
         );
       } else if (!alreadyExists) {
         // 默认路径：用户自己 z站 账号查 URL + 下载

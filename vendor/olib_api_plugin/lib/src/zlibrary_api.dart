@@ -55,6 +55,14 @@ class ZLibraryApi {
     _domain = _cleanDomain(domain);
   }
 
+  /// Drop the in-memory session so the Cookie header is no longer sent.
+  /// Call before switching to a host that is not trusted; trusted hosts
+  /// re-issue the session explicitly via [loginWithToken].
+  void clearSession() {
+    _userId = null;
+    _userKey = null;
+  }
+
   static String _cleanDomain(String domain) {
     var d = domain.trim();
     d = d.replaceFirst(RegExp(r'^https?://'), '');
@@ -96,6 +104,7 @@ class ZLibraryApi {
         options: Options(
           headers: _headers,
           responseType: ResponseType.plain,
+          followRedirects: false,
         ),
       );
       return _fromResponse(res);
@@ -116,6 +125,7 @@ class ZLibraryApi {
           headers: _headers,
           contentType: Headers.formUrlEncodedContentType,
           responseType: ResponseType.plain,
+          followRedirects: false,
         ),
       );
       return _fromResponse(res);
@@ -762,6 +772,7 @@ class ZLibraryApi {
         options: Options(
           headers: _headers,
           responseType: ResponseType.plain,
+          followRedirects: false,
         ),
       );
       final body = res.data ?? '';
