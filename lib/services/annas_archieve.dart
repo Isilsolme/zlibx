@@ -379,6 +379,22 @@ class AnnasArchieve {
     );
   }
 
+  /// True when trying Dio first is pointless for this call: the enabled
+  /// mirror list is non-empty, but every mirror in it sits behind a bot
+  /// challenge. Dio requests to a protected mirror either time out
+  /// (DDoS-Guard drops non-browser clients without answering) or come
+  /// back as a challenge page, so the Dio phase only burns the 8s
+  /// timeout on each mirror before the WebView solve runs. An empty list
+  /// returns false — that is the no-mirror error, which
+  /// [_requestWithRetry] already reports.
+  Future<bool> _shouldSkipDio() async {
+    final urls =
+        await _instanceManager.enabledUrls(MirrorService.annasArchive);
+    if (urls.isEmpty) return false;
+    return !await _instanceManager
+        .hasUnprotectedMirror(MirrorService.annasArchive);
+  }
+
   /// WebView fallback for a search whose Dio attempts all failed without a
   /// response (timeout / connection killed — the DDoS-Guard signature when
   /// it drops non-browser clients). Builds the search URL for the first
@@ -413,6 +429,15 @@ class AnnasArchieve {
       currentBaseUrl: baseUrl,
       page: page,
     );
+    // A previous solve already captured this exact page: parse it
+    // directly instead of solving again. (The Dio path checks this same
+    // cache first; skipping Dio must not lose the instant repeat search.)
+    final cached = ChallengeHtmlCache.get(targetUrl);
+    if (cached != null) {
+      _logger.info('Using cached challenge HTML for search',
+          tag: 'AnnasArchive', metadata: {'url': targetUrl});
+      return _parser(cached, fileType, baseUrl);
+    }
     _logger.info('All mirrors timed out, solving search URL in WebView',
         tag: 'AnnasArchive', metadata: {'url': targetUrl});
     final html =
@@ -441,6 +466,14 @@ class AnnasArchieve {
     if (urlParsed.host != currentParsed.host) {
       adjustedUrl =
           '$baseUrl${urlParsed.path}${urlParsed.query.isNotEmpty ? "?${urlParsed.query}" : ""}';
+    }
+    // Same cache fast-path as the Dio closure: a previous solve already
+    // captured this exact detail page.
+    final cached = ChallengeHtmlCache.get(adjustedUrl);
+    if (cached != null) {
+      _logger.info('Using cached challenge HTML for bookInfo',
+          tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
+      return _bookInfoParser(cached, adjustedUrl, baseUrl);
     }
     _logger.info('All mirrors timed out, solving book URL in WebView',
         tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
@@ -476,6 +509,39 @@ class AnnasArchieve {
       'publisher': publisher,
       'filtersEnabled': enableFilters,
     });
+
+    // Fast path: every enabled mirror is protected, so Dio cannot
+    // succeed — skip the timed-out Dio phase and solve the first
+    // mirror's search URL in a WebView directly. If the solve fails
+    // (solver unavailable / user backed out), surface the same timeout
+    // error the Dio path would have produced instead of falling
+    // through: falling through would burn the 8s timeout on every
+    // mirror and then solve a second time in the catch below. This
+    // check sits before the try on purpose, so the thrown error is not
+    // re-caught by the fallback below.
+    if (await _shouldSkipDio()) {
+      try {
+        final solved = await _solveSearchViaWebView(
+          searchQuery: searchQuery,
+          content: content,
+          sort: sort,
+          fileType: fileType,
+          language: language,
+          year: year,
+          author: author,
+          publisher: publisher,
+          enableFilters: enableFilters,
+          page: page,
+        );
+        if (solved != null) return solved;
+      } catch (e) {
+        _logger.error('WebView pre-solve failed',
+            tag: 'AnnasArchive', error: e.toString());
+      }
+      throw await _handleErrorAsync(
+        TimeoutException('All mirrors protected and WebView solve failed'),
+      );
+    }
 
     try {
       final books =
@@ -664,6 +730,22 @@ class AnnasArchieve {
       {required String url, String? donationKey}) async {
     _logger.info('Fetching book info',
         tag: 'AnnasArchive', metadata: {'url': url});
+
+    // Fast path, same as searchBooks: every enabled mirror is protected,
+    // so skip the timed-out Dio phase and solve this book's detail URL
+    // (on the first mirror) in a WebView directly.
+    if (await _shouldSkipDio()) {
+      try {
+        final solved = await _solveBookInfoViaWebView(url);
+        if (solved != null) return solved;
+      } catch (e) {
+        _logger.error('WebView pre-solve failed',
+            tag: 'AnnasArchive', error: e.toString());
+      }
+      throw await _handleErrorAsync(
+        TimeoutException('All mirrors protected and WebView solve failed'),
+      );
+    }
 
     try {
       final data =

@@ -218,6 +218,21 @@ class InstanceManager {
     ];
   }
 
+  /// The enabled, attemptable mirrors of [service] in request order.
+  /// Shared by [enabledUrls] and [hasUnprotectedMirror] so both decide
+  /// from the same list: mirrors SLUM reports DOWN and mirrors the user
+  /// switched off are out, and [headlessOnly] additionally drops any
+  /// mirror a plain Dio client cannot pass.
+  Future<List<InstanceView>> _enabledViews(MirrorService service,
+      {bool force = false, bool headlessOnly = false}) async {
+    final views = await instances(service, force: force);
+    return [
+      for (final view in views)
+        if (view.enabled && view.site.isAttemptable)
+          if (!headlessOnly || view.site.protection.solvableHeadless) view,
+    ];
+  }
+
   /// The mirror URLs a provider may actually request, best first.
   ///
   /// Excludes:
@@ -227,14 +242,21 @@ class InstanceManager {
   ///    for headless-only ([headlessOnly]).
   Future<List<String>> enabledUrls(MirrorService service,
       {bool force = false, bool headlessOnly = false}) async {
-    final views = await instances(service, force: force);
-    final urls = <String>[
-      for (final view in views)
-        if (view.enabled && view.site.isAttemptable)
-          if (!headlessOnly || view.site.protection.solvableHeadless)
-            view.site.url,
-    ];
-    return urls;
+    final views =
+        await _enabledViews(service, force: force, headlessOnly: headlessOnly);
+    return [for (final view in views) view.site.url];
+  }
+
+  /// True when at least one mirror [enabledUrls] would return for
+  /// [service] has no bot challenge ([Protection.none]) — i.e. a plain
+  /// Dio request has a chance. False when the list is empty or every
+  /// enabled mirror sits behind a challenge (DiamWall, DDoS-Guard,
+  /// Cloudflare or unknown): Dio would only time out on those, so
+  /// callers can skip straight to the WebView solve.
+  Future<bool> hasUnprotectedMirror(MirrorService service,
+      {bool force = false}) async {
+    final views = await _enabledViews(service, force: force);
+    return views.any((view) => view.site.protection == Protection.none);
   }
 
   /// Refreshes from open-slum.org and reports what changed, for the
