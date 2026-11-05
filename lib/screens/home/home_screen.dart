@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
@@ -22,8 +24,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Only the home tab lives in the stack; bookshelf/downloads are pushed
-  // as routes, and search is opened from the home search box (no nav tab).
+  // Only the home tab lives in the stack; bookshelf/downloads/settings
+  // are pushed as routes, and search is opened from the home search box
+  // (no nav tab).
   final List<Widget> _screens = [
     const _HomeTab(),
   ];
@@ -54,6 +57,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Navigator.of(context).pushNamed(AppRoutes.favorites);
             } else if (index == 2) {
               Navigator.of(context).pushNamed(AppRoutes.downloads);
+            } else if (index == 3) {
+              Navigator.of(context).pushNamed(AppRoutes.settings);
             } else {
               setState(() => _selectedIndex = index);
             }
@@ -74,31 +79,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               selectedIcon: const Icon(Icons.cloud_download),
               label: AppLocalizations.of(context).get('downloads'),
             ),
+            NavigationDestination(
+              icon: const Icon(Icons.settings_outlined),
+              selectedIcon: const Icon(Icons.settings),
+              label: AppLocalizations.of(context).get('settings'),
+            ),
           ],
         ),
       ),
     );
-  }
-}
-
-/// Get time-based greeting message
-String _getGreeting(BuildContext context) {
-  final hour = DateTime.now().hour;
-  final locale = Localizations.localeOf(context).languageCode;
-  final isZh = locale == 'zh';
-
-  if (hour < 6) {
-    return isZh ? '夜深了，' : 'Late night,';
-  } else if (hour < 12) {
-    return isZh ? '早上好，' : 'Good morning,';
-  } else if (hour < 14) {
-    return isZh ? '中午好，' : 'Good afternoon,';
-  } else if (hour < 18) {
-    return isZh ? '下午好，' : 'Good afternoon,';
-  } else if (hour < 22) {
-    return isZh ? '晚上好，' : 'Good evening,';
-  } else {
-    return isZh ? '夜深了，' : 'Late night,';
   }
 }
 
@@ -169,156 +158,141 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final user = authState.user;
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
+
+    // The glass header floats over the recommendation grid so the grid
+    // scrolls underneath it (visible through the blur). Its height is
+    // fixed, so the grid reserves the same space on top. When the
+    // line-unavailable banner is shown it takes the status-bar inset
+    // itself, so the header adds none.
+    final topInset =
+        authState.lineUnavailable ? 0.0 : MediaQuery.of(context).padding.top;
+    const searchBarHeight = 54.0;
+    const headerPadding = 12.0;
+    const titleHeight = 22.0;
+    const headerGap = 12.0;
+    final headerHeight = topInset +
+        headerPadding +
+        searchBarHeight +
+        headerGap +
+        titleHeight +
+        headerPadding;
+    // A little slack so the first row never tucks under the glass.
+    final gridTopPadding = headerHeight + 8;
 
     return Column(
       children: [
-        if (authState.lineUnavailable) _buildLineUnavailableBanner(context, isZh),
-        // ========== 固定头部区域 ==========
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                cs.primary.withValues(alpha:0.05),
-                theme.scaffoldBackgroundColor,
-              ],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header Row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _getGreeting(context),
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 16,
-                            ),
+        if (authState.lineUnavailable)
+          _buildLineUnavailableBanner(context, isZh),
+        Expanded(
+          child: Stack(
+            children: [
+              _buildBookGrid(
+                  ref.watch(homeRecommendedProvider), gridTopPadding),
+              // ========== 悬浮毛玻璃头部 ==========
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surface.withValues(alpha: 0.65),
+                        border: Border(
+                          bottom: BorderSide(
+                            color:
+                                cs.outlineVariant.withValues(alpha: 0.4),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.name ?? (isZh ? '读者' : 'Reader'),
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              color: cs.onSurface,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 28,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: cs.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha:0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                            24, topInset + headerPadding, 24, headerPadding),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Search Bar Trigger
+                            GestureDetector(
+                              onTap: () => Navigator.of(context)
+                                  .pushNamed(AppRoutes.search),
+                              child: Container(
+                                height: searchBarHeight,
+                                padding:
+                                    const EdgeInsets.only(left: 20, right: 8),
+                                decoration: BoxDecoration(
+                                  color: cs.surface.withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(30),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.06),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 6),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.search,
+                                        color: cs.onSurfaceVariant),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        AppLocalizations.of(context)
+                                            .get('search_for_books'),
+                                        style: TextStyle(
+                                          color: cs.onSurfaceVariant
+                                              .withValues(alpha: 0.7),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: cs.primary,
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(Icons.arrow_forward,
+                                          color: Colors.white, size: 20),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: headerGap),
+
+                            // 推荐书籍标题
+                            Row(
+                              children: [
+                                Icon(Icons.local_fire_department_rounded,
+                                    color: cs.primary, size: 22),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isZh ? '为你推荐' : 'Recommended',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: cs.onSurface,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.settings_outlined),
-                          onPressed: () {
-                            Navigator.of(context).pushNamed(AppRoutes.settings);
-                          },
-                          color: cs.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Search Bar Trigger
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).pushNamed(AppRoutes.search),
-                    child: Container(
-                      height: 54,
-                      padding: const EdgeInsets.only(left: 20, right: 8),
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha:0.08),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.search, color: cs.onSurfaceVariant),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              AppLocalizations.of(context).get('search_for_books'),
-                              style: TextStyle(
-                                color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                          ),
-                        ],
                       ),
                     ),
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // 推荐书籍标题
-                  Row(
-                    children: [
-                      Icon(Icons.local_fire_department_rounded,
-                          color: cs.primary, size: 22),
-                      const SizedBox(width: 6),
-                      Text(
-                        Localizations.localeOf(context).languageCode == 'zh'
-                            ? '为你推荐'
-                            : 'Recommended',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: cs.onSurface,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-        ),
-
-        // ========== 可滚动书籍网格 ==========
-        Expanded(
-          child: _buildBookGrid(ref.watch(homeRecommendedProvider)),
         ),
       ],
     );
@@ -377,13 +351,17 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     );
   }
 
-  Widget _buildBookGrid(AsyncValue<List<DisplayBook>> booksAsync) {
+  // topPadding reserves the floating glass header's height inside the
+  // scrollable, so the grid scrolls underneath the header (blurred)
+  // instead of starting below it.
+  Widget _buildBookGrid(
+      AsyncValue<List<DisplayBook>> booksAsync, double topPadding) {
     return booksAsync.when(
       data: (books) {
         if (books.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(40.0),
-            child: EmptyState(
+          return Padding(
+            padding: EdgeInsets.fromLTRB(40, topPadding + 40, 40, 40),
+            child: const EmptyState(
               icon: Icons.book_outlined,
               title: 'No books found',
             ),
@@ -407,7 +385,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     .clamp(0.0, double.infinity);
 
             return GridView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              padding: EdgeInsets.fromLTRB(20, topPadding, 20, 32),
               gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: maxCardWidth,
                 mainAxisExtent: BookCard.compactHeightFor(cardWidth),
@@ -433,13 +411,13 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           },
         );
       },
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: LoadingWidget(message: 'Loading trending books...'),
+      loading: () => Padding(
+        padding: EdgeInsets.only(top: topPadding + 40, bottom: 40),
+        child: const LoadingWidget(message: 'Loading trending books...'),
       ),
-      error: (error, stack) => const Padding(
-        padding: EdgeInsets.all(20),
-        child: EmptyState(
+      error: (error, stack) => Padding(
+        padding: EdgeInsets.fromLTRB(20, topPadding + 20, 20, 20),
+        child: const EmptyState(
           icon: Icons.error_outline,
           title: 'Could not load books',
           message: 'Please check your connection',
