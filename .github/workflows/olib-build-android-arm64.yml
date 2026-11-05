@@ -154,7 +154,7 @@ jobs:
           v="${{ steps.pubspec.outputs.version }}"
 
           # Rename to a clean, human-readable filename
-          mv app-release.apk "olib-v$v.apk"
+          mv app-release.apk "olib-lite-v$v.apk"
 
           # Drop any leftover unsigned/intermediate artifacts
           rm -f *.apk.sha1 *-debug.apk
@@ -188,7 +188,7 @@ jobs:
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: olib-android-v${{ steps.pubspec.outputs.version }}
+          name: olib-lite-android-v${{ steps.pubspec.outputs.version }}
           path: |
             build/app/outputs/flutter-apk/olib-*.apk
             build/app/outputs/flutter-apk/sha256sums.txt
