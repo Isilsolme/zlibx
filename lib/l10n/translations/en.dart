@@ -142,7 +142,6 @@ const Map<String, String> en = {
   'open_file': 'Open File',
   'open_folder': 'Open Folder',
   'open_file_failed': 'Could not open file',
-  'epub_open_failed': 'Could not open the book',
   'share': 'Share',
   'share_failed': 'Could not share file',
   'copy_path': 'Copy Path',

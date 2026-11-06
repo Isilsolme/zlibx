@@ -12,7 +12,6 @@ import '../../../services/update_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/update_dialog.dart';
 import '../../reader/reader_screen.dart';
-import '../../reader/epub_reader_screen.dart';
 import 'download_quota_dialog.dart';
 
 class BookActionBar extends ConsumerWidget {
@@ -282,17 +281,6 @@ class BookActionBar extends ConsumerWidget {
   /// platform channel (same pattern as local_downloads_screen.dart).
   /// Shows a snackbar when opening fails instead of failing silently.
   Future<void> _openDownloadedFile(BuildContext context, String path) async {
-    // EPUB files open in the built-in reader; everything else falls
-    // through to the external opener below.
-    if (await EpubReaderScreen.openIfEpub(
-      context,
-      path: path,
-      extension: book.extension,
-      title: book.title,
-      bookId: book.id,
-    )) {
-      return;
-    }
     try {
       if (MediaStoreFiles.isContentUri(path)) {
         final opened = await MediaStoreFiles.open(path);

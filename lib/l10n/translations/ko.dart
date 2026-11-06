@@ -140,7 +140,6 @@ const Map<String, String> ko = {
   'open_file': '파일 열기',
   'open_folder': '폴더 열기',
   'open_file_failed': '파일을 열 수 없습니다',
-  'epub_open_failed': '책을 열 수 없습니다',
   'share': '공유',
   'share_failed': '파일을 공유할 수 없습니다',
   'copy_path': '경로 복사',

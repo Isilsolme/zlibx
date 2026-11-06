@@ -139,7 +139,6 @@ const Map<String, String> zh = {
   'open_file': '打开文件',
   'open_folder': '打开文件夹',
   'open_file_failed': '无法打开文件',
-  'epub_open_failed': '无法打开这本书',
   'share': '分享',
   'share_failed': '无法分享文件',
   'copy_path': '复制路径',

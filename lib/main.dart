@@ -20,7 +20,6 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/similar/similar_books_screen.dart';
 import 'screens/comments/book_comments_screen.dart';
 import 'screens/reader/reader_screen.dart';
-import 'screens/reader/epub_reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_share_codec.dart';
 import 'services/share_intent_handler.dart';
@@ -155,7 +154,6 @@ class _MyAppState extends ConsumerState<MyApp> {
                 remixUserKey: args.remixUserKey,
               );
             },
-            AppRoutes.epubReader: (context) => const EpubReaderScreen(),
           },
         );
       },

@@ -12,5 +12,4 @@ class AppRoutes {
   static const String similarBooks = '/similar-books';
   static const String bookComments = '/book-comments';
   static const String reader = '/reader';
-  static const String epubReader = '/epub-reader';
 }

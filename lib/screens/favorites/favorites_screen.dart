@@ -12,7 +12,6 @@ import '../../providers/shelf_categories_provider.dart';
 import '../../providers/shelf_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../screens/book_detail/book_detail_screen.dart';
-import '../../screens/reader/epub_reader_screen.dart';
 import '../../screens/search/search_screen.dart';
 import '../../services/booklist_share_codec.dart';
 import '../../services/media_store.dart';
@@ -747,17 +746,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
           if (mounted) {
             _message(AppLocalizations.of(context).get('download_file_missing'));
           }
-          return;
-        }
-        // EPUB files open in the built-in reader; everything else falls
-        // through to the external opener below.
-        if (await EpubReaderScreen.openIfEpub(
-          context,
-          path: local!.filePath!,
-          extension: local!.book.extension,
-          title: local!.book.title,
-          bookId: local!.book.id,
-        )) {
           return;
         }
         // MediaStore-published downloads live at a content:// URI, which

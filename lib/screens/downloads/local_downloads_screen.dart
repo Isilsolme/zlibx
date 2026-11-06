@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
-import '../../screens/reader/epub_reader_screen.dart';
 import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/file_utils.dart';
@@ -386,17 +385,6 @@ class _DownloadItem extends ConsumerWidget {
 
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
     if (!await _fileExists(context, ref)) return;
-    // EPUB files open in the built-in reader; everything else falls
-    // through to the external opener below.
-    if (await EpubReaderScreen.openIfEpub(
-      context,
-      path: task.filePath!,
-      extension: task.book.extension,
-      title: task.book.title,
-      bookId: task.book.id,
-    )) {
-      return;
-    }
     try {
       // MediaStore-published downloads live at a content:// URI, which
       // OpenFilex cannot open — those go through the platform channel.
