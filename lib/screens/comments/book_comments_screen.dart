@@ -86,6 +86,14 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   Future<void> _submitComment() async {
     final text = _composerController.text.trim();
     if (text.isEmpty || _isPosting) return;
+    // The site rejects very short comments server-side; catch the
+    // obvious cases up front instead of a round trip. (4-char posts go
+    // through; the exact server minimum is unknown, so only 1–2 chars
+    // are blocked here — anything longer still gets the server's say.)
+    if (text.length < 3) {
+      _showSnack(AppLocalizations.of(context).get('comment_too_short'));
+      return;
+    }
     final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
     final api = ref.read(zlibraryApiProvider);
     final replyTo = _replyTo;

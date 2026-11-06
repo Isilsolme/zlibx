@@ -223,6 +223,7 @@ const Map<String, String> ja = {
   'reply': '返信',
   'send_comment': 'コメントを送信',
   'comment_failed': 'コメントの投稿に失敗しました',
+  'comment_too_short': 'コメントが短すぎます',
   'like_failed': 'いいねに失敗しました',
 
   // Dialogs

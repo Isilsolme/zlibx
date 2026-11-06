@@ -231,6 +231,7 @@ const Map<String, String> en = {
   'reply': 'Reply',
   'send_comment': 'Send comment',
   'comment_failed': 'Failed to post comment',
+  'comment_too_short': 'Comment is too short',
   'like_failed': 'Failed to update like',
 
   // Dialogs

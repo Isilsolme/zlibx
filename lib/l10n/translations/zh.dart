@@ -221,6 +221,7 @@ const Map<String, String> zh = {
   'reply': '回复',
   'send_comment': '发送评论',
   'comment_failed': '评论发布失败',
+  'comment_too_short': '评论太短了',
   'like_failed': '点赞失败',
 
   // Dialogs
