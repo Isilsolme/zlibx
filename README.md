@@ -27,9 +27,9 @@
 | Feature | Description |
 |---------|-------------|
 | 📖 **Book Search** | Search books by title, author, ISBN, or keywords |
-| 💾 **Offline Reading** | Download books for reading without internet |
+| 💾 **Offline Reading** | Download books and open them in external reader apps |
 | 🌙 **Dark Mode** | Eye-friendly reading experience |
-| 🌍 **Multi-language** | Supports 16+ languages including English, 中文, 日本語, 한국어 |
+| 🌍 **Multi-language** | Supports 5 languages including English, 中文, 日本語, 한국어 |
 | 🔐 **Multi-Account** | Switch between multiple accounts seamlessly |
 | 🔗 **Multi-Domain** | Choose from multiple server lines |
 | 🆓 **100% Free** | No ads, no subscriptions, no hidden costs |
@@ -52,7 +52,7 @@ zlibx is a heavily-modded fork of shiyi-0x7f/olib-mobile:
 
 ### Prerequisites
 
-- Flutter SDK 3.8+
+- Flutter SDK 3.10+
 - Android Studio / VS Code
 - Android device or emulator
 
@@ -82,14 +82,20 @@ flutter build apk --release --target-platform android-arm64
 
 ```
 lib/
-├── l10n/           # Localization files (16+ languages)
+├── constants/      # App constants
+├── core/           # Core logic (book data, mirrors)
+├── l10n/           # Localization files (5 languages)
 ├── models/         # Data models
 ├── providers/      # State management (Riverpod)
 ├── routes/         # App navigation
 ├── screens/        # UI screens
 ├── services/       # API & storage services
 ├── theme/          # App theme configuration
+├── utils/          # Helper utilities
 └── widgets/        # Reusable components
+
+vendor/
+└── olib_api_plugin/  # In-repo rewrite of the original private plugin
 ```
 
 ## 🛠️ Tech Stack
@@ -97,8 +103,8 @@ lib/
 - **Framework**: Flutter
 - **State Management**: Riverpod
 - **Local Storage**: Hive
-- **HTTP Client**: http package
-- **Localization**: 16+ languages
+- **HTTP Client**: Dio (package:http only for search suggestions and update checks)
+- **Localization**: 5 languages
 
 ## 🤝 Contributing
 
@@ -131,7 +137,7 @@ This project is licensed under the GNU Affero General Public License v3.0 (AGPL-
 
 <div align="center">
 
-**[⬆ Back to Top](#-olib)**
+**[⬆ Back to Top](#-zlibx)**
 
 Open Source • Free Forever
 
