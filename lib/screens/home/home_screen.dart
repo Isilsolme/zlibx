@@ -28,7 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   final _homeTabKey = GlobalKey<_HomeTabState>();
 
-  // Only the home tab lives in the stack; bookshelf/downloads/settings
+  // Only the home tab lives in the stack; downloads/account/settings
   // are pushed as routes, and search is opened from the home search box
   // (no nav tab). The first destination is Recommended (the home tab,
   // showing the recommendations); tapping it scrolls the grid to the top.
@@ -70,6 +70,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // pill that wraps both the icon and the label (the fork's
     // LiquidNavigationBar does the same), instead of the M3 NavigationBar
     // indicator which only wraps the icon.
+    // Nav order: Recommended / Downloads / Account / Settings. The
+    // bookshelf used to be the second tab; it now lives inside the
+    // account page as "My Library".
     const destinations = [
       (
         icon: Icons.local_fire_department_outlined,
@@ -77,14 +80,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         labelKey: 'recommended',
       ),
       (
-        icon: Icons.library_books_outlined,
-        selectedIcon: Icons.library_books,
-        labelKey: 'bookshelf',
-      ),
-      (
         icon: Icons.cloud_download_outlined,
         selectedIcon: Icons.cloud_download,
         labelKey: 'downloads',
+      ),
+      (
+        icon: Icons.person_outlined,
+        selectedIcon: Icons.person,
+        labelKey: 'account',
       ),
       (
         icon: Icons.settings_outlined,
@@ -201,9 +204,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _homeTabKey.currentState?.scrollToTop();
       setState(() => _selectedIndex = 0);
     } else if (index == 1) {
-      Navigator.of(context).pushNamed(AppRoutes.favorites);
-    } else if (index == 2) {
       Navigator.of(context).pushNamed(AppRoutes.downloads);
+    } else if (index == 2) {
+      Navigator.of(context).pushNamed(AppRoutes.account);
     } else if (index == 3) {
       Navigator.of(context).pushNamed(AppRoutes.settings);
     }

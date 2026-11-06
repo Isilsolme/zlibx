@@ -329,4 +329,21 @@ const Map<String, String> zh = {
   'download_remove_record': '移除记录',
   'download_remove_record_hint': '将从下载列表移除这条记录。',
   'download_delete_failed': '删除失败，请检查文件权限后重试',
+
+  // Account
+  'account': '账号',
+  'my_library': '我的图书馆',
+  'my_library_subtitle': '已收藏的书',
+  'my_comments': '我的评论',
+  'my_comments_subtitle': '你发表过的评论',
+  'my_comments_pending': '接口确认中',
+  'booklists': '书单',
+  'booklists_subtitle': '你的书单和大家的书单',
+  'my_booklists': '我的书单',
+  'discover_booklists': '发现书单',
+  'search_booklists': '搜索书单',
+  'no_booklists': '暂无书单',
+  'no_booklist_books': '这个书单里还没有书',
+  'booklist_book_count': '{count} 本书',
+  'login_to_view_booklists': '登录后查看书单',
 };

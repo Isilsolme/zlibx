@@ -346,4 +346,21 @@ const Map<String, String> en = {
   'download_remove_record_hint': 'Remove this entry from the download list.',
   'download_delete_failed':
       'Could not delete the file. Check access and retry.',
+
+  // Account
+  'account': 'Account',
+  'my_library': 'My Library',
+  'my_library_subtitle': 'Books you saved',
+  'my_comments': 'My Comments',
+  'my_comments_subtitle': 'Comments you posted',
+  'my_comments_pending': 'Endpoint pending',
+  'booklists': 'Booklists',
+  'booklists_subtitle': 'Your booklists and public ones',
+  'my_booklists': 'My Booklists',
+  'discover_booklists': 'Discover Booklists',
+  'search_booklists': 'Search booklists',
+  'no_booklists': 'No booklists yet',
+  'no_booklist_books': 'No books in this booklist yet',
+  'booklist_book_count': '{count} books',
+  'login_to_view_booklists': 'Log in to view booklists',
 };

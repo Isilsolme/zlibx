@@ -328,4 +328,21 @@ const Map<String, String> zh_Hant = {
   'download_remove_record': '移除紀錄',
   'download_remove_record_hint': '將從下載清單移除這筆紀錄。',
   'download_delete_failed': '刪除失敗，請檢查檔案權限後再試',
+
+  // Account
+  'account': '帳號',
+  'my_library': '我的圖書館',
+  'my_library_subtitle': '已收藏的書',
+  'my_comments': '我的評論',
+  'my_comments_subtitle': '你發表過的評論',
+  'my_comments_pending': '接口確認中',
+  'booklists': '書單',
+  'booklists_subtitle': '你的書單和大家的書單',
+  'my_booklists': '我的書單',
+  'discover_booklists': '發現書單',
+  'search_booklists': '搜尋書單',
+  'no_booklists': '暫無書單',
+  'no_booklist_books': '這個書單裡還沒有書',
+  'booklist_book_count': '{count} 本書',
+  'login_to_view_booklists': '登入後查看書單',
 };

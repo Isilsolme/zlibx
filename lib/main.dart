@@ -19,6 +19,10 @@ import 'screens/downloads/local_downloads_screen.dart';
 import 'screens/settings/settings_screen.dart';
 import 'screens/similar/similar_books_screen.dart';
 import 'screens/comments/book_comments_screen.dart';
+import 'screens/account/account_screen.dart';
+import 'screens/account/booklists_screen.dart';
+import 'screens/account/booklist_detail_screen.dart';
+import 'screens/account/my_comments_screen.dart';
 import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_share_codec.dart';
@@ -144,6 +148,14 @@ class _MyAppState extends ConsumerState<MyApp> {
             AppRoutes.settings: (context) => const SettingsScreen(),
             AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
             AppRoutes.bookComments: (context) => const BookCommentsScreen(),
+            AppRoutes.account: (context) => const AccountScreen(),
+            AppRoutes.booklists: (context) => const BooklistsScreen(),
+            AppRoutes.booklistDetail: (context) {
+              final args = ModalRoute.of(context)!.settings.arguments
+                  as BooklistDetailArgs;
+              return BooklistDetailScreen(args: args);
+            },
+            AppRoutes.myComments: (context) => const MyCommentsScreen(),
             AppRoutes.reader: (context) {
               final args =
                   ModalRoute.of(context)!.settings.arguments as ReaderArgs;

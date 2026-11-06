@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'api_response.dart';
 import 'book.dart';
 import 'book_comment.dart';
+import 'booklist.dart';
 import 'user.dart';
 
 /// Z-Library client, rewritten from the call sites in olib-mobile.
@@ -114,6 +115,23 @@ class ZLibraryApi {
     }
   }
 
+  /// Fetch a page as raw HTML text (the site's list pages are HTML, not
+  /// JSON). Returns null on any failure: non-2xx status (a 302 to the
+  /// login page when the session is gone, a Cloudflare wall), an empty
+  /// body, or a transport error. The body is carried on [_Raw.body],
+  /// which [_fromResponse] only fills for non-JSON responses.
+  Future<String?> _getHtml(
+    String path, {
+    Map<String, dynamic>? query,
+  }) async {
+    final raw = await _get(path, query: query);
+    final status = raw.status;
+    if (status == null || status < 200 || status >= 300) return null;
+    final body = raw.body;
+    if (body == null || body.isEmpty) return null;
+    return body;
+  }
+
   Future<_Raw> _postForm(
     String path,
     Map<String, dynamic> fields,
@@ -207,7 +225,13 @@ class ZLibraryApi {
       if (_looksLikeCloudflare(body)) {
         return _Raw(status: status, error: 'cf_blocked');
       }
-      return _Raw(status: status, error: 'non-JSON response (HTTP $status)');
+      // Not JSON — keep the raw body: the site's list pages (booklists)
+      // are HTML, fetched through [_getHtml].
+      return _Raw(
+        status: status,
+        error: 'non-JSON response (HTTP $status)',
+        body: body,
+      );
     }
   }
 
@@ -867,6 +891,104 @@ class ZLibraryApi {
     return ApiResponse.ok(result);
   }
 
+  // ── Booklists ──────────────────────────────────────────────────────
+
+  /// Public booklists, read-only. The site's own list page
+  /// (`GET /booklists?searchQuery={q}&order={order}&page={n}`) is HTML:
+  /// `<z-booklist>` elements, parsed by [parseBooklistsPage].
+  /// [order] is `popular` (default), `date_created` or `date_updated`.
+  /// Page is 1-based. Shapes come from the public sertraline/zlibrary
+  /// client (read as a shape reference only — no code copied) and are
+  /// NOT yet live-verified; the list HTML may drift. Needs a logged-in
+  /// session like the rest of the site's pages.
+  Future<ApiResponse<BooklistsPage>> searchPublicBooklists({
+    String query = '',
+    String order = 'popular',
+    int page = 1,
+  }) async {
+    return _searchBooklists(
+      '/booklists',
+      query: query,
+      order: order,
+      page: page,
+    );
+  }
+
+  /// The signed-in user's own booklists, read-only
+  /// (`GET /booklists/my?searchQuery={q}&page={n}`, same HTML shape as
+  /// the public list). Same verification status as
+  /// [searchPublicBooklists].
+  Future<ApiResponse<BooklistsPage>> searchMyBooklists({
+    String query = '',
+    int page = 1,
+  }) async {
+    return _searchBooklists('/booklists/my', query: query, page: page);
+  }
+
+  Future<ApiResponse<BooklistsPage>> _searchBooklists(
+    String path, {
+    required String query,
+    String? order,
+    required int page,
+  }) async {
+    final params = <String, dynamic>{
+      'searchQuery': query,
+      'page': page,
+    };
+    if (order != null) params['order'] = order;
+    final html = await _getHtml(path, query: params);
+    if (html == null) {
+      return ApiResponse.fail('booklists failed');
+    }
+    return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
+  }
+
+  /// Books inside one booklist. The site's own JSON API:
+  /// `GET /papi/booklist/{id}/get-books/{page}` answers
+  /// `{books: [{book: {...}}], pagination: {total_pages}}`; each inner
+  /// `book` maps through [Book.fromJson] (no `hash` — the detail page
+  /// renders from the list data, like any hash-less Book). Page is
+  /// 1-based. Same verification status as [searchPublicBooklists].
+  Future<ApiResponse<BooklistBooksPage>> getBooklistBooks(
+    String booklistId, {
+    int page = 1,
+  }) async {
+    final raw = await _get('/papi/booklist/$booklistId/get-books/$page');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'booklist failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'booklist failed',
+        statusCode: raw.status,
+      );
+    }
+    final list = json['books'];
+    if (list is! List) {
+      return ApiResponse.fail('booklist response had no books',
+          statusCode: raw.status);
+    }
+    final books = list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => e['book'])
+        .whereType<Map<String, dynamic>>()
+        .map(Book.fromJson)
+        .toList();
+    final pagination = json['pagination'];
+    var totalPages = 1;
+    if (pagination is Map<String, dynamic>) {
+      final rawTotal = pagination['total_pages'];
+      totalPages = rawTotal is int
+          ? rawTotal
+          : int.tryParse(rawTotal.toString()) ?? 1;
+    }
+    return ApiResponse.ok(
+      BooklistBooksPage(books: books, totalPages: totalPages),
+    );
+  }
+
   // ── Download ───────────────────────────────────────────────────────
 
   /// Resolve the file link via `/eapi/book/{id}/{hash}/file` and stream
@@ -1060,10 +1182,15 @@ class _Raw {
   final String? error;
   final List<String> cookies;
 
+  /// Raw response body, only filled when the response was not JSON
+  /// (see [_fromResponse]) — the HTML list pages fetched by [_getHtml].
+  final String? body;
+
   const _Raw({
     this.status,
     this.json,
     this.error,
     this.cookies = const <String>[],
+    this.body,
   });
 }

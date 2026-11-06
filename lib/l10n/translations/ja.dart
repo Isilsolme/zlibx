@@ -331,4 +331,21 @@ const Map<String, String> ja = {
   'download_remove_record': '記録を削除',
   'download_remove_record_hint': 'この項目をダウンロードリストから削除します。',
   'download_delete_failed': 'ファイルを削除できませんでした。アクセス権を確認して再試行してください。',
+
+  // Account
+  'account': 'アカウント',
+  'my_library': 'マイライブラリ',
+  'my_library_subtitle': '保存した本',
+  'my_comments': 'マイコメント',
+  'my_comments_subtitle': '投稿したコメント',
+  'my_comments_pending': '確認中',
+  'booklists': 'ブックリスト',
+  'booklists_subtitle': '自分のブックリストと公開リスト',
+  'my_booklists': 'マイブックリスト',
+  'discover_booklists': 'ブックリストを探す',
+  'search_booklists': 'ブックリストを検索',
+  'no_booklists': 'ブックリストがありません',
+  'no_booklist_books': 'このブックリストにはまだ本がありません',
+  'booklist_book_count': '{count} 冊',
+  'login_to_view_booklists': 'ログインしてブックリストを見る',
 };

@@ -330,4 +330,21 @@ const Map<String, String> ko = {
   'download_remove_record': '기록 삭제',
   'download_remove_record_hint': '다운로드 목록에서 이 항목을 삭제합니다.',
   'download_delete_failed': '파일을 삭제할 수 없습니다. 권한을 확인하고 다시 시도해 주세요.',
+
+  // Account
+  'account': '계정',
+  'my_library': '내 서재',
+  'my_library_subtitle': '저장한 책',
+  'my_comments': '내 댓글',
+  'my_comments_subtitle': '내가 작성한 댓글',
+  'my_comments_pending': '확인 중',
+  'booklists': '책 목록',
+  'booklists_subtitle': '내 책 목록과 공개 목록',
+  'my_booklists': '내 책 목록',
+  'discover_booklists': '책 목록 둘러보기',
+  'search_booklists': '책 목록 검색',
+  'no_booklists': '책 목록이 없습니다',
+  'no_booklist_books': '이 책 목록에는 아직 책이 없습니다',
+  'booklist_book_count': '{count}권',
+  'login_to_view_booklists': '로그인하여 책 목록 보기',
 };

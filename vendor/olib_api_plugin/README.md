@@ -54,6 +54,8 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | getBookComments | GET `/papi/comments/book/{id}/{page}?limit={limit}` | Confirmed by packet capture 2026-11-06 (zh.z-library.sk book page) — NOT eapi, site frontend JSON API; needs logged-in session |
 | postBookComment | POST `/papi/comments/add`, JSON body `{hash:"", object:"book", object_id:"<id>", text, parent_id?}` as `text/plain`; first request 307s to the same URL, follow-up 200 returns the new comment | Confirmed by packet capture 2026-11-06 — top-level post, reply (`parent_id` = parent comment id, string), and response shape all captured |
 | likeBookComment | POST `/papi/comments/like/{commentId}/{1\|0}`, empty JSON body as `text/plain`; 200 returns `likes` + `isLiked` arrays with the new count/state | Confirmed by packet capture 2026-11-06 — URL, 307 hop, and response shape captured |
+| searchPublicBooklists / searchMyBooklists | GET `/booklists?searchQuery={q}&order={order}&page={n}` and `/booklists/my?searchQuery={q}&page={n}` (HTML, `<z-booklist>` elements) | Shape from the public sertraline/zlibrary client (read as reference only, no code copied) — NOT yet live-verified; list HTML may drift |
+| getBooklistBooks | GET `/papi/booklist/{id}/get-books/{page}` (JSON `{books: [{book: {...}}], pagination: {total_pages}}`) | Same source — NOT yet live-verified |
 | sendCode / verifyCode | POST `/eapi/user/send_code`, `/eapi/user/verify_code` | Inferred, no fallback — registration is the least certain flow |
 
 ## What is NOT verified
