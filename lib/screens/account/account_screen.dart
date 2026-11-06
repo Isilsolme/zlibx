@@ -3,19 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../services/hive_service.dart';
 import '../../widgets/empty_state.dart';
-import '../../widgets/gradient_app_bar.dart';
 
 /// Account tab (third nav destination): the signed-in user's profile
 /// header plus three entry cards — My Library (the old bookshelf
 /// screen, unchanged), My Comments (comments the user posted) and
 /// Booklists (own + public booklists, read-only v1).
 ///
-/// The detail page's per-book comments entry is untouched, and the
-/// Settings login card stays as the other way back to login.
+/// No AppBar: as a tab the page starts below the status bar (SafeArea)
+/// and the bottom nav already says where you are. The detail page's
+/// per-book comments entry is untouched, and the Settings login card
+/// stays as the other way back to login.
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
@@ -25,56 +24,59 @@ class AccountScreen extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('account')),
-      body: user == null
-          ? EmptyState(
-              icon: Icons.person_outlined,
-              title: l10n.get('login_to_continue'),
-              action: FilledButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.login),
-                child: Text(l10n.get('login')),
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: user == null
+            ? EmptyState(
+                icon: Icons.person_outlined,
+                title: l10n.get('login_to_continue'),
+                action: FilledButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.login),
+                  child: Text(l10n.get('login')),
+                ),
+              )
+            : ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _ProfileHeader(
+                    name: user.name,
+                    email: user.email,
+                    downloadsLeft: user.downloadsLeft,
+                  ),
+                  const SizedBox(height: 16),
+                  _EntryCard(
+                    icon: Icons.library_books_outlined,
+                    title: l10n.get('my_library'),
+                    subtitle: l10n.get('my_library_subtitle'),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.favorites),
+                  ),
+                  const SizedBox(height: 12),
+                  _EntryCard(
+                    icon: Icons.comment_outlined,
+                    title: l10n.get('my_comments'),
+                    subtitle: l10n.get('my_comments_subtitle'),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.myComments),
+                  ),
+                  const SizedBox(height: 12),
+                  _EntryCard(
+                    icon: Icons.collections_bookmark_outlined,
+                    title: l10n.get('booklists'),
+                    subtitle: l10n.get('booklists_subtitle'),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.booklists),
+                  ),
+                ],
               ),
-            )
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _ProfileHeader(
-                  name: user.name,
-                  email: user.email,
-                  downloadsLeft: user.downloadsLeft,
-                ),
-                const SizedBox(height: 16),
-                _EntryCard(
-                  icon: Icons.library_books_outlined,
-                  title: l10n.get('my_library'),
-                  subtitle: l10n.get('my_library_subtitle'),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.favorites),
-                ),
-                const SizedBox(height: 12),
-                _EntryCard(
-                  icon: Icons.comment_outlined,
-                  title: l10n.get('my_comments'),
-                  subtitle: l10n.get('my_comments_subtitle'),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.myComments),
-                ),
-                const SizedBox(height: 12),
-                _EntryCard(
-                  icon: Icons.collections_bookmark_outlined,
-                  title: l10n.get('booklists'),
-                  subtitle: l10n.get('booklists_subtitle'),
-                  onTap: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.booklists),
-                ),
-              ],
-            ),
+      ),
     );
   }
 }
 
-class _ProfileHeader extends ConsumerStatefulWidget {
+class _ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
   final int? downloadsLeft;
@@ -86,47 +88,16 @@ class _ProfileHeader extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_ProfileHeader> createState() => _ProfileHeaderState();
-}
-
-class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
-  static const _avatarCacheTtlMs = 7 * 24 * 60 * 60 * 1000;
-
-  String? _avatarUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _resolveAvatar();
-  }
-
-  void _resolveAvatar() {
-    final box = HiveService.settingsBox;
-    final cached = box.get('avatarUrl') as String?;
-    final savedAt = box.get('avatarUrlSavedAt') as int?;
-    if (cached != null &&
-        cached.isNotEmpty &&
-        savedAt != null &&
-        DateTime.now().millisecondsSinceEpoch - savedAt < _avatarCacheTtlMs) {
-      _avatarUrl = cached;
-      return;
-    }
-    ref.read(zlibraryApiProvider).getMyAvatarUrl().then((url) {
-      if (!mounted || url == null || url.isEmpty) return;
-      box.put('avatarUrl', url);
-      box.put('avatarUrlSavedAt', DateTime.now().millisecondsSinceEpoch);
-      setState(() => _avatarUrl = url);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
-    // The avatar URL is resolved from the website profile page via the
-    // plugin (the eapi profile has none, and the comments `cover` is
-    // the profile banner) and cached in Hive for 7 days; any failure
-    // keeps the placeholder avatar.
+    // Text avatar: a solid circle with the first character of the
+    // display name. There is no photo to load — the eapi profile has
+    // no avatar, and the website profile page sits behind the mirror's
+    // browser check, so the earlier fetch-based avatar is gone.
+    final initial = name.isNotEmpty
+        ? name[0]
+        : (email.isNotEmpty ? email[0].toUpperCase() : '');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -134,24 +105,19 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: cs.primaryContainer,
-              child: _avatarUrl == null
+              backgroundColor: cs.primary,
+              child: initial.isEmpty
                   ? Icon(
                       Icons.person_rounded,
                       size: 32,
-                      color: cs.onPrimaryContainer,
+                      color: cs.onPrimary,
                     )
-                  : ClipOval(
-                      child: Image.network(
-                        _avatarUrl!,
-                        width: 56,
-                        height: 56,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.person_rounded,
-                          size: 32,
-                          color: cs.onPrimaryContainer,
-                        ),
+                  : Text(
+                      initial,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: cs.onPrimary,
                       ),
                     ),
             ),
@@ -161,18 +127,17 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.name.isNotEmpty ? widget.name : widget.email,
+                    name.isNotEmpty ? name : email,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (widget.name.isNotEmpty &&
-                      widget.email.isNotEmpty) ...[
+                  if (name.isNotEmpty && email.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      widget.email,
+                      email,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
@@ -191,7 +156,7 @@ class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
                       const SizedBox(width: 4),
                       Text(
                         '${l10n.get('downloads_left_today')}'
-                        '：${widget.downloadsLeft ?? '—'}',
+                        '：${downloadsLeft ?? '—'}',
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: cs.onSurfaceVariant),
                       ),

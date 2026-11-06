@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:html/parser.dart' as html_parser;
 
 import 'api_response.dart';
 import 'book.dart';
@@ -866,7 +865,6 @@ class ZLibraryApi {
     final reactions = commentReactionsOf(json);
     final titles = commentTitlesOf(json);
     final entries = <UserCommentEntry>[];
-    String? currentUserHash;
     for (final value in map.values) {
       if (value is! Map<String, dynamic>) continue;
       final bookId = value['object_id'] is int
@@ -881,51 +879,8 @@ class ZLibraryApi {
         bookId: bookId,
         bookTitle: titles[bookId] ?? '',
       ));
-      if (currentUserHash == null) {
-        final user = value['user'];
-        if (user is Map) {
-          // No `_asString` helper in this file (the one in
-          // book_comment.dart is library-private) — coerce inline.
-          final hash = user['hash']?.toString();
-          if (hash != null && hash.isNotEmpty) currentUserHash = hash;
-        }
-      }
     }
-    return ApiResponse.ok(
-      UserCommentsPage(entries: entries, currentUserHash: currentUserHash),
-    );
-  }
-
-  /// The signed-in user's avatar URL, from the website's profile page.
-  ///
-  /// The eapi profile (`GET /eapi/user/profile`) carries no avatar and
-  /// no profile hash, and the comments API's `user.cover` is the
-  /// 1140x180 profile banner, not the avatar — so the avatar lives only
-  /// on the website's profile page at `/{userHash}`. The hash comes
-  /// from [UserCommentsPage.currentUserHash] (the `user.hash` of any of
-  /// the user's own comments). Returns null when not logged in, when
-  /// the user has no comments (so no hash is known), when the profile
-  /// page cannot be fetched, or when no `<img>` with `/avatars/` in its
-  /// `src` is found. Callers keep the placeholder avatar on null.
-  Future<String?> getMyAvatarUrl() async {
-    final userId = _userId;
-    if (userId == null || userId.isEmpty) return null;
-    final pageRes = await getMyComments(limit: 1);
-    final hash = pageRes.data?.currentUserHash;
-    if (hash == null || hash.isEmpty) return null;
-    final pageHtml = await _getHtml('/$hash');
-    if (pageHtml == null) return null;
-    final document = html_parser.parse(pageHtml);
-    for (final img in document.getElementsByTagName('img')) {
-      final src = img.attributes['src'] ?? '';
-      if (!src.contains('/avatars/')) continue;
-      if (src.startsWith('http://') || src.startsWith('https://')) {
-        return src;
-      }
-      if (src.startsWith('/')) return '$_base$src';
-      return src;
-    }
-    return null;
+    return ApiResponse.ok(UserCommentsPage(entries: entries));
   }
 
   /// Post a book comment, or a reply when [parentId] is set. The site's
