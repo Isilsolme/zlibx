@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../services/hive_service.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 
@@ -72,7 +74,7 @@ class AccountScreen extends ConsumerWidget {
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHeader extends ConsumerStatefulWidget {
   final String name;
   final String email;
   final int? downloadsLeft;
@@ -84,12 +86,47 @@ class _ProfileHeader extends StatelessWidget {
   });
 
   @override
+  ConsumerState<_ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends ConsumerState<_ProfileHeader> {
+  static const _avatarCacheTtlMs = 7 * 24 * 60 * 60 * 1000;
+
+  String? _avatarUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveAvatar();
+  }
+
+  void _resolveAvatar() {
+    final box = HiveService.settingsBox;
+    final cached = box.get('avatarUrl') as String?;
+    final savedAt = box.get('avatarUrlSavedAt') as int?;
+    if (cached != null &&
+        cached.isNotEmpty &&
+        savedAt != null &&
+        DateTime.now().millisecondsSinceEpoch - savedAt < _avatarCacheTtlMs) {
+      _avatarUrl = cached;
+      return;
+    }
+    ref.read(zlibraryApiProvider).getMyAvatarUrl().then((url) {
+      if (!mounted || url == null || url.isEmpty) return;
+      box.put('avatarUrl', url);
+      box.put('avatarUrlSavedAt', DateTime.now().millisecondsSinceEpoch);
+      setState(() => _avatarUrl = url);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
-    // The profile payload carries no avatar, level or donation fields,
-    // so the header shows what the app knows: name, email, and the
-    // remaining daily downloads.
+    // The avatar URL is resolved from the website profile page via the
+    // plugin (the eapi profile has none, and the comments `cover` is
+    // the profile banner) and cached in Hive for 7 days; any failure
+    // keeps the placeholder avatar.
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -98,11 +135,25 @@ class _ProfileHeader extends StatelessWidget {
             CircleAvatar(
               radius: 28,
               backgroundColor: cs.primaryContainer,
-              child: Icon(
-                Icons.person_rounded,
-                size: 32,
-                color: cs.onPrimaryContainer,
-              ),
+              child: _avatarUrl == null
+                  ? Icon(
+                      Icons.person_rounded,
+                      size: 32,
+                      color: cs.onPrimaryContainer,
+                    )
+                  : ClipOval(
+                      child: Image.network(
+                        _avatarUrl!,
+                        width: 56,
+                        height: 56,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.person_rounded,
+                          size: 32,
+                          color: cs.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -110,17 +161,18 @@ class _ProfileHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name.isNotEmpty ? name : email,
+                    widget.name.isNotEmpty ? widget.name : widget.email,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (name.isNotEmpty && email.isNotEmpty) ...[
+                  if (widget.name.isNotEmpty &&
+                      widget.email.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
-                      email,
+                      widget.email,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
@@ -139,7 +191,7 @@ class _ProfileHeader extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${l10n.get('downloads_left_today')}'
-                        '：${downloadsLeft ?? '—'}',
+                        '：${widget.downloadsLeft ?? '—'}',
                         style: Theme.of(context).textTheme.bodySmall
                             ?.copyWith(color: cs.onSurfaceVariant),
                       ),

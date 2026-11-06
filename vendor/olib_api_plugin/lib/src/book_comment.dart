@@ -134,7 +134,12 @@ class UserCommentEntry {
 class UserCommentsPage {
   final List<UserCommentEntry> entries;
 
-  const UserCommentsPage({required this.entries});
+  /// The signed-in user's profile hash (the `user.hash` of any entry),
+  /// or null when the page has no comments. It is the profile page's
+  /// URL segment (`/{hash}`) — the avatar lives on that page.
+  final String? currentUserHash;
+
+  const UserCommentsPage({required this.entries, this.currentUserHash});
 }
 
 /// Best-effort book titles from a user-comments page's `commentsTitles`
