@@ -16,6 +16,9 @@ import '../../widgets/update_dialog.dart';
 import '../../models/display_book.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
+import '../account/account_screen.dart';
+import '../downloads/local_downloads_screen.dart';
+import '../settings/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -27,14 +30,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   final _homeTabKey = GlobalKey<_HomeTabState>();
+  final _pageController = PageController();
 
-  // Only the home tab lives in the stack; downloads/account/settings
-  // are pushed as routes, and search is opened from the home search box
-  // (no nav tab). The first destination is Recommended (the home tab,
-  // showing the recommendations); tapping it scrolls the grid to the top.
-  late final List<Widget> _screens = [
-    _HomeTab(key: _homeTabKey),
-  ];
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,17 +45,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final floatingNav = ref.watch(floatingNavProvider);
     final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final navVisible = ref.watch(navBarVisibleProvider);
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: _buildNavBar(
-        context,
-        cs,
-        blurEnabled,
-        floatingNav,
-        hideNavOnScroll,
-        navVisible,
+    // Coolapk-style persistent tabs: all four destinations live in one
+    // PageView under the same bottom nav (search is still opened from
+    // the home search box, no nav tab). The first destination is
+    // Recommended (the home tab, showing the recommendations); tapping
+    // it scrolls the grid to the top. Previously downloads/account/
+    // settings were pushed as routes and the nav bar disappeared.
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selectedIndex != 0) {
+          _pageController.animateToPage(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        body: PageView(
+          controller: _pageController,
+          onPageChanged: (index) {
+            // Switching tabs resets the nav to visible: a home tab
+            // scrolled down must not leave the bar hidden on Settings.
+            if (ref.read(navBarVisibleProvider) != true) {
+              ref.read(navBarVisibleProvider.notifier).state = true;
+            }
+            setState(() => _selectedIndex = index);
+          },
+          children: [
+            _KeepAlivePage(
+              // No extra bottom padding here: the home grid already
+              // reserves 96 below its last row for the floating nav.
+              child: _HomeTab(key: _homeTabKey),
+            ),
+            const _KeepAlivePage(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 96),
+                child: LocalDownloadsScreen(),
+              ),
+            ),
+            const _KeepAlivePage(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 96),
+                child: AccountScreen(),
+              ),
+            ),
+            const _KeepAlivePage(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 96),
+                child: SettingsScreen(),
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: _buildNavBar(
+          context,
+          cs,
+          blurEnabled,
+          floatingNav,
+          hideNavOnScroll,
+          navVisible,
+        ),
       ),
     );
   }
@@ -115,13 +170,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    if (_selectedIndex == i)
-                      Positioned.fill(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 4,
-                          ),
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 4,
+                        ),
+                        child: AnimatedOpacity(
+                          opacity: _selectedIndex == i ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 200),
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: cs.primaryContainer,
@@ -130,11 +187,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ),
+                    ),
                     Positioned.fill(
                       child: Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => _onDestinationSelected(context, i),
+                          onTap: () => _onDestinationSelected(i),
                           borderRadius: BorderRadius.circular(40),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -198,18 +256,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _onDestinationSelected(BuildContext context, int index) {
+  void _onDestinationSelected(int index) {
     if (index == 0) {
       // Recommended: the home tab, scrolled to the top.
       _homeTabKey.currentState?.scrollToTop();
-      setState(() => _selectedIndex = 0);
-    } else if (index == 1) {
-      Navigator.of(context).pushNamed(AppRoutes.downloads);
-    } else if (index == 2) {
-      Navigator.of(context).pushNamed(AppRoutes.account);
-    } else if (index == 3) {
-      Navigator.of(context).pushNamed(AppRoutes.settings);
     }
+    // The selected index follows the page (onPageChanged); tapping the
+    // current tab leaves the page animation a no-op.
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   /// Floating style: detach the bar from the bottom edge as a rounded
@@ -236,6 +294,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: navBar,
       ),
     );
+  }
+}
+
+/// Keeps a [PageView] page alive across tab switches so its scroll
+/// position survives. The mixin must live on the widget directly under
+/// the [PageView] — the pages themselves are not modified for this.
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+
+  const _KeepAlivePage({required this.child});
+
+  @override
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
+}
+
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 
