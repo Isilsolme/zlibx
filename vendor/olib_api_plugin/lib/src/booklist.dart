@@ -55,7 +55,16 @@ class Booklist {
     final name = el.attributes['topic']?.trim();
     if (name == null || name.isEmpty) return null;
     final href = el.attributes['href']?.trim() ?? '';
-    final id = _idFromHref(href);
+    // The live page carries the numeric id directly on the element
+    // (id="4088695"), and its href uses the SINGULAR /booklist/{id}/...
+    // shape. The old code only looked for a 'booklists' segment in the
+    // href, so every real list was dropped and the screen showed "no
+    // booklists" even when the page loaded fine (verified against the
+    // live /booklists/my HTML 2026-11-06).
+    final idAttr = el.attributes['id']?.trim();
+    final id = (idAttr != null && RegExp(r'^\d+$').hasMatch(idAttr))
+        ? idAttr
+        : _idFromHref(href);
     if (id == null) return null;
     var coverUrl = '';
     for (final img in el.querySelectorAll('img')) {
@@ -77,12 +86,13 @@ class Booklist {
     );
   }
 
-  /// The list id is the path segment after `/booklists/`
-  /// (`/booklists/12345/slug` -> `12345`).
+  /// The list id is the path segment after `/booklists/` — or the live
+  /// site's singular `/booklist/` (`/booklist/4088695/...` -> `4088695`).
   static String? _idFromHref(String href) {
     if (href.isEmpty) return null;
     final segments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
-    final at = segments.indexOf('booklists');
+    var at = segments.indexOf('booklists');
+    if (at < 0) at = segments.indexOf('booklist');
     if (at < 0 || at + 1 >= segments.length) return null;
     final id = segments[at + 1];
     return id.isEmpty ? null : id;
