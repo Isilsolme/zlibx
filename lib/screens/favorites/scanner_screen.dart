@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class ScannerScreen extends StatefulWidget {
-  /// 底部提示浮层文案（如「对准电脑上的无线传书二维码」）；null 则不显示。
+  /// 底部提示浮层文案（如「对准书单分享二维码」）；null 则不显示。
   final String? hint;
 
   const ScannerScreen({super.key, this.hint});
@@ -67,3 +67,4 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 }
+
