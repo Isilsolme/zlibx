@@ -212,6 +212,10 @@ const Map<String, String> zh = {
   'loading_similar_books': '正在加载相似书籍...',
   'no_similar_books': '未找到相似书籍',
   'no_similar_books_message': '我们没有找到相关的相似书籍推荐',
+  'comments': '评论',
+  'no_comments': '暂无评论',
+  'login_to_view_comments': '登录后查看评论',
+  'comments_disabled': '这本书的评论已关闭',
 
   // Dialogs
   'file_details': '文件详情',

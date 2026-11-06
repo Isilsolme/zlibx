@@ -222,6 +222,10 @@ const Map<String, String> en = {
   'no_similar_books': 'No similar books found',
   'no_similar_books_message':
       'We could not find any similar books for this title',
+  'comments': 'Comments',
+  'no_comments': 'No comments yet',
+  'login_to_view_comments': 'Log in to view comments',
+  'comments_disabled': 'Comments are disabled for this book',
 
   // Dialogs
   'file_details': 'File Details',

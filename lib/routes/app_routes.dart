@@ -10,5 +10,6 @@ class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
   static const String similarBooks = '/similar-books';
+  static const String bookComments = '/book-comments';
   static const String reader = '/reader';
 }

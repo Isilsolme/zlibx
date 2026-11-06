@@ -214,6 +214,10 @@ const Map<String, String> ja = {
   'loading_similar_books': '似た本を読み込み中...',
   'no_similar_books': '似た本が見つかりませんでした',
   'no_similar_books_message': 'この本に似た本は見つかりませんでした',
+  'comments': 'コメント',
+  'no_comments': 'コメントはまだありません',
+  'login_to_view_comments': 'ログインしてコメントを見る',
+  'comments_disabled': 'この本のコメントは無効です',
 
   // Dialogs
   'file_details': 'ファイルの詳細',

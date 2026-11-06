@@ -213,6 +213,10 @@ const Map<String, String> ko = {
   'loading_similar_books': '비슷한 책을 불러오는 중...',
   'no_similar_books': '비슷한 책을 찾을 수 없습니다',
   'no_similar_books_message': '이 책과 비슷한 책을 찾을 수 없습니다',
+  'comments': '댓글',
+  'no_comments': '댓글이 아직 없습니다',
+  'login_to_view_comments': '로그인하여 댓글 보기',
+  'comments_disabled': '이 책의 댓글은 비활성화되어 있습니다',
 
   // Dialogs
   'file_details': '파일 상세 정보',

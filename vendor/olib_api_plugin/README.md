@@ -51,6 +51,7 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | getUserRecommended | GET `/eapi/user/recommended`, fallback most-popular on 404 | Inferred, fallback included |
 | getRecently | GET `/eapi/book/recently`, fallback search `order=newest` on 404 | Inferred, fallback included |
 | similar | GET `/eapi/book/{id}/{hash}/similar`, fallback title search on 404 | Inferred, fallback included |
+| getBookComments | GET `/papi/comments/book/{id}/{page}?limit={limit}` | Confirmed by packet capture 2026-11-06 (zh.z-library.sk book page) — NOT eapi, site frontend JSON API; needs logged-in session |
 | sendCode / verifyCode | POST `/eapi/user/send_code`, `/eapi/user/verify_code` | Inferred, no fallback — registration is the least certain flow |
 
 ## What is NOT verified

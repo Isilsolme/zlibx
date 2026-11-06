@@ -211,6 +211,10 @@ const Map<String, String> zh_Hant = {
   'loading_similar_books': '正在載入相似書籍...',
   'no_similar_books': '未找到相似書籍',
   'no_similar_books_message': '我們沒有找到相關的相似書籍推薦',
+  'comments': '評論',
+  'no_comments': '暫無評論',
+  'login_to_view_comments': '登入後查看評論',
+  'comments_disabled': '這本書的評論已關閉',
 
   // Dialogs
   'file_details': '檔案詳情',

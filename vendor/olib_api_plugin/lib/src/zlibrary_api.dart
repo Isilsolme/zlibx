@@ -719,6 +719,47 @@ class ZLibraryApi {
     return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
   }
 
+  /// Book comments, view-only. The site's own `papi/` JSON API, NOT eapi:
+  /// `GET /papi/comments/book/{bookId}/{page}?limit={limit}`.
+  /// Confirmed by a packet capture on 2026-11-06 (zh.z-library.sk book
+  /// page): `success: 1`, a `comments` array, a `commentsDisabled` flag.
+  /// Auth is the same remix session cookies the eapi calls send; the
+  /// endpoint needs a logged-in session. Page is 0-based; there is no
+  /// total/pages field, so callers page until a short page arrives.
+  Future<ApiResponse<BookCommentsPage>> getBookComments(
+    String bookId, {
+    int page = 0,
+    int limit = 50,
+  }) async {
+    final raw = await _get('/papi/comments/book/$bookId/$page?limit=$limit');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'comments failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'comments failed',
+        statusCode: raw.status,
+      );
+    }
+    if (json['commentsDisabled'] == true) {
+      return ApiResponse.ok(
+          const BookCommentsPage(comments: [], disabled: true));
+    }
+    final list = json['comments'];
+    if (list is! List) {
+      return ApiResponse.fail('comments response had no list',
+          statusCode: raw.status);
+    }
+    return ApiResponse.ok(BookCommentsPage(
+      comments: list
+          .whereType<Map<String, dynamic>>()
+          .map((c) => BookComment.fromJson(c, baseUrl: _base))
+          .toList(),
+    ));
+  }
+
   // ── Download ───────────────────────────────────────────────────────
 
   /// Resolve the file link via `/eapi/book/{id}/{hash}/file` and stream

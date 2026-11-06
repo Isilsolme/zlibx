@@ -6,6 +6,7 @@ import '../../../models/display_book.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../routes/app_routes.dart';
 import '../../similar/similar_books_screen.dart';
+import '../../comments/book_comments_screen.dart';
 import 'book_detail_content.dart';
 
 class BookInfoSection extends StatelessWidget {
@@ -91,6 +92,32 @@ class BookInfoSection extends StatelessWidget {
                 ),
               ),
             ],
+            // Book comments (Z-Library site comments, view-only).
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.comment_outlined,
+                color: cs.primary,
+                size: 22,
+              ),
+              title: Text(
+                l10n.get('comments'),
+                style: const TextStyle(fontSize: 15),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              onTap: () => Navigator.of(context).pushNamed(
+                AppRoutes.bookComments,
+                arguments: BookCommentsArgs(
+                  bookId: book.id,
+                  bookTitle: book.title,
+                ),
+              ),
+            ),
           ],
         ),
       ),
