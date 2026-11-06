@@ -99,13 +99,14 @@ class ZLibraryApi {
   Future<_Raw> _get(
     String path, {
     Map<String, dynamic>? query,
+    Map<String, String>? extraHeaders,
   }) async {
     try {
       final res = await _dio.get<String>(
         '$_base$path',
         queryParameters: query,
         options: Options(
-          headers: _headers,
+          headers: {..._headers, ...?extraHeaders},
           responseType: ResponseType.plain,
           followRedirects: false,
         ),
@@ -121,11 +122,21 @@ class ZLibraryApi {
   /// login page when the session is gone, a Cloudflare wall), an empty
   /// body, or a transport error. The body is carried on [_Raw.body],
   /// which [_fromResponse] only fills for non-JSON responses.
+  ///
+  /// Sends `Accept: text/html`: the shared Dio default is
+  /// `application/json`, and the site answers a page route asked for as
+  /// JSON with JSON (or an error) instead of the page — which is why the
+  /// booklists screen failed with a bare "booklists failed" on device
+  /// (2026-11-06, both tabs) while the same pages load in a browser.
   Future<String?> _getHtml(
     String path, {
     Map<String, dynamic>? query,
   }) async {
-    final raw = await _get(path, query: query);
+    final raw = await _get(
+      path,
+      query: query,
+      extraHeaders: const {'Accept': 'text/html'},
+    );
     final status = raw.status;
     if (status == null || status < 200 || status >= 300) return null;
     final body = raw.body;
@@ -1037,9 +1048,29 @@ class ZLibraryApi {
       'page': page,
     };
     if (order != null) params['order'] = order;
-    final html = await _getHtml(path, query: params);
-    if (html == null) {
-      return ApiResponse.fail('booklists failed');
+    // Call [_get] directly (not [_getHtml]) so a failure can report its
+    // real cause: the old code collapsed every failure into a bare
+    // "booklists failed", which hid whether the page 302'd, hit a wall,
+    // timed out, or came back as JSON. The `Accept: text/html` override
+    // is the same one [_getHtml] sends (see its doc comment).
+    final raw = await _get(
+      path,
+      query: params,
+      extraHeaders: const {'Accept': 'text/html'},
+    );
+    final status = raw.status;
+    if (status == null || status < 200 || status >= 300) {
+      return ApiResponse.fail(
+        raw.error ?? 'booklists failed (HTTP $status)',
+        statusCode: status,
+      );
+    }
+    final html = raw.body;
+    if (html == null || html.isEmpty) {
+      return ApiResponse.fail(
+        raw.error ?? 'booklists failed',
+        statusCode: status,
+      );
     }
     return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
   }
