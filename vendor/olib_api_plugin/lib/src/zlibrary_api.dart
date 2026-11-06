@@ -266,6 +266,18 @@ class ZLibraryApi {
         // only thing that tells a bad request apart from bad credentials.
         // (The login dialog redacts emails/passwords before display.)
         if (body.isNotEmpty) {
+          // A browser-check wall (DDoS-Guard / Cloudflare challenge
+          // page) must not leak its raw HTML into error strings: the
+          // booklists screen shows this text, and the full page is
+          // unreadable noise there. A JSON error body never contains
+          // these markers, so this runs before the JSON decode and
+          // cannot swallow a real API error.
+          if (_looksLikeChallengePage(body)) {
+            return _Raw(
+              status: status,
+              error: 'HTTP $status: browser check page',
+            );
+          }
           try {
             final decoded = jsonDecode(body);
             if (decoded is Map<String, dynamic>) {
@@ -296,6 +308,19 @@ class ZLibraryApi {
     return lower.contains('cloudflare') ||
         lower.contains('attention required') ||
         lower.contains('cf-challenge');
+  }
+
+  /// Markers of a DDoS-Guard / Cloudflare browser-check page (the
+  /// mirror answers HTML page routes with HTTP 503 + this page when it
+  /// walls Dio). Checked against the raw error body in [_fromError] so
+  /// the challenge HTML never reaches the UI as an error string.
+  static bool _looksLikeChallengePage(String body) {
+    final lower = body.toLowerCase();
+    return lower.contains('checking your browser') ||
+        lower.contains('ddos-guard') ||
+        lower.contains('cf-challenge') ||
+        lower.contains('just a moment') ||
+        lower.contains('attention required');
   }
 
   /// eapi success is `success: 1` (sometimes `true`); some list endpoints
@@ -992,17 +1017,55 @@ class ZLibraryApi {
     return _searchBooklists('/booklists/my', query: query, page: page);
   }
 
+  /// Absolute URL of a booklist list page, for callers that fetch the
+  /// HTML themselves (e.g. through the WebView challenge solver when
+  /// the mirror walls Dio with a 503 browser-check page). Same path +
+  /// query construction as [_searchBooklists] — the app must not
+  /// rebuild it.
+  String booklistsPageUrl({
+    required bool mine,
+    String query = '',
+    String? order,
+    int page = 1,
+  }) {
+    final uri = Uri.parse('$_base${mine ? '/booklists/my' : '/booklists'}')
+        .replace(
+          queryParameters: _booklistListParams(
+            query: query,
+            order: order,
+            page: page,
+          ).map((key, value) => MapEntry(key, value.toString())),
+        );
+    return uri.toString();
+  }
+
+  /// Query parameters of a booklist list page, shared by
+  /// [_searchBooklists] and [booklistsPageUrl] so the two
+  /// constructions cannot drift apart.
+  static Map<String, dynamic> _booklistListParams({
+    required String query,
+    String? order,
+    required int page,
+  }) {
+    final params = <String, dynamic>{
+      'searchQuery': query,
+      'page': page,
+    };
+    if (order != null) params['order'] = order;
+    return params;
+  }
+
   Future<ApiResponse<BooklistsPage>> _searchBooklists(
     String path, {
     required String query,
     String? order,
     required int page,
   }) async {
-    final params = <String, dynamic>{
-      'searchQuery': query,
-      'page': page,
-    };
-    if (order != null) params['order'] = order;
+    final params = _booklistListParams(
+      query: query,
+      order: order,
+      page: page,
+    );
     // Call [_get] directly (not [_getHtml]) so a failure can report its
     // real cause: the old code collapsed every failure into a bare
     // "booklists failed", which hid whether the page 302'd, hit a wall,
@@ -1024,6 +1087,16 @@ class ZLibraryApi {
     if (html == null || html.isEmpty) {
       return ApiResponse.fail(
         raw.error ?? 'booklists failed',
+        statusCode: status,
+      );
+    }
+    // A 200 answer can still be the wall (challenge page with a 200
+    // status): it parses to an empty list, which would look like "no
+    // booklists". Fail loudly instead so the caller can fall back to
+    // the WebView solver like it does for the 503 case.
+    if (_looksLikeChallengePage(html)) {
+      return ApiResponse.fail(
+        'HTTP $status: browser check page',
         statusCode: status,
       );
     }
