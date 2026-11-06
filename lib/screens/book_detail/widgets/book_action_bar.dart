@@ -182,15 +182,18 @@ class BookActionBar extends ConsumerWidget {
 
     // 会话密钥绝不拼进 URL（query 会进 JS、Referer、历史与日志）。
     // ReaderScreen 改为在加载前用 CookieManager 把会话写进 WebView。
-    // 非内置线路不安装会话 cookie：只在用户明确重新登录后才会有会话。
-    final trusted = DomainNotifier.isBuiltInDomain(customDomain);
+    // 已登录就带会话：自定义线路登录时密码本来就发给该线路，
+    // 会话只发给同线路的 reader 子域，不再按内置/自定义区分。
+    // 未登录时 user 为 null，仍不带会话，站点会弹登录墙。
+    final userKey =
+        (user?.remixUserkey.isNotEmpty == true) ? user!.remixUserkey : null;
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArgs(
         url: url,
         title: book.title,
-        remixUserId: trusted ? user?.id : null,
-        remixUserKey: trusted ? user?.remixUserkey : null,
+        remixUserId: user?.id,
+        remixUserKey: userKey,
       ),
     );
   }
