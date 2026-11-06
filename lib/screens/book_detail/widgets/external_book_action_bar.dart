@@ -21,6 +21,7 @@ import '../../../providers/download_provider.dart';
 import '../../../services/annas_archieve.dart';
 import '../../../services/external_download.dart';
 import '../../../services/media_store.dart';
+import '../../reader/epub_reader_screen.dart';
 
 class ExternalBookActionBar extends ConsumerStatefulWidget {
   final DisplayBook displayBook;
@@ -143,7 +144,7 @@ class _ExternalBookActionBarState
   ) async {
     final isCompleted = downloadTask?.status == DownloadStatus.completed;
     if (isCompleted && downloadTask?.filePath != null) {
-      await _openDownloadedFile(context, downloadTask!.filePath!);
+      await _openDownloadedFile(context, downloadTask!.filePath!, book);
       return;
     }
 
@@ -164,7 +165,7 @@ class _ExternalBookActionBarState
         btnCancelText: isZh ? '打开文件' : 'Open File',
         btnCancelColor: Theme.of(context).colorScheme.primary,
         btnCancelOnPress: () async {
-          await _openDownloadedFile(context, existingPath);
+          await _openDownloadedFile(context, existingPath, book);
         },
         btnOkText: isZh ? '重新下载' : 'Download Again',
         btnOkColor: Theme.of(context).colorScheme.primary,
@@ -217,7 +218,22 @@ class _ExternalBookActionBarState
   /// content:// URI, which OpenFilex cannot open — those go through the
   /// platform channel (same pattern as local_downloads_screen.dart).
   /// Shows a snackbar when opening fails instead of failing silently.
-  Future<void> _openDownloadedFile(BuildContext context, String path) async {
+  Future<void> _openDownloadedFile(
+    BuildContext context,
+    String path,
+    Book book,
+  ) async {
+    // EPUB files open in the built-in reader; everything else falls
+    // through to the external opener below.
+    if (await EpubReaderScreen.openIfEpub(
+      context,
+      path: path,
+      extension: book.extension,
+      title: book.title,
+      bookId: book.id,
+    )) {
+      return;
+    }
     try {
       if (MediaStoreFiles.isContentUri(path)) {
         final opened = await MediaStoreFiles.open(path);
