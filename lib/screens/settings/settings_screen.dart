@@ -40,6 +40,23 @@ class SettingsScreen extends ConsumerWidget {
               user: user,
               onManageAccounts: () =>
                   _manageAccounts(context, user.id.toString()),
+            )
+          else
+            // Not signed in (e.g. skipped login): offer the login
+            // screen here, in the same spot as the profile card —
+            // otherwise there is no in-app way back to login.
+            SettingsCard(
+              child: ListTile(
+                leading: const Icon(Icons.login),
+                title: Text(t.get('login')),
+                subtitle: Text(t.get('login_to_continue')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(),
+                  ),
+                ),
+              ),
             ),
           const SizedBox(height: 24),
 
@@ -102,11 +119,14 @@ class SettingsScreen extends ConsumerWidget {
           // ── About ────────────────────────────────────────────────
           const AboutSection(),
 
-          const SizedBox(height: 28),
+          if (user != null) const SizedBox(height: 28),
 
           // ── Logout (centered TextButton + confirm) ───────────────
-          Center(
-            child: TextButton.icon(
+          // Hidden while signed out: confirming a logout with no
+          // account makes no sense.
+          if (user != null)
+            Center(
+              child: TextButton.icon(
               onPressed: () => _confirmLogout(context, ref, isZh),
               icon: const Icon(Icons.logout, size: 18),
               label: Text(t.get('logout')),
