@@ -1104,16 +1104,21 @@ class ZLibraryApi {
   }
 
   /// Books inside one booklist. The site's own JSON API:
-  /// `GET /papi/booklist/{id}/get-books/{page}` answers
+  /// `GET /papi/booklist/{key}/get-books/{page}` answers
   /// `{books: [{book: {...}}], pagination: {total_pages}}`; each inner
   /// `book` maps through [Book.fromJson] (no `hash` — the detail page
   /// renders from the list data, like any hash-less Book). Page is
-  /// 1-based. Same verification status as [searchPublicBooklists].
+  /// 1-based. The `{key}` is the second-to-last segment of the list
+  /// href (`/booklist/{id}/{hash}/{slug}.html` -> `{hash}`), NOT the
+  /// numeric id — requesting with the numeric id answers "Requested
+  /// page not found" (verified on device 2026-11-07). Pass
+  /// [Booklist.booksKey]. Same verification status as
+  /// [searchPublicBooklists].
   Future<ApiResponse<BooklistBooksPage>> getBooklistBooks(
-    String booklistId, {
+    String booksKey, {
     int page = 1,
   }) async {
-    final raw = await _get('/papi/booklist/$booklistId/get-books/$page');
+    final raw = await _get('/papi/booklist/$booksKey/get-books/$page');
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'booklist failed',
           statusCode: raw.status);

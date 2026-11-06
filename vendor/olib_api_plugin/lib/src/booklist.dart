@@ -33,6 +33,12 @@ class Booklist {
   /// Absolute URL of the list page on the mirror.
   final String url;
 
+  /// Key for the get-books endpoint: the second-to-last segment of the
+  /// list href (`/booklist/{id}/{hash}/{slug}.html` -> `{hash}`).
+  /// The numeric [id] does NOT work there — the server answers
+  /// "Requested page not found" (verified on device 2026-11-07).
+  final String booksKey;
+
   const Booklist({
     required this.id,
     required this.name,
@@ -42,6 +48,7 @@ class Booklist {
     this.views = '',
     this.coverUrl = '',
     required this.url,
+    this.booksKey = '',
   });
 
   /// Build from one `<z-booklist>` element of a `/booklists` (or
@@ -66,6 +73,11 @@ class Booklist {
         ? idAttr
         : _idFromHref(href);
     if (id == null) return null;
+    // The get-books endpoint is keyed by the href's second-to-last
+    // segment (the hash), not the numeric id — see [Booklist.booksKey].
+    final hrefSegments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
+    final booksKey =
+        hrefSegments.length >= 3 ? hrefSegments[hrefSegments.length - 2] : '';
     var coverUrl = '';
     for (final img in el.querySelectorAll('img')) {
       final src = img.attributes['data-src']?.trim() ?? '';
@@ -83,6 +95,7 @@ class Booklist {
       views: el.attributes['views']?.trim() ?? '',
       coverUrl: coverUrl,
       url: _resolveUrl(href, baseUrl),
+      booksKey: booksKey,
     );
   }
 

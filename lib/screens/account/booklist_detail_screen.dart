@@ -83,8 +83,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       setState(() => _isLoadingMore = true);
     }
     try {
+      final list = widget.args.booklist;
       final response = await api.getBooklistBooks(
-        widget.args.booklist.id,
+        list.booksKey.isNotEmpty ? list.booksKey : list.id,
         page: page,
       );
       if (!mounted) return;
