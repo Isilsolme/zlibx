@@ -57,6 +57,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
       final bare = initial.substring('reader.'.length);
       if (host == bare || host.endsWith('.$bare')) return true;
     }
+    // The site's own links may point at the canonical domain or another
+    // mirror instead of the current line's domain (e.g. the reader runs
+    // on reader.bookroom.lifestyle while the Log In button points at
+    // z-library.mn). Those are still the same site, so they stay in the
+    // WebView; only truly external hosts go to the system browser.
+    const familyMarkers = ['z-library', 'z-lib.', 'bookroom', 'singlelogin'];
+    if (familyMarkers.any(host.contains)) return true;
     return false;
   }
 
