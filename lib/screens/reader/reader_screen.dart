@@ -48,7 +48,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final host = rawHost.toLowerCase();
     final initial = _initialHost.toLowerCase();
     if (initial.isEmpty) return false;
-    return host == initial || host.endsWith('.$initial');
+    if (host == initial || host.endsWith('.$initial')) return true;
+    // The reader lives on reader.<domain>, but the bare <domain> is the
+    // same site (login, account pages) and already receives the session
+    // cookies — keep it in the WebView instead of kicking it out to the
+    // system browser.
+    if (initial.startsWith('reader.')) {
+      final bare = initial.substring('reader.'.length);
+      if (host == bare || host.endsWith('.$bare')) return true;
+    }
+    return false;
   }
 
   /// 会话改走 WebView Cookie（HttpOnly + Secure），不再拼进 URL。
@@ -257,9 +266,20 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   : NavigationActionPolicy.CANCEL;
             },
             onCreateWindow: (controller, action) async {
-              // window.open / target=_blank：不开新 WebView，https 交给系统浏览器。
+              // window.open / target=_blank: same-site links stay in
+              // this WebView (e.g. the authorize wall's Log In button);
+              // only truly external hosts go to the system browser.
               final uri = action.request.url;
-              if (uri != null && uri.scheme.toLowerCase() == 'https') {
+              if (uri == null) return false;
+              final scheme = uri.scheme.toLowerCase();
+              if (scheme != 'https' && scheme != 'http') return false;
+              if (_isAllowedHost(uri.host)) {
+                await controller.loadUrl(
+                  urlRequest: URLRequest(url: uri),
+                );
+                return true;
+              }
+              if (scheme == 'https') {
                 await launchUrl(uri, mode: LaunchMode.externalApplication);
               }
               return false;
