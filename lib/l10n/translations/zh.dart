@@ -238,34 +238,6 @@ const Map<String, String> zh = {
   'import_result': '导入 %i · 已有 %s · 失败 %f',
   'retry': '重试',
 
-  // LAN 无线传书（与桌面端联动）
-  'import_from_computer': '从电脑',
-  'lan_import_title': '从电脑导入',
-  'lan_invalid_qr': '不是有效的传书二维码',
-  'lan_not_olib': '对方不是 Olib 桌面端',
-  'lan_connect_failed': '无法连接电脑，请确认两台设备在同一 Wi-Fi 下',
-  'lan_empty': '电脑书库暂无可导入的文件',
-  'lan_download_selected': '下载所选（%d）',
-  'lan_download_started': '已加入下载队列 %d 项',
-  'lan_view_downloads': '查看',
-  'lan_send_to_computer': '发送到电脑',
-  'lan_guide_body':
-      '1. 在电脑端 Olib 打开「无线传书」\n2. 确保手机与电脑连接同一 Wi-Fi\n3. 扫描电脑屏幕上的二维码',
-  'lan_guide_scan': '开始扫码',
-  'lan_guide_manual': '手动输入地址',
-  'lan_guide_connect': '连接',
-  'lan_manual_title': '输入电脑地址',
-  'lan_manual_hint': '例如 http://192.168.1.5:8765/?token=…',
-  'lan_scan_hint': '对准电脑上的「无线传书」二维码',
-  'lan_plaintext_warning': '局域网传输为明文，同一网络下可能被窃听；令牌仅在本机与电脑之间使用。',
-  'lan_connecting': '正在连接电脑…',
-  'lan_sending': '正在发送到电脑…',
-  'lan_upload_success': '已发送到电脑',
-  'lan_booklist_sent': '已发送书单：新增 %i · 已有 %s',
-  'lan_auth_required': '电脑端拒绝了请求，请重新扫描电脑上的二维码',
-  'lan_file_too_large': '文件超过电脑端大小限制',
-  'lan_rejected': '电脑端拒绝了该文件',
-
 
   // ── 统一书架 ──
   'bookshelf': '书架',

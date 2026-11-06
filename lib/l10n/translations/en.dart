@@ -244,37 +244,6 @@ const Map<String, String> en = {
   'import_result': 'Imported %i · Skipped %s · Failed %f',
   'retry': 'Retry',
 
-  // LAN wireless transfer (desktop companion)
-  'import_from_computer': 'From Computer',
-  'lan_import_title': 'Import from Computer',
-  'lan_invalid_qr': 'Not a valid transfer QR code',
-  'lan_not_olib': 'The device is not an Olib desktop',
-  'lan_connect_failed':
-      'Could not connect. Make sure both devices are on the same Wi-Fi',
-  'lan_empty': 'No files available on the computer',
-  'lan_download_selected': 'Download selected (%d)',
-  'lan_download_started': '%d item(s) added to download queue',
-  'lan_view_downloads': 'View',
-  'lan_send_to_computer': 'Send to Computer',
-  'lan_guide_body':
-      '1. Open "Wireless Transfer" in Olib on your computer\n2. Make sure both devices are on the same Wi-Fi\n3. Scan the QR code on the computer screen',
-  'lan_guide_scan': 'Scan QR Code',
-  'lan_guide_manual': 'Enter address',
-  'lan_guide_connect': 'Connect',
-  'lan_manual_title': 'Enter Computer Address',
-  'lan_manual_hint': 'e.g. http://192.168.1.5:8765/?token=…',
-  'lan_scan_hint': 'Point at the "Wireless Transfer" QR code on your computer',
-  'lan_plaintext_warning':
-      'LAN transfer is plaintext and can be sniffed on the same network; the token is only for use between this device and your computer.',
-  'lan_connecting': 'Connecting to computer…',
-  'lan_sending': 'Sending to computer…',
-  'lan_upload_success': 'Sent to computer',
-  'lan_booklist_sent': 'Booklist sent: %i added · %s existing',
-  'lan_auth_required':
-      'The computer rejected the request. Re-scan the QR code on your computer',
-  'lan_file_too_large': 'File exceeds the size limit on the computer',
-  'lan_rejected': 'The computer rejected this file',
-
 
   // ── Unified Bookshelf ──
   'bookshelf': 'Bookshelf',

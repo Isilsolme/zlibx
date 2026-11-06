@@ -238,33 +238,6 @@ const Map<String, String> ko = {
   'import_result': '가져옴 %i · 건너뜀 %s · 실패 %f',
   'retry': '다시 시도',
 
-  // LAN wireless transfer (desktop companion)
-  'import_from_computer': '컴퓨터에서 가져오기',
-  'lan_import_title': '컴퓨터에서 가져오기',
-  'lan_invalid_qr': '유효한 전송 QR 코드가 아닙니다',
-  'lan_not_olib': '상대 기기는 Olib 데스크톱이 아닙니다',
-  'lan_connect_failed': '연결할 수 없습니다. 두 기기가 같은 Wi-Fi에 연결되어 있는지 확인해 주세요',
-  'lan_empty': '컴퓨터에 가져올 수 있는 파일이 없습니다',
-  'lan_download_selected': '선택한 항목 다운로드 (%d)',
-  'lan_download_started': '다운로드 대기열에 %d개 항목을 추가했습니다',
-  'lan_view_downloads': '보기',
-  'lan_send_to_computer': '컴퓨터로 보내기',
-  'lan_guide_body': '1. 컴퓨터의 Olib에서 "무선 전송"을 여세요\n2. 두 기기가 같은 Wi-Fi에 연결되어 있는지 확인하세요\n3. 컴퓨터 화면의 QR 코드를 스캔하세요',
-  'lan_guide_scan': 'QR 코드 스캔',
-  'lan_guide_manual': '주소 입력',
-  'lan_guide_connect': '연결',
-  'lan_manual_title': '컴퓨터 주소 입력',
-  'lan_manual_hint': '예: http://192.168.1.5:8765/?token=…',
-  'lan_scan_hint': '컴퓨터의 "무선 전송" QR 코드에 맞추세요',
-  'lan_plaintext_warning': 'LAN 전송은 평문이라 같은 네트워크에서 도청될 수 있습니다. 토큰은 이 기기와 컴퓨터 사이에서만 사용하세요.',
-  'lan_connecting': '컴퓨터에 연결하는 중…',
-  'lan_sending': '컴퓨터로 보내는 중…',
-  'lan_upload_success': '컴퓨터로 보냈습니다',
-  'lan_booklist_sent': '책 목록을 보냈습니다: 추가 %i · 이미 있음 %s',
-  'lan_auth_required': '컴퓨터가 요청을 거부했습니다. 컴퓨터의 QR 코드를 다시 스캔해 주세요',
-  'lan_file_too_large': '파일이 컴퓨터의 크기 제한을 초과합니다',
-  'lan_rejected': '컴퓨터가 이 파일을 거부했습니다',
-
 
   // ── Unified Bookshelf ──
   'bookshelf': '책장',

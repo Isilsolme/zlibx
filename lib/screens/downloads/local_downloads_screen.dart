@@ -1,5 +1,4 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -11,7 +10,6 @@ import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/file_utils.dart';
 import '../../widgets/empty_state.dart';
-import '../lan/lan_connect.dart';
 
 class LocalDownloadsScreen extends ConsumerWidget {
   const LocalDownloadsScreen({super.key});
@@ -299,10 +297,6 @@ class _DownloadItem extends ConsumerWidget {
                         value: 'share',
                         child: Text(l.get('share')),
                       ),
-                      PopupMenuItem(
-                        value: 'send_to_pc',
-                        child: Text(l.get('lan_send_to_computer')),
-                      ),
                       const PopupMenuDivider(),
                     ],
                     PopupMenuItem(
@@ -485,9 +479,6 @@ class _DownloadItem extends ConsumerWidget {
           }
         }
         return;
-      case 'send_to_pc':
-        await _sendToComputer(context, ref);
-        return;
       case 'delete':
         await _confirmDelete(context, ref);
         return;
@@ -533,71 +524,4 @@ class _DownloadItem extends ConsumerWidget {
     }
   }
 
-  Future<void> _sendToComputer(BuildContext context, WidgetRef ref) async {
-    if (!await _fileExists(context, ref) || !context.mounted) return;
-    final client = await connectToDesktop(context);
-    if (client == null || !context.mounted) return;
-
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final progress = ValueNotifier<double>(0);
-    final cancelToken = CancelToken();
-    var dialogOpen = true;
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.get('lan_sending')),
-        content: ValueListenableBuilder<double>(
-          valueListenable: progress,
-          builder: (_, value, __) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LinearProgressIndicator(value: value > 0 ? value : null),
-              const SizedBox(height: 8),
-              Text('${(value * 100).round()}%'),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              cancelToken.cancel('user cancelled');
-              dialogOpen = false;
-              Navigator.pop(dialogContext);
-            },
-            child: Text(l.get('cancel')),
-          ),
-        ],
-      ),
-    ).then((_) => dialogOpen = false);
-
-    final path = task.filePath!;
-    final fileName = path.replaceAll('\\', '/').split('/').last;
-    try {
-      await client.uploadFile(
-        path,
-        fileName: fileName,
-        cancelToken: cancelToken,
-        onProgress: (sent, total) {
-          if (total > 0) progress.value = sent / total;
-        },
-      );
-      if (!context.mounted) return;
-      if (dialogOpen) Navigator.pop(context);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l.get('lan_upload_success'))),
-      );
-    } catch (error) {
-      if (!context.mounted) return;
-      if (dialogOpen) Navigator.pop(context);
-      if (error is DioException && CancelToken.isCancel(error)) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(lanErrorMessage(l, error))),
-      );
-    } finally {
-      progress.dispose();
-    }
-  }
 }

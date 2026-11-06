@@ -7,11 +7,9 @@ import '../../../services/booklist_share_codec.dart';
 import '../../../utils/booklist_file_utils.dart';
 import '../../../providers/books_provider.dart';
 import '../../../widgets/share_preview_sheet.dart';
-import '../../lan/lan_connect.dart';
-import '../../lan/lan_import_screen.dart';
 import '../scanner_screen.dart';
 
-enum ImportSource { scan, paste, file, lan }
+enum ImportSource { scan, paste, file }
 
 /// 书单导入/导出/批量操作 Mixin
 mixin ShelfImportHandler<T extends ConsumerStatefulWidget>
@@ -44,11 +42,6 @@ mixin ShelfImportHandler<T extends ConsumerStatefulWidget>
           return;
         }
         break;
-      case ImportSource.lan:
-        // 从电脑取书：扫桌面「无线传书」二维码，走 LAN 文件列表页，
-        // 与书单导入是两条路径，处理完直接返回。
-        await _importFromComputer(l);
-        return;
     }
 
     if (!mounted) return;
@@ -62,19 +55,6 @@ mixin ShelfImportHandler<T extends ConsumerStatefulWidget>
     await runImport(l, data);
   }
 
-  /// 从电脑取书：步骤引导 → 扫码/手动输入（`http://IP:8765?token=`）→ LAN 导入页。
-  Future<void> _importFromComputer(AppLocalizations l) async {
-    final peer = await promptDesktopPeer(
-      context,
-      title: l.get('lan_import_title'),
-    );
-    if (peer == null || !mounted) return;
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => LanImportScreen(peer: peer)),
-    );
-  }
 
   Future<BooklistShareData?> _pasteAndDecode(AppLocalizations l) async {
     final clip = await Clipboard.getData('text/plain');

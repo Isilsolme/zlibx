@@ -238,33 +238,6 @@ const Map<String, String> ja = {
   'import_result': 'インポート %i · スキップ %s · 失敗 %f',
   'retry': '再試行',
 
-  // LAN wireless transfer (desktop companion)
-  'import_from_computer': 'パソコンから',
-  'lan_import_title': 'パソコンからインポート',
-  'lan_invalid_qr': '有効な転送QRコードではありません',
-  'lan_not_olib': '接続先は Olib デスクトップではありません',
-  'lan_connect_failed': '接続できませんでした。両方のデバイスが同じ Wi-Fi に接続していることを確認してください',
-  'lan_empty': 'パソコンに利用可能なファイルがありません',
-  'lan_download_selected': '選択した項目をダウンロード（%d）',
-  'lan_download_started': 'ダウンロードキューに%d件を追加しました',
-  'lan_view_downloads': '表示',
-  'lan_send_to_computer': 'パソコンへ送信',
-  'lan_guide_body': '1. パソコンの Olib で「ワイヤレス転送」を開く\n2. 両方のデバイスが同じ Wi-Fi に接続していることを確認する\n3. パソコン画面の QR コードをスキャンする',
-  'lan_guide_scan': 'QRコードをスキャン',
-  'lan_guide_manual': 'アドレスを入力',
-  'lan_guide_connect': '接続',
-  'lan_manual_title': 'パソコンのアドレスを入力',
-  'lan_manual_hint': '例：http://192.168.1.5:8765/?token=…',
-  'lan_scan_hint': 'パソコンの「ワイヤレス転送」QRコードにかざしてください',
-  'lan_plaintext_warning': 'LAN 転送は暗号化されていないため、同じネットワーク上で盗聴される可能性があります。トークンはこのデバイスとパソコン間でのみ使用してください。',
-  'lan_connecting': 'パソコンに接続中…',
-  'lan_sending': 'パソコンへ送信中…',
-  'lan_upload_success': 'パソコンへ送信しました',
-  'lan_booklist_sent': '書籍リストを送信しました：追加 %i · 既存 %s',
-  'lan_auth_required': 'パソコンがリクエストを拒否しました。パソコンの QR コードを再度スキャンしてください',
-  'lan_file_too_large': 'ファイルがパソコンのサイズ上限を超えています',
-  'lan_rejected': 'パソコンがこのファイルを拒否しました',
-
 
   // ── Unified Bookshelf ──
   'bookshelf': '本棚',

@@ -235,11 +235,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               Icons.insert_drive_file_outlined,
               l.get('import_from_file'),
             ),
-            _importItem(
-              ImportSource.lan,
-              Icons.computer_outlined,
-              l.get('import_from_computer'),
-            ),
           ],
         ),
       ],

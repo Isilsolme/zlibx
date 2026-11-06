@@ -1,10 +1,8 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../l10n/app_localizations.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
-import '../screens/lan/lan_connect.dart';
 import '../services/booklist_share_codec.dart';
 import '../utils/booklist_file_utils.dart';
 import '../utils/share_utils.dart';
@@ -76,36 +74,6 @@ class _SharePreviewSheetState extends State<SharePreviewSheet> {
     }
   }
 
-  /// 推送书单到桌面端（LAN，POST /api/booklist，codec v1 结构原样）。
-  Future<void> _sendToComputer() async {
-    final client = await connectToDesktop(context);
-    if (client == null || !mounted) return;
-
-    final l = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final json =
-          jsonDecode(BooklistShareCodec.encodeJsonFile(_buildShareData()))
-              as Map<String, dynamic>;
-      final r = await client.pushBooklist(json);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            l
-                .get('lan_booklist_sent')
-                .replaceAll('%i', '${r.imported}')
-                .replaceAll('%s', '${r.skipped}'),
-          ),
-          backgroundColor: r.imported > 0 ? Colors.green : null,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(lanErrorMessage(l, e))),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -244,12 +212,6 @@ class _SharePreviewSheetState extends State<SharePreviewSheet> {
                   icon: Icons.file_download_outlined,
                   tooltip: l.get('export_json'),
                   onTap: _exportJson,
-                ),
-                const SizedBox(width: 8),
-                _buildIconAction(
-                  icon: Icons.computer_outlined,
-                  tooltip: l.get('lan_send_to_computer'),
-                  onTap: _sendToComputer,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

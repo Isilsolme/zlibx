@@ -237,33 +237,6 @@ const Map<String, String> zh_Hant = {
   'import_result': '匯入 %i · 已有 %s · 失敗 %f',
   'retry': '重試',
 
-  // LAN wireless transfer (desktop companion)
-  'import_from_computer': '從電腦',
-  'lan_import_title': '從電腦匯入',
-  'lan_invalid_qr': '不是有效的傳書二維碼',
-  'lan_not_olib': '對方不是 Olib 桌面端',
-  'lan_connect_failed': '無法連線至電腦，請確認兩台裝置在同一 Wi-Fi 下',
-  'lan_empty': '電腦書庫尚無可匯入的檔案',
-  'lan_download_selected': '下載所選（%d）',
-  'lan_download_started': '已加入下載佇列 %d 項',
-  'lan_view_downloads': '查看',
-  'lan_send_to_computer': '傳送到電腦',
-  'lan_guide_body': '1. 在電腦端 Olib 開啟「無線傳書」\n2. 確保手機與電腦連接同一 Wi-Fi\n3. 掃描電腦螢幕上的二維碼',
-  'lan_guide_scan': '開始掃碼',
-  'lan_guide_manual': '手動輸入位址',
-  'lan_guide_connect': '連線',
-  'lan_manual_title': '輸入電腦位址',
-  'lan_manual_hint': '例如 http://192.168.1.5:8765/?token=…',
-  'lan_scan_hint': '對準電腦上的「無線傳書」二維碼',
-  'lan_plaintext_warning': '區域網路傳輸為明文，同一網路下可能被竊聽；權杖僅在本機與電腦之間使用。',
-  'lan_connecting': '正在連線至電腦…',
-  'lan_sending': '正在傳送到電腦…',
-  'lan_upload_success': '已傳送到電腦',
-  'lan_booklist_sent': '已傳送書單：新增 %i · 已有 %s',
-  'lan_auth_required': '電腦端拒絕了請求，請重新掃描電腦上的二維碼',
-  'lan_file_too_large': '檔案超過電腦端大小限制',
-  'lan_rejected': '電腦端拒絕了該檔案',
-
 
   // ── Unified Bookshelf ──
   'bookshelf': '書架',
