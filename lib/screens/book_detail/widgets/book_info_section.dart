@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../../../core/book_description.dart';
 import '../../../models/display_book.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../routes/app_routes.dart';
@@ -39,6 +40,9 @@ class BookInfoSection extends StatelessWidget {
       if (book.language?.isNotEmpty ?? false)
         l10n.get('language'): book.language!,
     };
+    // A missing description must stay absent rather than rendering as
+    // the literal word "null".
+    final description = normalizedBookDescription(book.description);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -51,9 +55,9 @@ class BookInfoSection extends StatelessWidget {
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: tags),
             ],
-            if (book.description?.isNotEmpty ?? false) ...[
+            if (description != null) ...[
               const SizedBox(height: 28),
-              BookDetailDescription(text: book.description!),
+              BookDetailDescription(text: description),
             ],
             if (fields.isNotEmpty) ...[
               const SizedBox(height: 28),

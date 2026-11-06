@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/book_description.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/display_book.dart';
 import '../../../services/annas_archieve.dart';
@@ -38,6 +39,9 @@ class AnnaBookInfoSection extends StatelessWidget {
         displayBook.isLibGen ? 'source_libgen' : 'source_annas_archive',
       ),
     };
+    // A missing description must stay absent rather than rendering as
+    // the literal word "null".
+    final description = normalizedBookDescription(info.description);
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -50,9 +54,9 @@ class AnnaBookInfoSection extends StatelessWidget {
               const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: tags),
             ],
-            if (info.description?.isNotEmpty ?? false) ...[
+            if (description != null) ...[
               const SizedBox(height: 28),
-              BookDetailDescription(text: info.description!),
+              BookDetailDescription(text: description),
             ],
             if (fields.isNotEmpty) ...[
               const SizedBox(height: 28),

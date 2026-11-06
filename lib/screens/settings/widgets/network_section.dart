@@ -6,6 +6,7 @@ import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
 import '../../../widgets/domain_selector.dart';
+import '../mirrors_page.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
@@ -55,6 +56,20 @@ class NetworkSection extends ConsumerWidget {
             onTap: () => showDialog(
               context: context,
               builder: (_) => const DomainSelectionDialog(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Mirror management (ported from OpenlibExtended): which
+        // open-slum.org mirrors the app may talk to, and in what order.
+        SettingsCard(
+          child: ListTile(
+            leading: const Icon(Icons.dns_outlined),
+            title: Text(t.get('mirrors')),
+            subtitle: Text(t.get('mirrors_subtitle')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MirrorsPage()),
             ),
           ),
         ),

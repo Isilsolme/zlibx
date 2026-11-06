@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import '../../providers/books_provider.dart';
+import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
 import '../../widgets/loading_widget.dart';
@@ -14,6 +16,8 @@ import '../../models/display_book.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../../constants/search_filters.dart';
+import '../../services/google_suggest_api.dart';
+import '../../services/open_library.dart';
 import '../../services/update_service.dart';
 import '../../services/hive_service.dart';
 
@@ -40,6 +44,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _isListView = false;
   bool _isQueryEmpty = true;
   List<String> _recentSearches = [];
+  // Search suggestions (ported from OpenlibExtended's GoogleSuggestApi):
+  // debounced while typing, shown until a query is submitted. A failed
+  // fetch stays silent — the list is simply empty.
+  final _suggestApi = GoogleSuggestApi();
+  Timer? _suggestDebounce;
+  List<String> _suggestions = [];
+  bool _suggestionsLoading = false;
+  bool _showSuggestions = false;
+  String _lastSubmittedQuery = '';
   // Search source: Z-Library by default; the (unused) initialSource route
   // parameter is the entry point for opening the screen on Anna's Archive.
   late BookSource _source;
@@ -66,6 +79,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
+    _suggestDebounce?.cancel();
     _searchController.removeListener(_onQueryChanged);
     _searchController.dispose();
     _scrollController.dispose();
@@ -73,10 +87,52 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _onQueryChanged() {
-    final isEmpty = _searchController.text.trim().isEmpty;
-    if (isEmpty != _isQueryEmpty) {
-      setState(() => _isQueryEmpty = isEmpty);
+    final text = _searchController.text.trim();
+    final isEmpty = text.isEmpty;
+    final showSuggestions = !isEmpty && text != _lastSubmittedQuery;
+    if (isEmpty != _isQueryEmpty || showSuggestions != _showSuggestions) {
+      setState(() {
+        _isQueryEmpty = isEmpty;
+        _showSuggestions = showSuggestions;
+      });
     }
+    _scheduleSuggestions(text);
+  }
+
+  void _scheduleSuggestions(String query) {
+    _suggestDebounce?.cancel();
+    if (query.isEmpty || query == _lastSubmittedQuery) {
+      if (_suggestions.isNotEmpty || _suggestionsLoading) {
+        setState(() {
+          _suggestions = [];
+          _suggestionsLoading = false;
+        });
+      }
+      return;
+    }
+    _suggestDebounce = Timer(const Duration(milliseconds: 400), () {
+      _fetchSuggestions(query);
+    });
+  }
+
+  Future<void> _fetchSuggestions(String query) async {
+    if (!mounted) return;
+    // The query may have been submitted while the debounce was waiting;
+    // never spin the loading flag for it.
+    if (query == _lastSubmittedQuery) return;
+    setState(() => _suggestionsLoading = true);
+    final results = await _suggestApi.fetchSuggestions(query);
+    if (!mounted) return;
+    // Ignore stale responses: the user may have typed on, cleared the
+    // field, or submitted since the request started.
+    if (_searchController.text.trim() != query ||
+        query == _lastSubmittedQuery) {
+      return;
+    }
+    setState(() {
+      _suggestions = results;
+      _suggestionsLoading = false;
+    });
   }
 
   Future<void> _saveRecentSearches(List<String> searches) async {
@@ -115,10 +171,47 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _performSearch();
   }
 
-  Widget _buildRecentSearches(AppLocalizations l10n) {
-    final colors = Theme.of(context).colorScheme;
+  /// Empty query: recent searches (if any) plus the Open Library
+  /// trending feed. The trending section hides itself when the feed
+  /// fails or comes back empty; when there is nothing at all to show,
+  /// the usual "start searching" empty state is shown instead.
+  Widget _buildEmptyQueryView(AppLocalizations l10n) {
+    final trendingAsync = ref.watch(trendingBooksProvider);
+    final trendingBooks = (trendingAsync.valueOrNull ??
+            const <TrendingBookData>[])
+        .where((book) => book.title?.trim().isNotEmpty ?? false)
+        .toList();
+    if (_recentSearches.isEmpty && trendingBooks.isEmpty) {
+      if (trendingAsync.isLoading) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: CircularProgressIndicator(),
+          ),
+        );
+      }
+      return EmptyState(
+        icon: Icons.search,
+        title: l10n.get('start_searching'),
+        message: l10n.get('enter_search_hint'),
+      );
+    }
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        if (_recentSearches.isNotEmpty) _buildRecentSearchesSection(l10n),
+        if (trendingBooks.isNotEmpty) ...[
+          if (_recentSearches.isNotEmpty) const SizedBox(height: 24),
+          _buildTrendingSection(l10n, trendingBooks),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRecentSearchesSection(AppLocalizations l10n) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
@@ -164,6 +257,126 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  /// Suggestions for the text being typed. Tapping one searches it.
+  Widget _buildSuggestionsView(AppLocalizations l10n) {
+    if (_suggestionsLoading && _suggestions.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (_suggestions.isEmpty) {
+      return EmptyState(
+        icon: Icons.search,
+        title: l10n.get('start_searching'),
+        message: l10n.get('enter_search_hint'),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
+      itemCount: _suggestions.length,
+      itemBuilder: (context, index) {
+        final suggestion = _suggestions[index];
+        return ListTile(
+          leading: const Icon(Icons.search, size: 20),
+          title: Text(
+            suggestion,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: () => _searchAgain(suggestion),
+        );
+      },
+    );
+  }
+
+  /// Open Library trending (ported from OpenlibExtended): a horizontal
+  /// cover strip. Tapping a cover searches its title on the current
+  /// source, exactly like upstream's trending page does.
+  Widget _buildTrendingSection(
+    AppLocalizations l10n,
+    List<TrendingBookData> books,
+  ) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.local_fire_department_outlined,
+              size: 20,
+              color: colors.primary,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                l10n.get('trending_on_open_library'),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: books.length,
+            itemBuilder: (context, index) {
+              final book = books[index];
+              final title = book.title!.trim();
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: InkWell(
+                  onTap: () => _searchAgain(title),
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: 105,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: book.thumbnail ?? '',
+                            height: 145,
+                            width: 105,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              height: 145,
+                              width: 105,
+                              color: colors.surfaceContainerHighest,
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              height: 145,
+                              width: 105,
+                              color: colors.surfaceContainerHighest,
+                              child: const Icon(Icons.image_outlined),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
@@ -187,6 +400,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _performSearch() {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
+    setState(() {
+      _lastSubmittedQuery = query;
+      _suggestions = [];
+      _suggestionsLoading = false;
+      _showSuggestions = false;
+    });
     if (_runSearch()) _rememberSearch(query);
   }
 
@@ -227,6 +446,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     setState(() {
       _source = source;
       _showFilters = false;
+      _suggestions = [];
+      _suggestionsLoading = false;
+      _showSuggestions = false;
+      _lastSubmittedQuery = '';
     });
     // Stale results must not leak across sources.
     ref.read(searchProvider.notifier).reset();
@@ -300,6 +523,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       icon: const Icon(Icons.clear),
                       onPressed: () {
                         _searchController.clear();
+                        setState(() => _lastSubmittedQuery = '');
                         ref.read(searchProvider.notifier).reset();
                         ref.read(externalSearchProvider.notifier).reset();
                       },
@@ -358,9 +582,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
           // Search Results
           Expanded(
-            child: _isQueryEmpty && _recentSearches.isNotEmpty
-                ? _buildRecentSearches(l10n)
-                : _isQueryEmpty || !hasSearched
+            child: _isQueryEmpty
+                ? _buildEmptyQueryView(l10n)
+                : _showSuggestions
+                ? _buildSuggestionsView(l10n)
+                : !hasSearched
                 ? EmptyState(
                     icon: Icons.search,
                     title: l10n.get('start_searching'),

@@ -65,6 +65,7 @@ const Map<String, String> en = {
   'good_morning': 'Good morning,',
   'search_for_books': 'Search for books...',
   'trending': 'Trending',
+  'trending_on_open_library': 'Trending on Open Library',
   'new_releases': 'New Releases',
 
   // Search
@@ -153,6 +154,32 @@ const Map<String, String> en = {
   'books_downloaded_any_device': 'Books downloaded on any device',
   'network': 'Network',
   'network_line': 'Network Line',
+  'mirrors': 'Mirrors',
+  'mirrors_subtitle': 'Mirror status from open-slum.org',
+  'mirror_auto_order': 'Automatic mirror order',
+  'mirror_auto_desc':
+      'Easiest protection first, then fastest. Recommended.',
+  'mirror_manual_desc': 'Manual: use the arrows to set your own order.',
+  'mirror_list_updated': 'Mirror list updated: {count} change(s)',
+  'mirror_list_up_to_date': 'Mirror list is up to date',
+  'mirror_list_unreachable':
+      'Could not reach open-slum.org — no mirror list available',
+  'mirror_refresh_failed': 'Refresh failed',
+  'mirrors_no_mirrors': 'No mirrors reported',
+  'mirrors_no_mirrors_hint':
+      'open-slum.org has no entry (yet) or could not be reached.',
+  'mirrors_load_failed': 'Could not load mirrors',
+  'mirrors_down_hint': 'reported down — never contacted',
+  'mirrors_footer_note':
+      'Mirror addresses and their status come from open-slum.org and refresh automatically. A mirror reported DOWN is never contacted.',
+  'mirror_move_up': 'Move up',
+  'mirror_move_down': 'Move down',
+  'mirror_service_libgen_desc':
+      'Fast, challenge-free downloads when a mirror is up',
+  'mirror_service_zlibrary_desc': 'DiamWall mirrors solve headlessly',
+  'mirror_service_welib_desc':
+      'Cloudflare-gated search, open book pages',
+  'mirror_service_annas_desc': 'Reading, details and downloads',
   'appearance': 'Appearance',
   'blur_effect': 'Blur effect',
   'dark_mode': 'Dark mode',

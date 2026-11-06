@@ -64,6 +64,7 @@ const Map<String, String> ja = {
   'good_morning': 'おはようございます、',
   'search_for_books': '本を検索...',
   'trending': 'トレンド',
+  'trending_on_open_library': 'Open Library のトレンド',
   'new_releases': '新着',
 
   // Search
@@ -151,6 +152,29 @@ const Map<String, String> ja = {
   'books_downloaded_any_device': 'どのデバイスでもダウンロードした本',
   'network': 'ネットワーク',
   'network_line': '回線',
+  'mirrors': 'ミラー',
+  'mirrors_subtitle': 'open-slum.org からのミラー状態',
+  'mirror_auto_order': 'ミラーの自動並び替え',
+  'mirror_auto_desc': '保護の弱い順、次に速い順。推奨。',
+  'mirror_manual_desc': '手動：矢印で順序を調整。',
+  'mirror_list_updated': 'ミラーリストを更新しました：{count} 件の変更',
+  'mirror_list_up_to_date': 'ミラーリストは最新です',
+  'mirror_list_unreachable':
+      'open-slum.org に接続できませんでした。ミラーリストがありません',
+  'mirror_refresh_failed': '更新に失敗しました',
+  'mirrors_no_mirrors': 'ミラーがありません',
+  'mirrors_no_mirrors_hint':
+      'open-slum.org に記録がないか、接続できませんでした。',
+  'mirrors_load_failed': 'ミラーを読み込めませんでした',
+  'mirrors_down_hint': 'ダウン報告あり。接続しません',
+  'mirrors_footer_note':
+      'ミラーのアドレスと状態は open-slum.org から取得し、自動で更新されます。ダウン報告のあるミラーには接続しません。',
+  'mirror_move_up': '上に移動',
+  'mirror_move_down': '下に移動',
+  'mirror_service_libgen_desc': 'ミラーが稼働中は高速で認証不要のダウンロード',
+  'mirror_service_zlibrary_desc': 'DiamWall ミラーはヘッドレスで突破可能',
+  'mirror_service_welib_desc': '検索は Cloudflare 保護下、書籍ページは開けます',
+  'mirror_service_annas_desc': '閲覧、詳細、ダウンロード',
   'appearance': '外観',
   'blur_effect': 'ぼかし効果',
   'dark_mode': 'ダークモード',

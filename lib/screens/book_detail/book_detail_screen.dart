@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import '../../core/book_description.dart';
 import '../../models/display_book.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/download_provider.dart';
@@ -35,9 +36,11 @@ class BookDetailScreen extends ConsumerWidget {
     // 兼容两种 arg：BookDetailArgs 和直接的 Book（旧调用方）。
     final initialBook = args.book!;
     final hash = initialBook.hash;
+    // A literal "null" description counts as missing, so the detail
+    // fetch still runs to get the real one.
     final needsDetails =
         initialBook.readOnlineUrl?.isNotEmpty != true ||
-        initialBook.description?.isNotEmpty != true;
+        normalizedBookDescription(initialBook.description) == null;
     final identifier = needsDetails && hash != null && hash.isNotEmpty
         ? BookIdentifier(initialBook.id.toString(), hash)
         : null;
