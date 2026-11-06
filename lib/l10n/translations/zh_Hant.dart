@@ -221,6 +221,7 @@ const Map<String, String> zh_Hant = {
   'send_comment': '發送評論',
   'comment_failed': '評論發佈失敗',
   'comment_too_short': '評論太短了',
+  'refresh_failed': '刷新失敗',
   'like_failed': '點讚失敗',
 
   // Dialogs

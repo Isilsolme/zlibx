@@ -353,6 +353,18 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       // No more pages (or the fetch failed) — wrap back to page 1.
       if (page != 1) {
         await _loadPopularPage(1);
+        return;
+      }
+      // Page 1 itself failed: nothing to wrap to — say so instead of
+      // silently leaving the old list in place (a failed first refresh
+      // otherwise looks exactly like a refresh that never fired).
+      if (mounted && (!res.success || books == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text(AppLocalizations.of(context).get('refresh_failed')),
+          ),
+        );
       }
       return;
     }

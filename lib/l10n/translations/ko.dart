@@ -223,6 +223,7 @@ const Map<String, String> ko = {
   'send_comment': '댓글 보내기',
   'comment_failed': '댓글 게시에 실패했습니다',
   'comment_too_short': '댓글이 너무 짧습니다',
+  'refresh_failed': '새로고침에 실패했습니다',
   'like_failed': '좋아요에 실패했습니다',
 
   // Dialogs
