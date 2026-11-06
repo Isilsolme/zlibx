@@ -816,6 +816,62 @@ class ZLibraryApi {
     ));
   }
 
+  /// The signed-in user's own posted comments, as the website shows them
+  /// on the profile Comments tab:
+  /// `GET /papi/comments/user/{userId}/{page}?limit={limit}`.
+  /// Confirmed by a packet capture on 2026-11-06 (zh.z-library.sk
+  /// profile page): `success: 1`, `comments` as a MAP keyed by comment
+  /// id (not a list), `commentsTitles: {book: {...}}` with each
+  /// comment's book title, plus `reactionsInfo`/`reactionsUsers`.
+  /// Page is 0-based; the site fetches limit 500 for the whole
+  /// collection in one go. Auth is the remix session cookies.
+  Future<ApiResponse<UserCommentsPage>> getMyComments({
+    int page = 0,
+    int limit = 500,
+  }) async {
+    final userId = _userId;
+    if (userId == null || userId.isEmpty) {
+      return ApiResponse.fail('not logged in');
+    }
+    final raw = await _get('/papi/comments/user/$userId/$page?limit=$limit');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'my comments failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'my comments failed',
+        statusCode: raw.status,
+      );
+    }
+    final map = json['comments'];
+    if (map is! Map) {
+      return ApiResponse.fail('my comments response had no map',
+          statusCode: raw.status);
+    }
+    final reactions = commentReactionsOf(json);
+    final titles = commentTitlesOf(json);
+    final entries = <UserCommentEntry>[];
+    for (final value in map.values) {
+      if (value is! Map<String, dynamic>) continue;
+      final bookId = value['object_id'] is int
+          ? value['object_id'] as int
+          : int.tryParse('${value['object_id']}') ?? 0;
+      final comment = BookComment.fromJson(value, baseUrl: _base);
+      final r = reactions[comment.id];
+      entries.add(UserCommentEntry(
+        comment: r == null
+            ? comment
+            : comment.copyWith(likeCount: r.count, isLiked: r.liked),
+        bookId: bookId,
+        bookTitle: titles[bookId] ?? '',
+      ));
+    }
+    return ApiResponse.ok(UserCommentsPage(entries: entries));
+  }
+
   /// Post a book comment, or a reply when [parentId] is set. The site's
   /// own `papi/` JSON API: `POST /papi/comments/add` with a JSON body
   /// (`hash`, `object: "book"`, `object_id` as a STRING, `text`, plus

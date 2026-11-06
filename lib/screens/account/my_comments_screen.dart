@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../screens/comments/book_comments_screen.dart';
 import '../../widgets/empty_state.dart';
@@ -29,14 +31,11 @@ class MyComment {
 }
 
 /// "My Comments": the signed-in user's own posted comments, the same
-/// collection the website shows on the profile Comments tab.
-///
-/// The list endpoint is NOT confirmed yet, so [_fetchMyComments] is a
-/// clearly-marked TODO that returns an empty list for now and the
-/// screen shows the "endpoint pending" empty state. Do NOT guess a URL
-/// here. Tapping a comment opens that book's comments page (view,
-/// post, reply, like — already implemented there); deleting a comment
-/// is not implemented (delete endpoint unknown).
+/// collection the website shows on the profile Comments tab
+/// (`GET /papi/comments/user/{userId}/{page}?limit=500`, confirmed by a
+/// packet capture on 2026-11-06). Tapping a comment opens that book's
+/// comments page (view, post, reply, like — already implemented there);
+/// deleting a comment is not implemented (delete endpoint unknown).
 class MyCommentsScreen extends ConsumerStatefulWidget {
   const MyCommentsScreen({super.key});
 
@@ -55,13 +54,25 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  /// TODO: the "my comments" list endpoint is NOT confirmed yet. The
-  /// website's profile Comments tab is the source of this data; capture
-  /// its request (desktop DevTools, same as the book-comments capture
-  /// on 2026-11-06) and wire it here. Until then this deliberately
-  /// returns an empty list — do NOT guess a URL.
+  /// The website's profile Comments tab, confirmed by a packet capture
+  /// on 2026-11-06: `GET /papi/comments/user/{userId}/{page}?limit=500`.
+  /// Returns an empty list when the request fails (the screen then shows
+  /// the empty state; pull-to-refresh retries).
   Future<List<MyComment>> _fetchMyComments() async {
-    return const [];
+    final api = ref.read(zlibraryApiProvider);
+    final response = await api.getMyComments();
+    if (!response.success || response.data == null) return const [];
+    return response.data!.entries
+        .map((e) => MyComment(
+              bookId: e.bookId,
+              bookTitle: e.bookTitle,
+              text: e.comment.text,
+              date: e.comment.dateRelative.isNotEmpty
+                  ? e.comment.dateRelative
+                  : e.comment.date,
+              likeCount: e.comment.likeCount,
+            ))
+        .toList();
   }
 
   Future<void> _load() async {
@@ -102,7 +113,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
               : _comments.isEmpty
                   ? EmptyState(
                       icon: Icons.comment_outlined,
-                      title: l10n.get('my_comments_pending'),
+                      title: l10n.get('no_comments'),
                     )
                   : RefreshIndicator(
                       onRefresh: _load,

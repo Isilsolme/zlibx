@@ -111,6 +111,74 @@ class BookCommentsPage {
   });
 }
 
+/// One of the signed-in user's own comments, with the book it was posted
+/// on, from the website's profile Comments tab:
+/// `GET /papi/comments/user/{userId}/{page}?limit={limit}`.
+/// Confirmed by a packet capture on 2026-11-06 (zh.z-library.sk profile
+/// page). That response carries `comments` as a MAP keyed by comment id
+/// (not a list, unlike the per-book read) and `commentsTitles` with the
+/// book title for each comment.
+class UserCommentEntry {
+  final BookComment comment;
+  final int bookId;
+  final String bookTitle;
+
+  const UserCommentEntry({
+    required this.comment,
+    required this.bookId,
+    required this.bookTitle,
+  });
+}
+
+/// One page of the signed-in user's own comments.
+class UserCommentsPage {
+  final List<UserCommentEntry> entries;
+
+  const UserCommentsPage({required this.entries});
+}
+
+/// Best-effort book titles from a user-comments page's `commentsTitles`
+/// (`{book: {<bookId>: <title-ish>}}`). The title value's exact shape is
+/// not fully pinned down, so strings are taken as-is and maps are read
+/// via `title`/`name`; a list form (`[{book_id/id/object_id, title}]`)
+/// is accepted too. Anything unparseable is skipped.
+Map<int, String> commentTitlesOf(Map<String, dynamic> pageJson) {
+  final out = <int, String>{};
+  final titles = pageJson['commentsTitles'];
+  if (titles is! Map) return out;
+  final books = (titles as Map)['book'];
+  if (books is List) {
+    for (final entry in books) {
+      if (entry is! Map) continue;
+      final id = _asInt(
+        (entry as Map)['book_id'] ??
+            entry['id'] ??
+            entry['object_id'],
+      );
+      final title =
+          _asString(entry['title']) ?? _asString(entry['name']);
+      if (id != null && title != null && title.isNotEmpty) {
+        out[id] = title;
+      }
+    }
+    return out;
+  }
+  if (books is! Map) return out;
+  for (final entry in books.entries) {
+    final id = int.tryParse(entry.key.toString());
+    if (id == null) continue;
+    final value = entry.value;
+    String? title;
+    if (value is String) {
+      title = value;
+    } else if (value is Map) {
+      title = _asString(value['title']) ?? _asString(value['name']);
+    }
+    if (title != null && title.isNotEmpty) out[id] = title;
+  }
+  return out;
+}
+
 /// The server's answer to a like/unlike: the comment's new like count
 /// and whether the current user likes it now.
 class CommentLikeResult {
