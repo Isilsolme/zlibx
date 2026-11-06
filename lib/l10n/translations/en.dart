@@ -226,6 +226,12 @@ const Map<String, String> en = {
   'no_comments': 'No comments yet',
   'login_to_view_comments': 'Log in to view comments',
   'comments_disabled': 'Comments are disabled for this book',
+  'write_comment': 'Write a comment',
+  'reply_to': 'Reply to',
+  'reply': 'Reply',
+  'send_comment': 'Send comment',
+  'comment_failed': 'Failed to post comment',
+  'like_failed': 'Failed to update like',
 
   // Dialogs
   'file_details': 'File Details',

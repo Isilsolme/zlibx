@@ -215,6 +215,12 @@ const Map<String, String> zh_Hant = {
   'no_comments': '暫無評論',
   'login_to_view_comments': '登入後查看評論',
   'comments_disabled': '這本書的評論已關閉',
+  'write_comment': '寫評論',
+  'reply_to': '回覆',
+  'reply': '回覆',
+  'send_comment': '發送評論',
+  'comment_failed': '評論發佈失敗',
+  'like_failed': '點讚失敗',
 
   // Dialogs
   'file_details': '檔案詳情',

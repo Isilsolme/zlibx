@@ -216,6 +216,12 @@ const Map<String, String> zh = {
   'no_comments': '暂无评论',
   'login_to_view_comments': '登录后查看评论',
   'comments_disabled': '这本书的评论已关闭',
+  'write_comment': '写评论',
+  'reply_to': '回复',
+  'reply': '回复',
+  'send_comment': '发送评论',
+  'comment_failed': '评论发布失败',
+  'like_failed': '点赞失败',
 
   // Dialogs
   'file_details': '文件详情',

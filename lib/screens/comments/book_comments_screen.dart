@@ -20,12 +20,13 @@ class BookCommentsArgs {
   });
 }
 
-/// Book comments, view-only.
+/// Book comments — view, post, reply and like.
 ///
 /// Loads the site's own `papi/` comments endpoint page by page (50 per
 /// page, 0-based) until a short page arrives. Replies (`parent_id` set)
-/// are indented. Requires a logged-in session: logged-out users get a
-/// login prompt instead of a request.
+/// are indented. Posting and liking use the same `papi/` API the site's
+/// own frontend uses (captured 2026-11-06). Requires a logged-in
+/// session: logged-out users get a login prompt instead of a request.
 class BookCommentsScreen extends ConsumerStatefulWidget {
   const BookCommentsScreen({super.key});
 
@@ -38,7 +39,10 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   static const int _pageSize = 50;
 
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _composerController = TextEditingController();
+  final FocusNode _composerFocus = FocusNode();
   final List<BookComment> _comments = [];
+  final Set<int> _likingIds = {};
   int _nextPage = 0;
   bool _hasMore = true;
   bool _isLoading = true;
@@ -47,6 +51,8 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   String _errorMessage = '';
   bool _disabled = false;
   bool _loggedIn = true;
+  BookComment? _replyTo;
+  bool _isPosting = false;
 
   @override
   void initState() {
@@ -58,6 +64,8 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _composerController.dispose();
+    _composerFocus.dispose();
     super.dispose();
   }
 
@@ -65,6 +73,107 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     if (!_hasMore || _isLoadingMore || _isLoading || _hasError) return;
     if (_scrollController.position.extentAfter < 300) {
       _loadPage(_nextPage);
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _submitComment() async {
+    final text = _composerController.text.trim();
+    if (text.isEmpty || _isPosting) return;
+    final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    final api = ref.read(zlibraryApiProvider);
+    final replyTo = _replyTo;
+    setState(() => _isPosting = true);
+    try {
+      final response = await api.postBookComment(
+        args.bookId.toString(),
+        text: text,
+        parentId: replyTo?.id.toString(),
+      );
+      if (!mounted) return;
+      if (response.success && response.data != null) {
+        final posted = response.data!;
+        setState(() {
+          if (replyTo == null) {
+            // New top-level comments sort to the top of the site's list.
+            _comments.insert(0, posted);
+          } else {
+            final parentIndex =
+                _comments.indexWhere((c) => c.id == replyTo.id);
+            if (parentIndex >= 0) {
+              _comments.insert(parentIndex + 1, posted);
+            } else {
+              _comments.insert(0, posted);
+            }
+          }
+          _composerController.clear();
+          _replyTo = null;
+          _isPosting = false;
+        });
+        _composerFocus.unfocus();
+      } else {
+        setState(() => _isPosting = false);
+        _showSnack(
+          '${AppLocalizations.of(context).get('comment_failed')}: '
+          '${response.error ?? ''}'.trim(),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isPosting = false);
+      _showSnack(
+        '${AppLocalizations.of(context).get('comment_failed')}: $e',
+      );
+    }
+  }
+
+  Future<void> _toggleLike(BookComment comment) async {
+    if (_likingIds.contains(comment.id)) return;
+    final target = !comment.isLiked;
+    final index = _comments.indexWhere((c) => c.id == comment.id);
+    if (index < 0) return;
+    // Optimistic toggle; the server's numbers win when it answers.
+    setState(() {
+      _likingIds.add(comment.id);
+      _comments[index] = comment.copyWith(
+        isLiked: target,
+        likeCount: (comment.likeCount + (target ? 1 : -1)).clamp(0, 1 << 30),
+      );
+    });
+    final api = ref.read(zlibraryApiProvider);
+    try {
+      final response = await api.likeBookComment(comment.id, like: target);
+      if (!mounted) return;
+      setState(() {
+        _likingIds.remove(comment.id);
+        final i = _comments.indexWhere((c) => c.id == comment.id);
+        if (i < 0) return;
+        if (response.success && response.data != null) {
+          final result = response.data!;
+          _comments[i] = _comments[i].copyWith(
+            isLiked: result.liked,
+            likeCount: result.count,
+          );
+        } else {
+          // Revert; the server did not take it.
+          _comments[i] = comment;
+          _showSnack(AppLocalizations.of(context).get('like_failed'));
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _likingIds.remove(comment.id);
+        final i = _comments.indexWhere((c) => c.id == comment.id);
+        if (i >= 0) _comments[i] = comment;
+      });
+      _showSnack(AppLocalizations.of(context).get('like_failed'));
     }
   }
 
@@ -243,13 +352,131 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                                             ),
                                           );
                                         }
+                                        final comment = _comments[index];
                                         return _CommentRow(
-                                          comment: _comments[index],
+                                          comment: comment,
+                                          likePending: _likingIds.contains(
+                                            comment.id,
+                                          ),
+                                          onLike: () => _toggleLike(comment),
+                                          onReply: () {
+                                            setState(
+                                              () => _replyTo = comment,
+                                            );
+                                            _composerFocus.requestFocus();
+                                          },
                                         );
                                       },
                                     ),
                                   ),
           ),
+
+          // Composer (hidden while logged out or when comments are closed)
+          if (_loggedIn && !_disabled && !_isLoading)
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              padding: EdgeInsets.fromLTRB(
+                12,
+                8,
+                12,
+                8 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_replyTo != null)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.reply_rounded,
+                          size: 16,
+                          color: cs.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            '${l10n.get('reply_to')} ${_replyTo!.userName}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.primary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                          onPressed: () =>
+                              setState(() => _replyTo = null),
+                          tooltip: l10n.get('cancel'),
+                        ),
+                      ],
+                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _composerController,
+                          focusNode: _composerFocus,
+                          decoration: InputDecoration(
+                            hintText: _replyTo == null
+                                ? l10n.get('write_comment')
+                                : '${l10n.get('reply_to')} ${_replyTo!.userName}',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                          ),
+                          minLines: 1,
+                          maxLines: 4,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _submitComment(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ListenableBuilder(
+                        listenable: _composerController,
+                        builder: (context, _) {
+                          final canSend =
+                              _composerController.text.trim().isNotEmpty &&
+                              !_isPosting;
+                          return IconButton.filled(
+                            onPressed: canSend ? _submitComment : null,
+                            icon: _isPosting
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.send_rounded,
+                                    size: 20,
+                                  ),
+                            tooltip: l10n.get('send_comment'),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -258,11 +485,20 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
 class _CommentRow extends StatelessWidget {
   final BookComment comment;
+  final bool likePending;
+  final VoidCallback onLike;
+  final VoidCallback onReply;
 
-  const _CommentRow({required this.comment});
+  const _CommentRow({
+    required this.comment,
+    required this.likePending,
+    required this.onLike,
+    required this.onReply,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final date = comment.dateRelative.isNotEmpty
         ? comment.dateRelative
@@ -317,6 +553,74 @@ class _CommentRow extends StatelessWidget {
                 Text(
                   comment.text,
                   style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: likePending ? null : onLike,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              comment.isLiked
+                                  ? Icons.thumb_up_rounded
+                                  : Icons.thumb_up_outlined,
+                              size: 16,
+                              color: comment.isLiked
+                                  ? cs.primary
+                                  : cs.onSurfaceVariant,
+                            ),
+                            if (comment.likeCount > 0) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                comment.likeCount.toString(),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: comment.isLiked
+                                          ? cs.primary
+                                          : cs.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    InkWell(
+                      onTap: onReply,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.reply_rounded,
+                              size: 16,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.get('reply'),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

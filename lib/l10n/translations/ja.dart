@@ -218,6 +218,12 @@ const Map<String, String> ja = {
   'no_comments': 'コメントはまだありません',
   'login_to_view_comments': 'ログインしてコメントを見る',
   'comments_disabled': 'この本のコメントは無効です',
+  'write_comment': 'コメントを書く',
+  'reply_to': '返信',
+  'reply': '返信',
+  'send_comment': 'コメントを送信',
+  'comment_failed': 'コメントの投稿に失敗しました',
+  'like_failed': 'いいねに失敗しました',
 
   // Dialogs
   'file_details': 'ファイルの詳細',

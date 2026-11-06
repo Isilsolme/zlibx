@@ -217,6 +217,12 @@ const Map<String, String> ko = {
   'no_comments': '댓글이 아직 없습니다',
   'login_to_view_comments': '로그인하여 댓글 보기',
   'comments_disabled': '이 책의 댓글은 비활성화되어 있습니다',
+  'write_comment': '댓글 쓰기',
+  'reply_to': '답글',
+  'reply': '답글',
+  'send_comment': '댓글 보내기',
+  'comment_failed': '댓글 게시에 실패했습니다',
+  'like_failed': '좋아요에 실패했습니다',
 
   // Dialogs
   'file_details': '파일 상세 정보',

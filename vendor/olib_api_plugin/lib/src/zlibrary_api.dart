@@ -135,6 +135,30 @@ class ZLibraryApi {
     }
   }
 
+  /// POST a raw string body as `text/plain` and follow redirects. The
+  /// site's `papi/comments/*` endpoints answer the first POST with 307
+  /// to the same URL; Dio follows it, and because the target is the
+  /// same host the Cookie header stays on our own domain (unlike the
+  /// download path, where redirects are followed by hand for exactly
+  /// this reason).
+  Future<_Raw> _postText(String path, String body) async {
+    try {
+      final res = await _dio.post<String>(
+        '$_base$path',
+        data: body,
+        options: Options(
+          headers: _headers,
+          contentType: 'text/plain;charset=UTF-8',
+          responseType: ResponseType.plain,
+          followRedirects: true,
+        ),
+      );
+      return _fromResponse(res);
+    } on DioException catch (e) {
+      return _fromError(e);
+    }
+  }
+
   /// Form encoding with repeated keys for list values, matching how the
   /// Python eapi clients send the same parameters.
   static String _encodeForm(Map<String, dynamic> fields) {
@@ -753,12 +777,94 @@ class ZLibraryApi {
       return ApiResponse.fail('comments response had no list',
           statusCode: raw.status);
     }
+    final reactions = commentReactionsOf(json);
     return ApiResponse.ok(BookCommentsPage(
       comments: list
           .whereType<Map<String, dynamic>>()
           .map((c) => BookComment.fromJson(c, baseUrl: _base))
+          .map((c) {
+            final r = reactions[c.id];
+            return r == null
+                ? c
+                : c.copyWith(likeCount: r.count, isLiked: r.liked);
+          })
           .toList(),
     ));
+  }
+
+  /// Post a book comment, or a reply when [parentId] is set. The site's
+  /// own `papi/` JSON API: `POST /papi/comments/add` with a JSON body
+  /// (`hash`, `object: "book"`, `object_id` as a STRING, `text`, plus
+  /// `parent_id` for replies), sent as `text/plain`. Confirmed by a
+  /// packet capture on 2026-11-06: the first request answers 307 to the
+  /// same URL and the follow-up returns 200
+  /// `{success: 1, comment: {...}, currentUser: {...}}` — the new
+  /// comment comes back in the same shape as the read list, so callers
+  /// can insert it directly. Auth is the remix session cookies.
+  Future<ApiResponse<BookComment>> postBookComment(
+    String bookId, {
+    required String text,
+    String? parentId,
+  }) async {
+    final body = <String, dynamic>{
+      'hash': '',
+      'object': 'book',
+      'object_id': bookId,
+      'text': text,
+    };
+    if (parentId != null) body['parent_id'] = parentId;
+    final raw = await _postText('/papi/comments/add', jsonEncode(body));
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'post comment failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'post comment failed',
+        statusCode: raw.status,
+      );
+    }
+    final comment = json['comment'];
+    if (comment is! Map<String, dynamic>) {
+      return ApiResponse.fail('post comment had no comment',
+          statusCode: raw.status);
+    }
+    return ApiResponse.ok(BookComment.fromJson(comment, baseUrl: _base));
+  }
+
+  /// Like ([like] true) or unlike a comment. `POST
+  /// /papi/comments/like/{commentId}/{1|0}` with an empty JSON body,
+  /// confirmed by a packet capture on 2026-11-06 (same 307-to-same-URL
+  /// hop as posting). The 200 answer carries the comment's new like
+  /// state (`likes` + `isLiked` arrays) in the same shape as the read
+  /// page's `reactionsInfo`.
+  Future<ApiResponse<CommentLikeResult>> likeBookComment(
+    int commentId, {
+    required bool like,
+  }) async {
+    final raw = await _postText(
+      '/papi/comments/like/$commentId/${like ? 1 : 0}',
+      '{}',
+    );
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'like failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ?? 'like failed',
+        statusCode: raw.status,
+      );
+    }
+    final result = CommentLikeResult.fromLikeJson(json, commentId);
+    if (result == null) {
+      return ApiResponse.fail('like response had no update',
+          statusCode: raw.status);
+    }
+    return ApiResponse.ok(result);
   }
 
   // ── Download ───────────────────────────────────────────────────────

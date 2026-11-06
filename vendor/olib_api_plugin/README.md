@@ -52,6 +52,8 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | getRecently | GET `/eapi/book/recently`, fallback search `order=newest` on 404 | Inferred, fallback included |
 | similar | GET `/eapi/book/{id}/{hash}/similar`, fallback title search on 404 | Inferred, fallback included |
 | getBookComments | GET `/papi/comments/book/{id}/{page}?limit={limit}` | Confirmed by packet capture 2026-11-06 (zh.z-library.sk book page) — NOT eapi, site frontend JSON API; needs logged-in session |
+| postBookComment | POST `/papi/comments/add`, JSON body `{hash:"", object:"book", object_id:"<id>", text, parent_id?}` as `text/plain`; first request 307s to the same URL, follow-up 200 returns the new comment | Confirmed by packet capture 2026-11-06 — top-level post, reply (`parent_id` = parent comment id, string), and response shape all captured |
+| likeBookComment | POST `/papi/comments/like/{commentId}/{1\|0}`, empty JSON body as `text/plain`; 200 returns `likes` + `isLiked` arrays with the new count/state | Confirmed by packet capture 2026-11-06 — URL, 307 hop, and response shape captured |
 | sendCode / verifyCode | POST `/eapi/user/send_code`, `/eapi/user/verify_code` | Inferred, no fallback — registration is the least certain flow |
 
 ## What is NOT verified
