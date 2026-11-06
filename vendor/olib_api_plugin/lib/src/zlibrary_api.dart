@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 
 import 'api_response.dart';
 import 'book.dart';
+import 'book_comment.dart';
 import 'user.dart';
 
 /// Z-Library client, rewritten from the call sites in olib-mobile.
