@@ -38,6 +38,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   final List<Map<String, dynamic>> _probeLog = [];
   final DateTime _probeStart = DateTime.now();
 
+  // 临时诊断是否已提示过，只提示一次。
+  bool _sessionCheckShown = false;
+
   /// 初始阅读页 host：站内导航只允许它及其子域，其余一律外部打开。
   String get _initialHost => Uri.tryParse(widget.url)?.host ?? '';
 
@@ -77,6 +80,28 @@ class _ReaderScreenState extends State<ReaderScreen> {
         isSecure: true,
         isHttpOnly: true,
       );
+    }
+  }
+
+  /// 临时诊断：确认会话 Cookie 是否真的落进了 WebView。
+  /// 只在缺失时提示一次；写进去了就不打扰。核实后删除。
+  Future<void> _checkSessionCookies() async {
+    try {
+      final uri = Uri.tryParse(widget.url);
+      if (uri == null || uri.host.isEmpty) return;
+      final cookies = await CookieManager.instance().getCookies(
+        url: WebUri('https://${uri.host}/'),
+      );
+      final names = cookies.map((c) => c.name).toSet();
+      if (!mounted) return;
+      if (!names.contains('remix_userid') ||
+          !names.contains('remix_userkey')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('阅读器会话写入失败，请重新登录再试')),
+        );
+      }
+    } catch (_) {
+      // 诊断本身失败不打扰阅读。
     }
   }
 
@@ -259,6 +284,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   'kind': 'load_stop',
                   'url': _probeUrl(url),
                 });
+              }
+              if (!_sessionCheckShown &&
+                  widget.remixUserId != null &&
+                  widget.remixUserKey != null) {
+                _sessionCheckShown = true;
+                _checkSessionCookies();
               }
             },
             onProgressChanged: (controller, progress) {

@@ -359,6 +359,24 @@ class ZLibraryApi {
         statusCode: raw.status);
   }
 
+  /// The user object in login/profile payloads does not always carry the
+  /// session key — it usually arrives via Set-Cookie instead. But the app
+  /// persists `user.remixUserkey` as its stored credential and hands it to
+  /// the reader WebView, so a User with an empty key silently breaks both.
+  /// Fill it from the session this layer already learned, when available.
+  User _withSessionKey(User user) {
+    if (user.remixUserkey.isNotEmpty) return user;
+    final key = _userKey;
+    if (key == null || key.isEmpty) return user;
+    return User(
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      remixUserkey: key,
+      downloadsLeft: user.downloadsLeft,
+    );
+  }
+
   /// Shared tail of a successful login: learn the session pair from
   /// Set-Cookie headers and/or the user object; if the payload has no
   /// user object, a profile fetch fills it in.
@@ -379,7 +397,7 @@ class ZLibraryApi {
     final user = User.fromJson(userJson);
     _userId ??= user.id.isNotEmpty ? user.id : null;
     _userKey ??= user.remixUserkey.isNotEmpty ? user.remixUserkey : null;
-    return ApiResponse.ok(user);
+    return ApiResponse.ok(_withSessionKey(user));
   }
 
   /// Install a stored `remix_userid` / `remix_userkey` pair and validate
@@ -466,7 +484,7 @@ class ZLibraryApi {
       return ApiResponse.fail('profile response had no user',
           statusCode: raw.status);
     }
-    return ApiResponse.ok(User.fromJson(userJson));
+    return ApiResponse.ok(_withSessionKey(User.fromJson(userJson)));
   }
 
   // ── Search & lists ─────────────────────────────────────────────────
