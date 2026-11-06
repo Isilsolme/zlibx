@@ -174,6 +174,10 @@ const Map<String, String> en = {
       'Mirror addresses and their status come from open-slum.org and refresh automatically. A mirror reported DOWN is never contacted.',
   'mirror_move_up': 'Move up',
   'mirror_move_down': 'Move down',
+  'mirror_speed_test': 'Speed test',
+  'mirror_device_ms': 'Device {ms}ms',
+  'mirror_speed_test_done': 'Speed test done',
+  'mirror_speed_test_failed': 'Speed test failed',
   'mirror_service_libgen_desc':
       'Fast, challenge-free downloads when a mirror is up',
   'mirror_service_zlibrary_desc': 'DiamWall mirrors solve headlessly',

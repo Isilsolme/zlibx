@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../services/instance_manager.dart';
+import '../../services/mirror_speed_test.dart';
 import '../../widgets/gradient_app_bar.dart';
 
 /// Settings > Network > Mirrors.
@@ -37,7 +38,12 @@ class _MirrorsPageState extends State<MirrorsPage> {
   bool _loading = true;
   bool _loadError = false;
   bool _autoMode = true;
+  bool _probing = false;
   final Map<MirrorService, List<InstanceView>> _views = {};
+
+  /// Device-measured milliseconds per host, from the last speed test
+  /// (fresh cache only). Shown next to SLUM's latency in each row.
+  final Map<MirrorService, Map<String, int>> _measured = {};
 
   static const _serviceOrder = [
     MirrorService.libgen,
@@ -76,10 +82,18 @@ class _MirrorsPageState extends State<MirrorsPage> {
               .instances(service)
               .then((list) => views[service] = list),
       ]);
+      final measured = <MirrorService, Map<String, int>>{
+        for (final service in _serviceOrder)
+          if (MirrorSpeedTest().cachedMs(service) != null)
+            service: MirrorSpeedTest().cachedMs(service)!,
+      };
       if (!mounted) return;
       setState(() {
         _autoMode = auto;
         _views.addAll(views);
+        _measured
+          ..clear()
+          ..addAll(measured);
         _loading = false;
         _loadError = false;
       });
@@ -89,6 +103,34 @@ class _MirrorsPageState extends State<MirrorsPage> {
         _loading = false;
         _loadError = true;
       });
+    }
+  }
+
+  /// Probe every mirror from this device and re-rank. SLUM's latency
+  /// is measured by open-slum.org's server; this measures from the
+  /// phone, which is what download speed actually depends on.
+  Future<void> _probeSpeed() async {
+    if (_probing) return;
+    setState(() => _probing = true);
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await MirrorSpeedTest().probeAll();
+      if (!mounted) return;
+      await _loadAll();
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(l10n.get('mirror_speed_test_done')),
+        duration: const Duration(seconds: 2),
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(
+        content: Text(l10n.get('mirror_speed_test_failed')),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ));
+    } finally {
+      if (mounted) setState(() => _probing = false);
     }
   }
 
@@ -141,7 +183,26 @@ class _MirrorsPageState extends State<MirrorsPage> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('mirrors')),
+      appBar: GradientAppBar(
+        title: l10n.get('mirrors'),
+        actions: [
+          if (_probing)
+            const Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.speed),
+              tooltip: l10n.get('mirror_speed_test'),
+              onPressed: _probeSpeed,
+            ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _loadError
@@ -264,6 +325,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
       InstanceView view, int index, int total) {
     final site = view.site;
     final down = site.isDown;
+    final measured = _measured[service]?[site.host];
 
     return Opacity(
       opacity: down ? 0.55 : 1,
@@ -281,6 +343,10 @@ class _MirrorsPageState extends State<MirrorsPage> {
             site.status.name.toUpperCase(),
             if (site.protection != Protection.none) site.protection.label,
             if (site.latencyMs != null) '${site.latencyMs}ms',
+            if (measured != null)
+              l10n
+                  .get('mirror_device_ms')
+                  .replaceAll('{ms}', '$measured'),
             if (down) l10n.get('mirrors_down_hint'),
           ].join(' · '),
           style: const TextStyle(fontSize: 12),

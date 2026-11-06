@@ -297,8 +297,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
       if (cancelToken.isCancelled) return;
 
-      temporaryPath =
-          '$finalPath.${DateTime.now().microsecondsSinceEpoch}.part';
+      temporaryPath = '$finalPath.part';
 
       // Update to downloading
       _updateTask(
@@ -316,17 +315,18 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         // 不跟随会把重定向响应本身存成文件。LAN 不发重定向，不受影响；
         // 外部下载不带 presetHeaders，不存在 token 外泄问题。
         final dio = Dio();
-        await dio.download(
+        await _downloadResumable(
+          dio,
           presetUrl,
           temporaryPath,
-          onReceiveProgress: (received, total) {
+          headers: presetHeaders,
+          onProgress: (received, total) {
             if (total != -1) {
               final progress = received / total;
               _updateTask(id, (t) => t.copyWith(progress: progress));
             }
           },
           cancelToken: cancelToken,
-          options: Options(headers: presetHeaders, followRedirects: true),
         );
       } else if (!alreadyExists) {
         // 默认路径：用户自己 z站 账号查 URL + 下载
@@ -426,7 +426,10 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         );
       }
     } finally {
-      if (temporaryPath != null) {
+      // Keep the partial file after a failure so the next retry resumes
+      // from it instead of starting over; only an explicit user cancel
+      // drops it. On success the file was already renamed away.
+      if (temporaryPath != null && cancelToken.isCancelled) {
         final partial = File(temporaryPath);
         try {
           if (await partial.exists()) await partial.delete();
@@ -435,6 +438,68 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         }
       }
       if (identical(_cancelTokens[id], cancelToken)) _cancelTokens.remove(id);
+    }
+  }
+
+  /// Download [url] to [savePath], resuming from the bytes already on
+  /// disk when the server honours Range. A 200 restarts the file from
+  /// zero; a 206 appends; a 416 truncates and restarts once. Progress
+  /// reports the true position against the full size. Redirects are
+  /// followed by Dio (no auth headers travel on this path).
+  Future<void> _downloadResumable(
+    Dio dio,
+    String url,
+    String savePath, {
+    Map<String, String>? headers,
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final file = File(savePath);
+    final start = await file.exists() ? await file.length() : 0;
+    final reqHeaders = <String, String>{...?headers};
+    if (start > 0) reqHeaders['Range'] = 'bytes=$start-';
+    final res = await dio.get<ResponseBody>(
+      url,
+      options: Options(
+        headers: reqHeaders,
+        responseType: ResponseType.stream,
+        followRedirects: true,
+        // 416 is allowed through so the handler below can truncate and
+        // restart; anything else outside 2xx still throws.
+        validateStatus: (status) =>
+            status != null &&
+            ((status >= 200 && status < 300) || status == 416),
+      ),
+      cancelToken: cancelToken,
+    );
+    final code = res.statusCode ?? 0;
+    if (code == 416 && start > 0) {
+      await file.writeAsBytes(const []);
+      return _downloadResumable(
+        dio,
+        url,
+        savePath,
+        headers: headers,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+    }
+    final contentLength = int.tryParse(
+          res.headers.value(HttpHeaders.contentLengthHeader) ?? '',
+        ) ??
+        -1;
+    final resumed = code == 206 && start > 0;
+    final total = resumed ? start + contentLength : contentLength;
+    final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+    var received = resumed ? start : 0;
+    try {
+      await for (final chunk in res.data!.stream) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received, total);
+      }
+    } finally {
+      await sink.close();
     }
   }
 

@@ -894,17 +894,12 @@ class ZLibraryApi {
       headers.remove('Cookie');
     }
     for (var hop = 0; hop < 5; hop++) {
-      final res = await _dio.download(
+      final res = await _downloadOnce(
         link,
         savePath,
-        onReceiveProgress: onProgress,
+        headers,
+        onProgress: onProgress,
         cancelToken: cancelToken,
-        options: Options(
-          headers: headers,
-          receiveTimeout: const Duration(seconds: 300),
-          followRedirects: false,
-          validateStatus: (status) => status != null && status < 400,
-        ),
       );
       final code = res.statusCode ?? 0;
       if (code != 301 &&
@@ -928,6 +923,74 @@ class ZLibraryApi {
       }
     }
     throw StateError('too many download redirects');
+  }
+
+  /// Download one hop of [link] into [savePath], resuming from the bytes
+  /// already on disk when the server honours Range.
+  ///
+  /// A 3xx writes nothing (the caller follows the Location); a 200
+  /// restarts the file from zero (the server ignored Range); a 206
+  /// appends. A 416 (our partial file is longer than the server's file)
+  /// truncates and restarts once. Progress reports the true position
+  /// (resumed bytes + bytes received in this request) against the full
+  /// size, so a resumed download does not restart the progress bar.
+  Future<Response<ResponseBody>> _downloadOnce(
+    String link,
+    String savePath,
+    Map<String, String> headers, {
+    void Function(int received, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    final file = File(savePath);
+    final start = await file.exists() ? await file.length() : 0;
+    final reqHeaders = Map<String, String>.from(headers);
+    if (start > 0) reqHeaders['Range'] = 'bytes=$start-';
+    final res = await _dio.get<ResponseBody>(
+      link,
+      options: Options(
+        headers: reqHeaders,
+        responseType: ResponseType.stream,
+        receiveTimeout: const Duration(seconds: 300),
+        followRedirects: false,
+        validateStatus: (status) =>
+            status != null && (status < 400 || status == 416),
+      ),
+      cancelToken: cancelToken,
+    );
+    final code = res.statusCode ?? 0;
+    if (code >= 300 && code < 400) {
+      // Redirect body is empty; drain it so the connection is released.
+      await res.data?.stream.drain<void>();
+      return res;
+    }
+    if (code == 416 && start > 0) {
+      await file.writeAsBytes(const []);
+      return _downloadOnce(
+        link,
+        savePath,
+        headers,
+        onProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+    }
+    final contentLength = int.tryParse(
+          res.headers.value(HttpHeaders.contentLengthHeader) ?? '',
+        ) ??
+        -1;
+    final resumed = code == 206 && start > 0;
+    final total = resumed ? start + contentLength : contentLength;
+    final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+    var received = resumed ? start : 0;
+    try {
+      await for (final chunk in res.data!.stream) {
+        sink.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received, total);
+      }
+    } finally {
+      await sink.close();
+    }
+    return res;
   }
 
   Future<String> _resolveDownloadLink(String bookId, String hash) async {

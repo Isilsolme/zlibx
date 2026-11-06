@@ -15,6 +15,7 @@ import 'package:meta/meta.dart';
 import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/instance_manager.dart';
+import 'package:zlibx/services/mirror_speed_test.dart';
 
 /// Library Genesis book-info + download service.
 ///
@@ -57,7 +58,11 @@ class LibgenService {
   /// The page is fetched fresh on every call - the get.php key it
   /// contains is per-page-load and must never be cached.
   Future<BookInfoData?> bookInfo(String url, {String? donationKey}) async {
-    final mirrors = await _instanceManager.enabledUrls(MirrorService.libgen);
+    // Download order: a fresh device-side speed measurement (Mirrors
+    // page > 测速) ranks the mirrors fastest-first; without one this
+    // falls back to SLUM order, exactly like before.
+    final mirrors =
+        await MirrorSpeedTest().rankedUrls(MirrorService.libgen);
     final candidates = _candidateUrls(url, mirrors);
 
     Object? lastError;
