@@ -27,7 +27,6 @@
 | Feature | Description |
 |---------|-------------|
 | 📖 **Book Search** | Search books by title, author, ISBN, or keywords |
-| 💾 **Offline Reading** | Download books and open them in external reader apps |
 | 🌙 **Dark Mode** | Eye-friendly reading experience |
 | 🌍 **Multi-language** | Supports 5 languages including English, 中文, 日本語, 한국어 |
 | 🔐 **Multi-Account** | Switch between multiple accounts seamlessly |
