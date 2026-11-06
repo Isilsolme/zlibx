@@ -459,15 +459,29 @@ class _DownloadItem extends ConsumerWidget {
         return;
       case 'share':
         if (!await _fileExists(context, ref)) return;
+        // MediaStore-published downloads live at a content:// URI,
+        // which share_plus cannot share as a file path — those are
+        // copied to a temp file in the app cache dir first.
+        final sharePath = await MediaStoreFiles.shareablePath(
+          task.filePath!,
+        );
+        if (sharePath == null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(l.get('share_failed'))));
+          }
+          return;
+        }
         try {
           await SharePlus.instance.share(
-            ShareParams(files: [XFile(task.filePath!)], text: task.book.title),
+            ShareParams(files: [XFile(sharePath)], text: task.book.title),
           );
         } catch (error) {
           if (context.mounted) {
             ScaffoldMessenger.of(
               context,
-            ).showSnackBar(SnackBar(content: Text(error.toString())));
+            ).showSnackBar(SnackBar(content: Text(l.get('share_failed'))));
           }
         }
         return;

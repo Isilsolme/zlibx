@@ -140,6 +140,7 @@ const Map<String, String> ja = {
   'open_folder': 'フォルダを開く',
   'open_file_failed': 'ファイルを開けませんでした',
   'share': '共有',
+  'share_failed': 'ファイルを共有できませんでした',
   'copy_path': 'パスをコピー',
   'path_copied': 'パスをコピーしました',
 

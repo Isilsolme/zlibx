@@ -142,6 +142,7 @@ const Map<String, String> en = {
   'open_folder': 'Open Folder',
   'open_file_failed': 'Could not open file',
   'share': 'Share',
+  'share_failed': 'Could not share file',
   'copy_path': 'Copy Path',
   'path_copied': 'Path copied to clipboard',
 

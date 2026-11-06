@@ -48,6 +48,10 @@ class MainActivity : FlutterActivity() {
                         val uri = call.argument<String>("uri")?.let(Uri::parse)
                         result.success(uri != null && deleteContent(uri))
                     }
+                    "copyContentToCache" -> {
+                        val uri = call.argument<String>("uri")?.let(Uri::parse)
+                        result.success(uri?.let { copyContentToCache(it) })
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -134,6 +138,49 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             Log.w(TAG, "MediaStore delete failed", e)
             false
+        }
+    }
+
+    /// Copy the file behind [uri] into the app cache dir so it can be
+    /// handed to share_plus as a plain file path (share_plus cannot
+    /// share a content:// URI directly). Returns the temp file's
+    /// absolute path, or null on any failure. The temp file keeps
+    /// the MediaStore display name when available, with a timestamp
+    /// suffix to avoid collisions; it is left in the cache dir for
+    /// the OS to reclaim (deleting it right after sharing could
+    /// break the receiving app's read).
+    private fun copyContentToCache(uri: Uri): String? {
+        return try {
+            val input = contentResolver.openInputStream(uri) ?: return null
+            val displayName = contentResolver.query(
+                uri,
+                arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),
+                null,
+                null,
+                null,
+            )?.use { cursor ->
+                if (cursor.moveToFirst()) cursor.getString(0) else null
+            }
+            // Keep CJK and other name characters intact; only strip
+            // path separators so the name stays a single segment.
+            val safeName = (displayName?.takeIf { it.isNotBlank() }
+                ?: uri.lastPathSegment?.takeIf { it.isNotBlank() }
+                ?: "shared_file")
+                .replace('/', '_')
+                .replace('\\', '_')
+            val file = File(
+                cacheDir,
+                "share_${System.currentTimeMillis()}_$safeName",
+            )
+            input.use { inputStream ->
+                file.outputStream().use { output ->
+                    inputStream.copyTo(output)
+                }
+            }
+            file.absolutePath
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore copy to cache failed", e)
+            null
         }
     }
 }

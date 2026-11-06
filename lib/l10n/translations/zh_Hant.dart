@@ -139,6 +139,7 @@ const Map<String, String> zh_Hant = {
   'open_folder': '開啟資料夾',
   'open_file_failed': '無法開啟檔案',
   'share': '分享',
+  'share_failed': '無法分享檔案',
   'copy_path': '複製路徑',
   'path_copied': '路徑已複製到剪貼簿',
 

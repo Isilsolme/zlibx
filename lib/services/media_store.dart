@@ -1,6 +1,6 @@
 // MediaStore bridge: publish finished downloads into the public
 // Downloads/zlibx folder (Android 10+), and handle the content://
-// locations that come back from it (open / exists / delete).
+// locations that come back from it (open / exists / delete / share).
 //
 // The download engine still writes to the app-specific dir first;
 // DownloadNotifier publishes the finished file and records the
@@ -130,5 +130,24 @@ class MediaStoreFiles {
       return true;
     }
     return false;
+  }
+
+  /// Resolve a location to a plain file path share_plus can hand to
+  /// the system share sheet. Plain paths pass through unchanged;
+  /// content:// URIs are copied to a temp file in the app cache dir
+  /// first (share_plus cannot share a content URI directly).
+  /// Returns null when the temp copy fails.
+  static Future<String?> shareablePath(String location) async {
+    if (!isContentUri(location)) return location;
+    if (!Platform.isAndroid) return null;
+    try {
+      final path = await _channel.invokeMethod<String>(
+        'copyContentToCache',
+        <String, Object>{'uri': location},
+      );
+      return (path != null && path.isNotEmpty) ? path : null;
+    } on PlatformException {
+      return null;
+    }
   }
 }
