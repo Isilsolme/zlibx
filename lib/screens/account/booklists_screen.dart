@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
+import '../../services/booklist_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
 import '../../widgets/booklist_row.dart';
@@ -117,6 +120,34 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       });
       return;
     }
+    final api = ref.read(zlibraryApiProvider);
+    final query = _searchController.text.trim();
+    final url = api.booklistsPageUrl(
+      mine: _tab == _BooklistTab.mine,
+      query: query,
+      order: _tab == _BooklistTab.mine ? null : 'popular',
+      page: 1,
+    );
+    final cachedHtml = BooklistHtmlCache.get(url);
+    if (cachedHtml != null && !_isChallengeHtml(cachedHtml)) {
+      // Stale-while-revalidate: paint the last-known lists
+      // instantly, then refresh page 1 in the background. A failed
+      // refresh keeps the cached lists on screen (the `replace`
+      // path never errors).
+      setState(() {
+        _isLoading = false;
+        _hasError = false;
+        _lists.clear();
+        _nextPage = 1;
+        _hasMore = true;
+      });
+      _applyPage(
+        parseBooklistsPage(cachedHtml, baseUrl: Uri.parse(url).origin),
+        1,
+      );
+      unawaited(_loadPage(1, replace: true));
+      return;
+    }
     setState(() {
       _isLoading = true;
       _hasError = false;
@@ -130,9 +161,13 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     }
   }
 
-  Future<void> _loadPage(int page) async {
+  Future<void> _loadPage(int page, {bool replace = false}) async {
     final api = ref.read(zlibraryApiProvider);
     final query = _searchController.text.trim();
+    // A background refresh belongs to the tab that started it: if
+    // the user switched tabs while it was in flight, its result
+    // must not replace the new tab's lists.
+    final loadTab = _tab;
     if (page > 1) {
       setState(() => _isLoadingMore = true);
     }
@@ -146,7 +181,8 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
             );
       if (!mounted) return;
       if (response.success && response.data != null) {
-        _applyPage(response.data!, page);
+        if (replace && loadTab != _tab) return;
+        _applyPage(response.data!, page, replace: replace);
         return;
       }
       // The fast Dio path failed. When the mirror answered with its
@@ -160,18 +196,31 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           page,
           query,
           response.error ?? 'Failed to load booklists',
+          replace: replace,
+          loadTab: loadTab,
         );
         return;
       }
-      _applyPageFailure(page, response.error ?? 'Failed to load booklists');
+      _applyPageFailure(
+        page,
+        response.error ?? 'Failed to load booklists',
+        replace: replace,
+      );
     } catch (e) {
       if (!mounted) return;
-      _applyPageFailure(page, e.toString());
+      _applyPageFailure(page, e.toString(), replace: replace);
     }
   }
 
-  void _applyPage(BooklistsPage data, int page) {
+  void _applyPage(
+    BooklistsPage data,
+    int page, {
+    bool replace = false,
+  }) {
     setState(() {
+      // A background refresh replaces the cached page instead of
+      // appending to it.
+      if (replace) _lists.clear();
       _lists.addAll(data.lists);
       // The site pages at 10 lists; a short page ends the list.
       // A parsed page count (0 = unknown) is the second signal.
@@ -183,7 +232,15 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     });
   }
 
-  void _applyPageFailure(int page, String message) {
+  void _applyPageFailure(
+    int page,
+    String message, {
+    bool replace = false,
+  }) {
+    // A background refresh (cached lists on screen) never errors:
+    // the cached data stays, and the next open or pull-to-refresh
+    // retries.
+    if (replace) return;
     setState(() {
       _isLoadingMore = false;
       if (page == 1) {
@@ -219,8 +276,10 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   Future<void> _loadPageViaSolver(
     int page,
     String query,
-    String originalError,
-  ) async {
+    String originalError, {
+    bool replace = false,
+    _BooklistTab? loadTab,
+  }) async {
     final api = ref.read(zlibraryApiProvider);
     final url = api.booklistsPageUrl(
       mine: _tab == _BooklistTab.mine,
@@ -236,7 +295,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         // passed) — show the login prompt instead of a logged-out page.
         if (!mounted) return;
         setState(() => _loggedIn = false);
-        _applyPageFailure(page, originalError);
+        _applyPageFailure(page, originalError, replace: replace);
         return;
       }
       await _installSessionCookies(user.id, userKey, url);
@@ -249,16 +308,20 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     html ??= await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (!mounted) return;
     if (html == null || html.isEmpty || _isChallengeHtml(html)) {
-      _applyPageFailure(page, originalError);
+      _applyPageFailure(page, originalError, replace: replace);
       return;
     }
     // The solve earned wall-clearance cookies — hand them to Dio so
     // the next HTML load (this list's detail page, the next page)
-    // skips the solver.
+    // skips the solver. The solved page also goes into the
+    // persistent cache so the next open paints it instantly.
     await bridgeWallCookies(api, url);
+    BooklistHtmlCache.store(url, html);
+    if (replace && loadTab != null && loadTab != _tab) return;
     _applyPage(
       parseBooklistsPage(html, baseUrl: Uri.parse(url).origin),
       page,
+      replace: replace,
     );
   }
 
@@ -293,19 +356,8 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
 
   /// The solver only completes on real pages, but a cached page can be a
   /// stale challenge page — never parse one as an (empty) booklist page.
-  /// Uses the solver's own detector, with the title pulled out of the
-  /// HTML (the solver checks the title for 'checking your browser').
-  bool _isChallengeHtml(String html) {
-    final titleMatch = RegExp(
-      r'<title[^>]*>(.*?)</title>',
-      caseSensitive: false,
-      dotAll: true,
-    ).firstMatch(html);
-    return WebviewChallengeSolver.isChallengePage(
-      title: titleMatch?.group(1) ?? '',
-      bodySnippet: html,
-    );
-  }
+  bool _isChallengeHtml(String html) =>
+      WebviewChallengeSolver.isChallengeHtml(html);
 
   /// Ask for a name (and optional description), create the list on the
   /// account, then reload "my booklists" so the new list shows up.

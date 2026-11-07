@@ -75,6 +75,7 @@ api_dump/
 test/*
 !test/widgets/
 !test/parsers/
+!test/services/
 debug/
 publish_page/
 dev_docs/*

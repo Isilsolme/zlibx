@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
+import '../../services/booklist_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
 import '../../widgets/book_list_tile.dart';
@@ -77,10 +78,24 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
 
   Future<void> _loadFirst() async {
     final preview = widget.args.booklist.previewBooks;
+    final list = widget.args.booklist;
+    // The persistent cache covers the detail HTML (page 1) when the
+    // carousel did not already carry the books.
+    final cachedHtml =
+        preview.isEmpty ? BooklistHtmlCache.get(list.url) : null;
+    final cachedBooks =
+        cachedHtml != null && !_isChallengeHtml(cachedHtml)
+            ? parseBooklistDetailBooks(
+                cachedHtml,
+                baseUrl: Uri.parse(list.url).origin,
+              )
+            : null;
+    final hasCachedBooks = cachedBooks != null && cachedBooks.isNotEmpty;
     setState(() {
       // With a carousel the books paint instantly — no spinner, no
       // fetch. Without one, the detail HTML load runs as before.
-      _isLoading = preview.isEmpty;
+      // A cached first page paints instantly too.
+      _isLoading = preview.isEmpty && !hasCachedBooks;
       _hasError = false;
       _books.clear();
       // Page 1 comes from the detail HTML, so the JSON pages start at 2.
@@ -93,6 +108,15 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       // The carousel is short of the list total — top up in the
       // background (detail HTML first page, merged by id). A failure
       // here is silent: the preview books stay on screen.
+      setState(() => _isLoadingMore = true);
+      await _loadDetailPage(background: true);
+      if (mounted) setState(() => _isLoadingMore = false);
+      return;
+    }
+    if (cachedBooks != null && cachedBooks.isNotEmpty) {
+      // Paint the cached first page instantly; the background
+      // top-up (the carousel branch's path) refreshes it silently.
+      _applyDetailBooks(cachedBooks);
       setState(() => _isLoadingMore = true);
       await _loadDetailPage(background: true);
       if (mounted) setState(() => _isLoadingMore = false);
@@ -205,8 +229,10 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       return;
     }
     // The solve earned wall-clearance cookies — hand them to Dio so
-    // the next HTML load skips the solver.
+    // the next HTML load skips the solver. The solved page also goes
+    // into the persistent cache so the next open paints it instantly.
     await bridgeWallCookies(ref.read(zlibraryApiProvider), url);
+    BooklistHtmlCache.store(url, html);
     _applyDetailBooks(
       parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin),
     );
@@ -227,20 +253,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
 
   /// The solver only completes on real pages, but a cached page can be
   /// a stale challenge page — never parse one as an (empty) booklist
-  /// page. Uses the solver's own detector, with the title pulled out
-  /// of the HTML (the solver checks the title for 'checking your
-  /// browser').
-  bool _isChallengeHtml(String html) {
-    final titleMatch = RegExp(
-      r'<title[^>]*>(.*?)</title>',
-      caseSensitive: false,
-      dotAll: true,
-    ).firstMatch(html);
-    return WebviewChallengeSolver.isChallengePage(
-      title: titleMatch?.group(1) ?? '',
-      bodySnippet: html,
-    );
-  }
+  /// page.
+  bool _isChallengeHtml(String html) =>
+      WebviewChallengeSolver.isChallengeHtml(html);
 
   /// Install the `remix_userid` / `remix_userkey` session into the
   /// WebView's CookieManager for the detail page's host (the reader's

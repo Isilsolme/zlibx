@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
+import '../../services/booklist_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
 import '../../widgets/booklist_row.dart';
@@ -53,7 +56,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _load();
-      _loadBooklists();
+      _loadBooklistsCachedFirst();
     });
   }
 
@@ -86,19 +89,52 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     await _load();
   }
 
+  /// Paint the last-known booklists from the persistent cache, then
+  /// refresh in the background (stale-while-revalidate). Without a
+  /// cached page this is exactly the existing foreground load.
+  Future<void> _loadBooklistsCachedFirst() async {
+    final hash = _args.userHash;
+    if (hash == null || hash.isEmpty) return;
+    if (ref.read(authProvider).user == null) return;
+    final api = ref.read(zlibraryApiProvider);
+    final url = api.userProfilePageUrl(
+      userId: _args.userId.toString(),
+      userHash: hash,
+    );
+    final cachedHtml = BooklistHtmlCache.get(url);
+    if (cachedHtml != null && !_isChallengeHtml(cachedHtml)) {
+      setState(() {
+        _booklists = parseUserProfileBooklists(
+          cachedHtml,
+          baseUrl: Uri.parse(url).origin,
+        );
+        _booklistsLoading = false;
+        _booklistsError = null;
+      });
+      unawaited(_loadBooklists(backgroundRefresh: true));
+      return;
+    }
+    await _loadBooklists();
+  }
+
   /// The profile document's booklists tab, via the plugin. Skipped
   /// when the tapped comment carried no profile hash — the page then
   /// shows comments only. The profile page is an HTML route, so the
   /// mirror can wall Dio: on a browser-check error the WebView
   /// solver fetches the same page (the booklists screen's pattern).
-  Future<void> _loadBooklists() async {
+  /// In background-refresh mode (cached rows on screen) the section
+  /// keeps showing them: no loading row, and a failed refresh just
+  /// leaves the cached rows in place.
+  Future<void> _loadBooklists({bool backgroundRefresh = false}) async {
     final hash = _args.userHash;
     if (hash == null || hash.isEmpty) return;
     if (ref.read(authProvider).user == null) return;
-    setState(() {
-      _booklistsLoading = true;
-      _booklistsError = null;
-    });
+    if (!backgroundRefresh) {
+      setState(() {
+        _booklistsLoading = true;
+        _booklistsError = null;
+      });
+    }
     final api = ref.read(zlibraryApiProvider);
     try {
       final response = await api.getUserProfileBooklists(
@@ -110,6 +146,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         setState(() {
           _booklists = response.data!;
           _booklistsLoading = false;
+          _booklistsError = null;
         });
         return;
       }
@@ -117,9 +154,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         await _loadBooklistsViaSolver(
           hash,
           response.error ?? 'Failed to load booklists',
+          backgroundRefresh: backgroundRefresh,
         );
         return;
       }
+      if (backgroundRefresh) return;
       setState(() {
         _booklistsLoading = false;
         _booklistsError =
@@ -127,6 +166,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      if (backgroundRefresh) return;
       setState(() {
         _booklistsLoading = false;
         _booklistsError = e.toString();
@@ -142,8 +182,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   /// whole fast-then-solver sequence.
   Future<void> _loadBooklistsViaSolver(
     String hash,
-    String originalError,
-  ) async {
+    String originalError, {
+    bool backgroundRefresh = false,
+  }) async {
     final api = ref.read(zlibraryApiProvider);
     final url = api.userProfilePageUrl(
       userId: _args.userId.toString(),
@@ -162,6 +203,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     html ??= await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (!mounted) return;
     if (html == null || html.isEmpty || _isChallengeHtml(html)) {
+      if (backgroundRefresh) return;
       setState(() {
         _booklistsLoading = false;
         _booklistsError = originalError;
@@ -173,8 +215,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     // closure — pin it to a final first.
     final pageHtml = html;
     // The solve earned wall-clearance cookies — hand them to Dio so
-    // the next HTML load skips the solver.
+    // the next HTML load skips the solver. The solved page also goes
+    // into the persistent cache so the next open paints it instantly.
     await bridgeWallCookies(api, url);
+    BooklistHtmlCache.store(url, pageHtml);
     setState(() {
       _booklists = parseUserProfileBooklists(
         pageHtml,
@@ -200,20 +244,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   /// The solver only completes on real pages, but a cached page can be
   /// a stale challenge page — never parse one as an (empty) booklists
-  /// page. Uses the solver's own detector, with the title pulled out
-  /// of the HTML (the solver checks the title for 'checking your
-  /// browser').
-  bool _isChallengeHtml(String html) {
-    final titleMatch = RegExp(
-      r'<title[^>]*>(.*?)</title>',
-      caseSensitive: false,
-      dotAll: true,
-    ).firstMatch(html);
-    return WebviewChallengeSolver.isChallengePage(
-      title: titleMatch?.group(1) ?? '',
-      bodySnippet: html,
-    );
-  }
+  /// page.
+  bool _isChallengeHtml(String html) =>
+      WebviewChallengeSolver.isChallengeHtml(html);
 
   /// Install the `remix_userid` / `remix_userkey` session into the
   /// WebView's CookieManager for the profile page's host (the reader's

@@ -44,6 +44,15 @@ class ZLibraryApi {
   /// header for cross-host links, so these never leak to a CDN.
   final Map<String, String> _wallCookies = {};
 
+  /// Called with the raw HTML of every booklist page the plugin loads
+  /// successfully over Dio (list pages, profile page, detail page 1).
+  /// The app registers a handler that persists it for its
+  /// stale-while-revalidate cache; the plugin itself never stores
+  /// anything. The URL is the page's canonical URL (the same string
+  /// the app's screens use for their solver and cache keys), never
+  /// the raw request URL. Null means no handler.
+  void Function(String url, String html)? onBooklistHtmlLoaded;
+
   ZLibraryApi({String? domain})
     : _domain = _cleanDomain(domain ?? _defaultDomain),
       _dio = Dio(
@@ -1139,6 +1148,15 @@ class ZLibraryApi {
         statusCode: status,
       );
     }
+    onBooklistHtmlLoaded?.call(
+      booklistsPageUrl(
+        mine: path == '/booklists/my',
+        query: query,
+        order: order,
+        page: page,
+      ),
+      html,
+    );
     return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
   }
 
@@ -1197,6 +1215,10 @@ class ZLibraryApi {
         statusCode: status,
       );
     }
+    onBooklistHtmlLoaded?.call(
+      userProfilePageUrl(userId: userId, userHash: userHash),
+      html,
+    );
     return ApiResponse.ok(parseUserProfileBooklists(html, baseUrl: _base));
   }
 
@@ -1246,6 +1268,7 @@ class ZLibraryApi {
         statusCode: status,
       );
     }
+    onBooklistHtmlLoaded?.call(list.url, html);
     return ApiResponse.ok(parseBooklistDetailBooks(html, baseUrl: _base));
   }
 

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/app_theme.dart';
 import 'providers/settings_provider.dart';
+import 'providers/zlibrary_provider.dart';
 import 'routes/app_routes.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -26,6 +27,7 @@ import 'screens/account/my_comments_screen.dart';
 import 'screens/account/user_profile_screen.dart';
 import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
+import 'services/booklist_html_cache.dart';
 import 'services/booklist_share_codec.dart';
 import 'services/share_intent_handler.dart';
 import 'services/instance_manager.dart';
@@ -84,6 +86,13 @@ class _MyAppState extends ConsumerState<MyApp> {
     super.initState();
     // Fire-and-forget: start listening for shared booklists.
     ref.read(shareIntentHandlerProvider).start();
+
+    // The plugin reports the raw HTML of every booklist page it
+    // loads over Dio; persist it so the next open paints from cache
+    // first (see BooklistHtmlCache). Registered once here: the
+    // provider hands out one shared ZLibraryApi instance.
+    ref.read(zlibraryApiProvider).onBooklistHtmlLoaded =
+        (url, html) => BooklistHtmlCache.store(url, html);
   }
 
   @override

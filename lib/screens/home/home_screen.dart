@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import '../../providers/books_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../services/booklist_warmup.dart';
 import '../../services/update_service.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/loading_widget.dart';
@@ -31,6 +33,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _selectedIndex = 0;
   final _homeTabKey = GlobalKey<_HomeTabState>();
   final _pageController = PageController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Fire-and-forget: warm the booklist pages' challenge solver in
+    // the background so opening a booklist later skips the solve. The
+    // home screen is the single funnel for signed-in entry (fresh
+    // login and restored session both land here); the warm-up itself
+    // is single-flight per launch, headless only, and silent on
+    // failure.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(
+        BooklistWarmup.warmUp(
+          api: ref.read(zlibraryApiProvider),
+          user: ref.read(authProvider).user,
+        ),
+      );
+    });
+  }
 
   @override
   void dispose() {

@@ -30,3 +30,33 @@ Future<void> bridgeWallCookies(ZLibraryApi api, String pageUrl) async {
   }
   if (wall.isNotEmpty) api.setWallCookies(wall);
 }
+
+/// Install the `remix_userid` / `remix_userkey` session into the
+/// WebView's CookieManager for the page's host (the reader's pattern —
+/// the manager is global on Android, so a headless solver WebView
+/// sees them). Needed before solving a page that requires sign-in
+/// (e.g. the own-booklists page). Never put the keys in a URL.
+Future<void> installSessionCookies({
+  required String userId,
+  required String userKey,
+  required String pageUrl,
+}) async {
+  final uri = Uri.tryParse(pageUrl);
+  if (uri == null || uri.host.isEmpty) return;
+  final manager = CookieManager.instance();
+  final url = WebUri('https://${uri.host}/');
+  await manager.setCookie(
+    url: url,
+    name: 'remix_userid',
+    value: userId,
+    isSecure: true,
+    isHttpOnly: true,
+  );
+  await manager.setCookie(
+    url: url,
+    name: 'remix_userkey',
+    value: userKey,
+    isSecure: true,
+    isHttpOnly: true,
+  );
+}

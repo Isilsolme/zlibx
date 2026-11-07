@@ -134,6 +134,45 @@ class WebviewChallengeSolver {
     return html;
   }
 
+  /// Headless-only solve: runs the invisible webview and returns the
+  /// captured HTML, or null. Unlike [fetchHtmlAfterChallenge] this
+  /// never consults [visibleSolverFallback], so it is safe to call
+  /// from background warm-up code where no visible challenge screen
+  /// may appear. The result is also stored in ChallengeHtmlCache.
+  /// Returns null immediately when the solver is disabled (see
+  /// [guiEnabled] and [headlessEnabled]) or unsupported on this
+  /// platform.
+  static Future<String?> fetchHtmlHeadlessOnly(
+    String url, {
+    Duration? timeout,
+  }) async {
+    if (!isSupported || !guiEnabled || !headlessEnabled) return null;
+    final html = await _solveHeadless(
+      url,
+      timeout ?? const Duration(seconds: 60),
+    );
+    if (html != null) {
+      ChallengeHtmlCache.store(url, html);
+    }
+    return html;
+  }
+
+  /// Same check as [isChallengePage] but on a full HTML document:
+  /// the title is pulled out of the document first. A cached page
+  /// can be a stale challenge page — callers use this to reject one
+  /// instead of parsing it as an (empty) list.
+  static bool isChallengeHtml(String html) {
+    final titleMatch = RegExp(
+      r'<title[^>]*>(.*?)</title>',
+      caseSensitive: false,
+      dotAll: true,
+    ).firstMatch(html);
+    return isChallengePage(
+      title: titleMatch?.group(1) ?? '',
+      bodySnippet: html,
+    );
+  }
+
   // ------------------------------------------------------------------
   // MOBILE: HeadlessInAppWebView (invisible, automatic)
   // ------------------------------------------------------------------
