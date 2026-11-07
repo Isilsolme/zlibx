@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
+import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -218,6 +219,10 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       _applyPageFailure(page, originalError);
       return;
     }
+    // The solve earned wall-clearance cookies — hand them to Dio so
+    // the next HTML load (this list's detail page, the next page)
+    // skips the solver.
+    await bridgeWallCookies(api, url);
     _applyPage(
       parseBooklistsPage(html, baseUrl: Uri.parse(url).origin),
       page,

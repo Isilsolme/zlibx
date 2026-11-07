@@ -35,6 +35,15 @@ class ZLibraryApi {
   String? _userId;
   String? _userKey;
 
+  /// Wall-clearance cookies copied from the WebView's CookieManager
+  /// after a challenge solve (`__diamwall`, `cf_clearance`, ...).
+  /// They ride along in the same `Cookie` header as the session, so
+  /// later HTML loads pass the wall through fast Dio instead of
+  /// solving again. In-memory only, like the session — a fresh solve
+  /// re-bridges them. The download path strips the whole `Cookie`
+  /// header for cross-host links, so these never leak to a CDN.
+  final Map<String, String> _wallCookies = {};
+
   ZLibraryApi({String? domain})
     : _domain = _cleanDomain(domain ?? _defaultDomain),
       _dio = Dio(
@@ -63,6 +72,28 @@ class ZLibraryApi {
   void clearSession() {
     _userId = null;
     _userKey = null;
+    _wallCookies.clear();
+  }
+
+  /// Remember wall-clearance cookies the WebView earned by passing a
+  /// browser check (see `wall_cookie_bridge.dart` in the app). They
+  /// are appended to the `Cookie` header on every request to our own
+  /// mirror, so the next HTML load skips the solver. Session cookies
+  /// are ignored here — the plugin already sends those from its own
+  /// session. Empty values are dropped. Merging by name keeps a newer
+  /// solve's value while preserving cookies from an earlier one.
+  void setWallCookies(Map<String, String> cookies) {
+    for (final entry in cookies.entries) {
+      final name = entry.key.trim();
+      final value = entry.value.trim();
+      if (name.isEmpty ||
+          value.isEmpty ||
+          name == 'remix_userid' ||
+          name == 'remix_userkey') {
+        continue;
+      }
+      _wallCookies[name] = value;
+    }
   }
 
   static String _cleanDomain(String domain) {
@@ -85,9 +116,17 @@ class ZLibraryApi {
 
   Map<String, String> get _headers {
     final h = <String, String>{};
+    final parts = <String>[];
     if (_userId != null && _userKey != null) {
-      h['Cookie'] = 'remix_userid=$_userId; remix_userkey=$_userKey';
+      parts.add('remix_userid=$_userId');
+      parts.add('remix_userkey=$_userKey');
     }
+    // Wall-clearance cookies ride in the same header, so the
+    // download path's cross-host Cookie strip covers them too.
+    for (final entry in _wallCookies.entries) {
+      parts.add('${entry.key}=${entry.value}');
+    }
+    if (parts.isNotEmpty) h['Cookie'] = parts.join('; ');
     return h;
   }
 

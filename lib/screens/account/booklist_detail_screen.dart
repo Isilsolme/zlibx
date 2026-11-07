@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
+import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
 import '../../widgets/book_list_tile.dart';
 import '../../widgets/empty_state.dart';
@@ -22,15 +23,18 @@ class BooklistDetailArgs {
   const BooklistDetailArgs({required this.booklist});
 }
 
-/// Books inside one booklist. Page 1 comes from the detail page's own
-/// HTML (`<z-bookcard>` elements, via
-/// `ZLibraryApi.getBooklistDetailBooks`): the site renders the first
-/// page into the document and its JSON endpoint only serves page 2 and
-/// up (`GET /papi/booklist/{id}/get-books/{page}`, numeric id —
-/// asking it for page 1 answers "Requested page not found", verified
-/// on device 2026-11-07). Tapping a book opens its detail page; the
-/// books carry their hash (first segment of the card `href`), so the
-/// detail loads fully.
+/// Books inside one booklist. When the list page's carousel already
+/// carried the books (`Booklist.previewBooks`), those paint instantly
+/// with no fetch, and the detail page is only fetched in the
+/// background when the carousel is short of the list total. Otherwise
+/// page 1 comes from the detail page's own HTML (`<z-bookcard>`
+/// elements, via `ZLibraryApi.getBooklistDetailBooks`): the site
+/// renders the first page into the document and its JSON endpoint
+/// only serves page 2 and up (`GET /papi/booklist/{id}/get-books/{page}`,
+/// numeric id — asking it for page 1 answers "Requested page not
+/// found", verified on device 2026-11-07). Tapping a book opens its
+/// detail page; the books carry their hash (first segment of the card
+/// `href`), so the detail loads fully.
 class BooklistDetailScreen extends ConsumerStatefulWidget {
   final BooklistDetailArgs args;
 
@@ -72,14 +76,28 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   }
 
   Future<void> _loadFirst() async {
+    final preview = widget.args.booklist.previewBooks;
     setState(() {
-      _isLoading = true;
+      // With a carousel the books paint instantly — no spinner, no
+      // fetch. Without one, the detail HTML load runs as before.
+      _isLoading = preview.isEmpty;
       _hasError = false;
       _books.clear();
       // Page 1 comes from the detail HTML, so the JSON pages start at 2.
       _nextPage = 2;
       _hasMore = true;
     });
+    if (preview.isNotEmpty) {
+      _applyDetailBooks(preview);
+      if (!_hasMore) return;
+      // The carousel is short of the list total — top up in the
+      // background (detail HTML first page, merged by id). A failure
+      // here is silent: the preview books stay on screen.
+      setState(() => _isLoadingMore = true);
+      await _loadDetailPage(background: true);
+      if (mounted) setState(() => _isLoadingMore = false);
+      return;
+    }
     await _loadDetailPage();
     if (mounted) {
       setState(() => _isLoading = false);
@@ -90,7 +108,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   /// (the site renders page 1 into the document; its JSON endpoint
   /// only serves page 2+). Dio fast path first; on the browser-check
   /// wall, the WebView solver (the booklists screen's pattern).
-  Future<void> _loadDetailPage() async {
+  /// In background mode (carousel top-up) a failure is silent — the
+  /// books already on screen stay, and the list just ends there.
+  Future<void> _loadDetailPage({bool background = false}) async {
     final api = ref.read(zlibraryApiProvider);
     final list = widget.args.booklist;
     try {
@@ -103,19 +123,34 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       if (_isChallengeError(response.error)) {
         await _loadDetailViaSolver(
           response.error ?? 'Failed to load booklist',
+          background: background,
         );
         return;
       }
-      _applyDetailFailure(response.error ?? 'Failed to load booklist');
+      if (background) {
+        // Silent: the preview books stay, and scrolling can still
+        // try the JSON pages (page 2+) — only the detail HTML failed.
+      } else {
+        _applyDetailFailure(response.error ?? 'Failed to load booklist');
+      }
     } catch (e) {
       if (!mounted) return;
-      _applyDetailFailure(e.toString());
+      if (background) {
+        // Silent, same as above.
+      } else {
+        _applyDetailFailure(e.toString());
+      }
     }
   }
 
   void _applyDetailBooks(List<Book> books) {
     setState(() {
-      _books.addAll(books);
+      // Merge by id: the carousel preview and the detail HTML carry
+      // the same books — adding both would duplicate the rows.
+      final seen = _books.map((book) => book.id).toSet();
+      for (final book in books) {
+        if (seen.add(book.id)) _books.add(book);
+      }
       // The list knows its total (quantity); a short first page means
       // there are JSON pages after it. Unknown total: assume there may
       // be more whenever the first page had books — a page-2 miss just
@@ -140,8 +175,12 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   /// the user is signed in (an own list's page needs them; a public
   /// page loads the same either way). A failure here reports the fast
   /// path's original error, so the retry button re-runs the whole
-  /// fast-then-solver sequence.
-  Future<void> _loadDetailViaSolver(String originalError) async {
+  /// fast-then-solver sequence. In background mode (carousel top-up)
+  /// a failure is silent — the preview books stay on screen.
+  Future<void> _loadDetailViaSolver(
+    String originalError, {
+    bool background = false,
+  }) async {
     final list = widget.args.booklist;
     final url = list.url;
     final user = ref.read(authProvider).user;
@@ -157,9 +196,17 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     html ??= await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (!mounted) return;
     if (html == null || html.isEmpty || _isChallengeHtml(html)) {
-      _applyDetailFailure(originalError);
+      if (background) {
+        // Silent: the preview books stay, and scrolling can still
+        // try the JSON pages (page 2+) — only the detail HTML failed.
+      } else {
+        _applyDetailFailure(originalError);
+      }
       return;
     }
+    // The solve earned wall-clearance cookies — hand them to Dio so
+    // the next HTML load skips the solver.
+    await bridgeWallCookies(ref.read(zlibraryApiProvider), url);
     _applyDetailBooks(
       parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin),
     );

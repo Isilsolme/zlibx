@@ -33,6 +33,14 @@ class Booklist {
   /// Absolute URL of the list page on the mirror.
   final String url;
 
+  /// Books from the list page's own carousel (`<z-cover>` children:
+  /// id, title, author, cover, hash from the wrapping link). The
+  /// detail screen paints these instantly — no fetch — and only
+  /// fetches the detail page when the carousel is short of the list
+  /// total. Empty when the page carried no carousel (e.g. a list
+  /// created through the API response parser).
+  final List<Book> previewBooks;
+
   const Booklist({
     required this.id,
     required this.name,
@@ -42,6 +50,7 @@ class Booklist {
     this.views = '',
     this.coverUrl = '',
     required this.url,
+    this.previewBooks = const [],
   });
 
   /// Build from one `<z-booklist>` element of a `/booklists` (or
@@ -74,6 +83,40 @@ class Booklist {
         break;
       }
     }
+    // The carousel already carries every book the list page shows:
+    // each <z-cover> has the numeric id, title and author as
+    // attributes, the cover in a child <img data-src>, and the book
+    // hash in the wrapping <a href="/book/{hash}/..."> (verified
+    // against the live /booklists/my HTML 2026-11-06 — the 001 card
+    // carries all 5 of its books this way). The detail screen paints
+    // these instantly instead of fetching the detail page.
+    final previewBooks = <Book>[];
+    for (final cover in el.querySelectorAll('z-cover')) {
+      final bookId = int.tryParse(cover.attributes['id']?.trim() ?? '');
+      if (bookId == null) continue;
+      final img = cover.querySelector('img');
+      final coverRaw = img?.attributes['data-src']?.trim() ??
+          img?.attributes['src']?.trim() ??
+          '';
+      dom.Element? linkEl;
+      var node = cover.parent;
+      while (node != null) {
+        if (node is dom.Element && node.localName == 'a') {
+          linkEl = node;
+          break;
+        }
+        node = node.parent;
+      }
+      previewBooks.add(
+        Book(
+          id: bookId,
+          title: cover.attributes['title']?.trim() ?? '',
+          hash: _hashFromBookHref(linkEl?.attributes['href'] ?? ''),
+          author: _cardAttr(cover, 'author'),
+          cover: coverRaw.isEmpty ? null : _resolveUrl(coverRaw, baseUrl),
+        ),
+      );
+    }
     return Booklist(
       id: id,
       name: name,
@@ -83,6 +126,7 @@ class Booklist {
       views: el.attributes['views']?.trim() ?? '',
       coverUrl: coverUrl,
       url: _resolveUrl(href, baseUrl),
+      previewBooks: previewBooks,
     );
   }
 
