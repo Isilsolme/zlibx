@@ -79,10 +79,15 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   Future<void> _loadFirst() async {
     final preview = widget.args.booklist.previewBooks;
     final list = widget.args.booklist;
+    // Captured once for this load: the detail HTML cache and the
+    // JSON page cache are both partitioned by account, so the read,
+    // refresh, and solver store must all use the same key.
+    final accountId = ref.read(authProvider).user?.id ?? 'signed-out';
     // The persistent cache covers the detail HTML (page 1) when the
     // carousel did not already carry the books.
-    final cachedHtml =
-        preview.isEmpty ? BooklistHtmlCache.get(list.url) : null;
+    final cachedHtml = preview.isEmpty
+        ? BooklistHtmlCache.get(list.url, accountId: accountId)
+        : null;
     final cachedBooks =
         cachedHtml != null && !_isChallengeHtml(cachedHtml)
             ? parseBooklistDetailBooks(
@@ -109,7 +114,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       // background (detail HTML first page, merged by id). A failure
       // here is silent: the preview books stay on screen.
       setState(() => _isLoadingMore = true);
-      await _loadDetailPage(background: true);
+      await _loadDetailPage(background: true, accountId: accountId);
       if (mounted) setState(() => _isLoadingMore = false);
       return;
     }
@@ -118,11 +123,11 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       // top-up (the carousel branch's path) refreshes it silently.
       _applyDetailBooks(cachedBooks);
       setState(() => _isLoadingMore = true);
-      await _loadDetailPage(background: true);
+      await _loadDetailPage(background: true, accountId: accountId);
       if (mounted) setState(() => _isLoadingMore = false);
       return;
     }
-    await _loadDetailPage();
+    await _loadDetailPage(accountId: accountId);
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -134,7 +139,10 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   /// wall, the WebView solver (the booklists screen's pattern).
   /// In background mode (carousel top-up) a failure is silent — the
   /// books already on screen stay, and the list just ends there.
-  Future<void> _loadDetailPage({bool background = false}) async {
+  Future<void> _loadDetailPage({
+    bool background = false,
+    String? accountId,
+  }) async {
     final api = ref.read(zlibraryApiProvider);
     final list = widget.args.booklist;
     try {
@@ -148,6 +156,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
         await _loadDetailViaSolver(
           response.error ?? 'Failed to load booklist',
           background: background,
+          accountId: accountId,
         );
         return;
       }
@@ -204,6 +213,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   Future<void> _loadDetailViaSolver(
     String originalError, {
     bool background = false,
+    String? accountId,
   }) async {
     final list = widget.args.booklist;
     final url = list.url;
@@ -230,9 +240,10 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     }
     // The solve earned wall-clearance cookies — hand them to Dio so
     // the next HTML load skips the solver. The solved page also goes
-    // into the persistent cache so the next open paints it instantly.
+    // into the persistent cache so the next open paints it instantly,
+    // under the same account partition as the read.
     await bridgeWallCookies(ref.read(zlibraryApiProvider), url);
-    BooklistHtmlCache.store(url, html);
+    BooklistHtmlCache.store(url, html, accountId: accountId);
     _applyDetailBooks(
       parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin),
     );
@@ -287,20 +298,49 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   }
 
   /// Load-more for JSON pages (2 and up). Page 1 never comes through
-  /// here — it is the detail HTML (see [_loadDetailPage]).
+  /// here — it is the detail HTML (see [_loadDetailPage]). A cached
+  /// JSON page paints first (merged by id, like the preview), then
+  /// the network revalidates it; a failed refresh just ends the list
+  /// with the cached rows still on screen.
   Future<void> _loadPage(int page) async {
     final api = ref.read(zlibraryApiProvider);
-    setState(() => _isLoadingMore = true);
+    final list = widget.args.booklist;
+    final accountId = ref.read(authProvider).user?.id ?? 'signed-out';
+    final cachedPage = BooklistHtmlCache.getBooksPage(
+      list.url,
+      page,
+      accountId: accountId,
+    );
+    setState(() {
+      _isLoadingMore = true;
+      if (cachedPage != null) {
+        final seen = _books.map((book) => book.id).toSet();
+        for (final book in cachedPage) {
+          if (seen.add(book.id)) _books.add(book);
+        }
+      }
+    });
     try {
-      final list = widget.args.booklist;
       // JSON pages start at 2 (page 1 comes from the detail HTML);
       // the key is the numeric list id.
       final response = await api.getBooklistBooks(list.id, page: page);
       if (!mounted) return;
       if (response.success && response.data != null) {
         final data = response.data!;
+        BooklistHtmlCache.storeBooksPage(
+          list.url,
+          page,
+          data.books,
+          accountId: accountId,
+        );
+        if (!mounted) return;
         setState(() {
-          _books.addAll(data.books);
+          // Merge by id: the cached page and the fresh page carry
+          // the same books — adding both would duplicate the rows.
+          final seen = _books.map((book) => book.id).toSet();
+          for (final book in data.books) {
+            if (seen.add(book.id)) _books.add(book);
+          }
           _hasMore = page < data.totalPages;
           _nextPage = page + 1;
           _isLoadingMore = false;

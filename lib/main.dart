@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/app_theme.dart';
+import 'providers/auth_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/zlibrary_provider.dart';
 import 'routes/app_routes.dart';
@@ -91,8 +92,15 @@ class _MyAppState extends ConsumerState<MyApp> {
     // loads over Dio; persist it so the next open paints from cache
     // first (see BooklistHtmlCache). Registered once here: the
     // provider hands out one shared ZLibraryApi instance.
-    ref.read(zlibraryApiProvider).onBooklistHtmlLoaded =
-        (url, html) => BooklistHtmlCache.store(url, html);
+    // Account-scoped pages (own lists, detail pages) are stored
+    // under the current account's partition, matching the keys the
+    // screens read; public pages keep the plain URL key.
+    ref.read(zlibraryApiProvider).onBooklistHtmlLoaded = (url, html) {
+      final accountId = BooklistHtmlCache.isPrivateUrl(url)
+          ? (ref.read(authProvider).user?.id ?? 'signed-out')
+          : null;
+      BooklistHtmlCache.store(url, html, accountId: accountId);
+    };
   }
 
   @override

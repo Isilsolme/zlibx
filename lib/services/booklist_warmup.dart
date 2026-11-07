@@ -49,6 +49,9 @@ class BooklistWarmup {
         user,
         api.booklistsPageUrl(mine: true, page: 1),
         needsSession: true,
+        // The mine page is account-scoped: store it under this
+        // account's partition, the same key the screen reads.
+        accountId: user.id,
       );
       await _warmOne(
         api,
@@ -73,6 +76,7 @@ class BooklistWarmup {
     User user,
     String url, {
     required bool needsSession,
+    String? accountId,
   }) async {
     try {
       final warm = ChallengeHtmlCache.get(url);
@@ -92,7 +96,7 @@ class BooklistWarmup {
           WebviewChallengeSolver.isChallengeHtml(html)) {
         return;
       }
-      BooklistHtmlCache.store(url, html);
+      BooklistHtmlCache.store(url, html, accountId: accountId);
       await bridgeWallCookies(api, url);
     } catch (e) {
       _logger.debug(

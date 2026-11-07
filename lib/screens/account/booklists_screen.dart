@@ -53,6 +53,22 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   String _errorMessage = '';
   bool _loggedIn = true;
 
+  /// Generation counter: every fresh load (tab switch, search submit,
+  /// retry, pull-to-refresh) bumps it, and every in-flight load
+  /// carries the generation it started with. A slower response for
+  /// an old tab/query is dropped instead of overwriting the current
+  /// view.
+  int _loadGeneration = 0;
+
+  /// Cache partition for the current tab: the own-lists tab is
+  /// account-scoped (the same URL serves another account's lists
+  /// after a switch); discover is public and keyed by URL alone.
+  /// Captured once per load flow and threaded through, so a store
+  /// can never land under a different account than the read.
+  String? get _cacheAccountId => _tab == _BooklistTab.mine
+      ? (ref.read(authProvider).user?.id ?? 'signed-out')
+      : null;
+
   /// Search lives in the AppBar (right side, mirroring the back
   /// arrow): a search icon opens the field in place of the title, a
   /// close icon exits it and clears the query.
@@ -120,6 +136,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       });
       return;
     }
+    // A fresh load invalidates any in-flight load for the previous
+    // tab/search; the account partition is captured once here so the
+    // cache read, refresh, and solver store all use the same key.
+    final generation = ++_loadGeneration;
+    final accountId = _cacheAccountId;
     final api = ref.read(zlibraryApiProvider);
     final query = _searchController.text.trim();
     final url = api.booklistsPageUrl(
@@ -128,7 +149,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       order: _tab == _BooklistTab.mine ? null : 'popular',
       page: 1,
     );
-    final cachedHtml = BooklistHtmlCache.get(url);
+    final cachedHtml = BooklistHtmlCache.get(url, accountId: accountId);
     if (cachedHtml != null && !_isChallengeHtml(cachedHtml)) {
       // Stale-while-revalidate: paint the last-known lists
       // instantly, then refresh page 1 in the background. A failed
@@ -136,6 +157,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       // path never errors).
       setState(() {
         _isLoading = false;
+        _isLoadingMore = false;
         _hasError = false;
         _lists.clear();
         _nextPage = 1;
@@ -145,29 +167,38 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         parseBooklistsPage(cachedHtml, baseUrl: Uri.parse(url).origin),
         1,
       );
-      unawaited(_loadPage(1, replace: true));
+      unawaited(
+        _loadPage(1, replace: true, generation: generation, accountId: accountId),
+      );
       return;
     }
     setState(() {
       _isLoading = true;
+      _isLoadingMore = false;
       _hasError = false;
       _lists.clear();
       _nextPage = 1;
       _hasMore = true;
     });
-    await _loadPage(1);
-    if (mounted) {
+    await _loadPage(1, generation: generation, accountId: accountId);
+    if (mounted && generation == _loadGeneration) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loadPage(int page, {bool replace = false}) async {
+  Future<void> _loadPage(
+    int page, {
+    bool replace = false,
+    int? generation,
+    String? accountId,
+  }) async {
+    // The generation subsumes the old per-tab guard: every tab
+    // switch, search, and retry goes through _loadFirst, which
+    // bumps it. Pagination (from scroll) rides the current one.
+    final requestGeneration = generation ?? _loadGeneration;
+    final requestAccountId = accountId ?? _cacheAccountId;
     final api = ref.read(zlibraryApiProvider);
     final query = _searchController.text.trim();
-    // A background refresh belongs to the tab that started it: if
-    // the user switched tabs while it was in flight, its result
-    // must not replace the new tab's lists.
-    final loadTab = _tab;
     if (page > 1) {
       setState(() => _isLoadingMore = true);
     }
@@ -179,9 +210,8 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
               order: 'popular',
               page: page,
             );
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _loadGeneration) return;
       if (response.success && response.data != null) {
-        if (replace && loadTab != _tab) return;
         _applyPage(response.data!, page, replace: replace);
         return;
       }
@@ -197,7 +227,8 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           query,
           response.error ?? 'Failed to load booklists',
           replace: replace,
-          loadTab: loadTab,
+          generation: requestGeneration,
+          accountId: requestAccountId,
         );
         return;
       }
@@ -207,7 +238,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         replace: replace,
       );
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || requestGeneration != _loadGeneration) return;
       _applyPageFailure(page, e.toString(), replace: replace);
     }
   }
@@ -278,7 +309,8 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     String query,
     String originalError, {
     bool replace = false,
-    _BooklistTab? loadTab,
+    int? generation,
+    String? accountId,
   }) async {
     final api = ref.read(zlibraryApiProvider);
     final url = api.booklistsPageUrl(
@@ -307,6 +339,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     }
     html ??= await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (!mounted) return;
+    if (generation != null && generation != _loadGeneration) return;
     if (html == null || html.isEmpty || _isChallengeHtml(html)) {
       _applyPageFailure(page, originalError, replace: replace);
       return;
@@ -314,10 +347,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     // The solve earned wall-clearance cookies — hand them to Dio so
     // the next HTML load (this list's detail page, the next page)
     // skips the solver. The solved page also goes into the
-    // persistent cache so the next open paints it instantly.
+    // persistent cache so the next open paints it instantly, under
+    // the same account partition as the read.
     await bridgeWallCookies(api, url);
-    BooklistHtmlCache.store(url, html);
-    if (replace && loadTab != null && loadTab != _tab) return;
+    BooklistHtmlCache.store(url, html, accountId: accountId);
+    if (generation != null && generation != _loadGeneration) return;
     _applyPage(
       parseBooklistsPage(html, baseUrl: Uri.parse(url).origin),
       page,
