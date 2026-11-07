@@ -10,6 +10,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/user_profile_section.dart';
 import '../auth/login_screen.dart';
 import '../auth/widgets/account_manager_sheet.dart';
+import '../settings/widgets/settings_card.dart';
 
 /// Account tab (third nav destination): the signed-in user's profile
 /// hero card (the one from Settings — avatar, name, email,
@@ -174,7 +175,9 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Card(
+    // Same bordered container as the Settings page, so the account
+    // entry cards and the settings cards look identical.
+    return SettingsCard(
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: cs.primaryContainer,
