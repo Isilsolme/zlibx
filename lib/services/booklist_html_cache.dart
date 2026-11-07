@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import 'hive_service.dart';
@@ -114,7 +115,8 @@ class BooklistHtmlCache {
           .whereType<Map>()
           .map((item) => Book.fromJson(Map<String, dynamic>.from(item)))
           .toList();
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[booklist_html_cache] ignored ${error.runtimeType}');
       return null;
     }
   }

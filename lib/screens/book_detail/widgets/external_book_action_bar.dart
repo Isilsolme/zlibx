@@ -152,23 +152,23 @@ class _ExternalBookActionBarState
     final existingPath =
         await ref.read(downloadProvider.notifier).checkFileExists(book);
     if (existingPath != null && context.mounted) {
-      final isZh = Localizations.localeOf(context).languageCode == 'zh';
       AwesomeDialog(
         context: context,
         dialogType: DialogType.info,
         animType: AnimType.bottomSlide,
-        title: isZh ? '文件已存在' : 'File Already Exists',
-        desc: isZh
-            ? '这本书已经下载过了。\n\n您可以打开现有文件或重新下载。'
-            : 'This book has already been downloaded.\n\nYou can open the existing file or download again.',
-        btnCancelText: isZh ? '打开文件' : 'Open File',
+        title: AppLocalizations.of(context).get('file_exists_title'),
+        desc: AppLocalizations.of(context).get('file_exists_desc'),
+        btnCancelText: AppLocalizations.of(context).get('open_file'),
         btnCancelColor: Theme.of(context).colorScheme.primary,
         btnCancelOnPress: () async {
+          // The dialog outlives this bar: re-check before using context.
+          if (!context.mounted) return;
           await _openDownloadedFile(context, existingPath);
         },
-        btnOkText: isZh ? '重新下载' : 'Download Again',
+        btnOkText: AppLocalizations.of(context).get('download_again'),
         btnOkColor: Theme.of(context).colorScheme.primary,
         btnOkOnPress: () {
+          if (!context.mounted) return;
           _resolveAndDownload(context, ref, book);
         },
       ).show();
@@ -204,7 +204,8 @@ class _ExternalBookActionBarState
       if (context.mounted) {
         _toast(context, AppLocalizations.of(context).get('downloading'));
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[external_book_action_bar] ignored ${error.runtimeType}');
       if (!mounted) return;
       setState(() => _resolving = false);
       if (context.mounted) {
@@ -236,7 +237,8 @@ class _ExternalBookActionBarState
           AppLocalizations.of(context).get('open_file_failed'),
         );
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[external_book_action_bar] ignored ${error.runtimeType}');
       if (context.mounted) {
         _toast(
           context,

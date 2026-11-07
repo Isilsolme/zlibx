@@ -4,7 +4,6 @@ import '../../../providers/domain_provider.dart';
 import '../../../providers/speed_test_provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../utils/locale_utils.dart' as locale_utils;
 import '../../../widgets/domain_selector.dart';
 import '../mirrors_page.dart';
 import 'section_header.dart';
@@ -19,7 +18,6 @@ class NetworkSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context);
-    final isZh = locale_utils.isZhLocale(context);
     final currentDomain = ref.watch(domainProvider);
     final domains = ref.watch(domainListProvider);
     final speedState = ref.watch(speedTestProvider);
@@ -27,7 +25,7 @@ class NetworkSection extends ConsumerWidget {
     final idx = domains.indexOf(currentDomain);
     final lineLabel = idx >= 0
         ? 'Line ${idx + 1}'
-        : (isZh ? '自定义线路' : 'Custom Line');
+        : (AppLocalizations.of(context).get('custom_line'));
 
     // Look up the latency for the current line.
     int? latency;
@@ -50,7 +48,6 @@ class NetworkSection extends ConsumerWidget {
               label: lineLabel,
               latency: latency,
               testing: speedState.testing,
-              isZh: isZh,
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => showDialog(
@@ -82,19 +79,17 @@ class _LineStatus extends StatelessWidget {
   final String label;
   final int? latency;
   final bool testing;
-  final bool isZh;
 
   const _LineStatus({
     required this.label,
     required this.latency,
     required this.testing,
-    required this.isZh,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final (statusText, statusColor) = _statusFor(latency, testing, isZh, cs);
+    final (statusText, statusColor) = _statusFor(context, latency, testing, cs);
 
     return Padding(
       padding: const EdgeInsets.only(top: 2),
@@ -132,20 +127,20 @@ class _LineStatus extends StatelessWidget {
   }
 
   (String, Color) _statusFor(
+    BuildContext context,
     int? latency,
     bool testing,
-    bool isZh,
     ColorScheme cs,
   ) {
     final status = domainLatencyStatus(latency);
     if (status == DomainLatencyStatus.untested) {
       return (
-        testing ? (isZh ? '测速中' : 'Testing') : (isZh ? '未测速' : 'Untested'),
+        testing ? (AppLocalizations.of(context).get('speed_testing')) : (AppLocalizations.of(context).get('speed_untested')),
         cs.onSurfaceVariant,
       );
     }
     if (status == DomainLatencyStatus.unavailable) {
-      return (isZh ? '不可用' : 'Unavailable', cs.error);
+      return (AppLocalizations.of(context).get('line_status_unavailable'), cs.error);
     }
     if (status == DomainLatencyStatus.normal) {
       return ('${latency!}ms', AppColors.success);

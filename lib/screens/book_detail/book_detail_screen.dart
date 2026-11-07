@@ -12,6 +12,7 @@ import 'widgets/book_info_section.dart';
 import 'widgets/book_action_bar.dart';
 import 'widgets/download_quota_dialog.dart';
 import 'widgets/external_book_action_bar.dart';
+import '../../l10n/app_localizations.dart';
 
 class BookDetailScreen extends ConsumerWidget {
   const BookDetailScreen({super.key});
@@ -101,18 +102,14 @@ class BookDetailScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        Localizations.localeOf(context).languageCode == 'zh'
-                            ? '完整详情暂不可用，预览入口可能无法显示。'
-                            : 'Full details are unavailable. The preview option may be missing.',
+                        AppLocalizations.of(context).get('detail_unavailable_preview'),
                       ),
                     ),
                     TextButton(
                       onPressed: () =>
                           ref.invalidate(bookDetailsProvider(identifier!)),
                       child: Text(
-                        Localizations.localeOf(context).languageCode == 'zh'
-                            ? '重试'
-                            : 'Retry',
+                        AppLocalizations.of(context).get('search_retry'),
                       ),
                     ),
                   ],
@@ -149,7 +146,6 @@ class _ExternalBookDetail extends ConsumerWidget {
         : annasBookDetailsProvider(bookData.link);
     final details = ref.watch(detailsProvider);
     final info = details.valueOrNull;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return Scaffold(
       // Download only makes sense once the info (mirror + md5) is known.
@@ -172,14 +168,12 @@ class _ExternalBookDetail extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        isZh
-                            ? '完整详情暂不可用。'
-                            : 'Full details are unavailable.',
+                        AppLocalizations.of(context).get('detail_unavailable'),
                       ),
                     ),
                     TextButton(
                       onPressed: () => ref.invalidate(detailsProvider),
-                      child: Text(isZh ? '重试' : 'Retry'),
+                      child: Text(AppLocalizations.of(context).get('search_retry')),
                     ),
                   ],
                 ),

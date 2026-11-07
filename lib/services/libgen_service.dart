@@ -5,6 +5,7 @@
 
 // Dart imports:
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint;
 
 // Package imports:
 import 'package:dio/dio.dart';
@@ -167,7 +168,8 @@ class LibgenService {
         final cover =
             parseAdsCover(response.data.toString(), origin);
         if (cover != null) return cover;
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[libgen_service] ignored ${error.runtimeType}');
         // Next mirror.
       }
     }

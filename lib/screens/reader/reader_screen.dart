@@ -116,7 +116,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
           const SnackBar(content: Text('阅读器会话写入失败，请重新登录再试')),
         );
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[reader_screen] ignored ${error.runtimeType}');
       // 诊断本身失败不打扰阅读。
     }
   }

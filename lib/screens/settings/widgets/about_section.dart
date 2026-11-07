@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/app_localizations.dart';
-import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
 import 'settings_card.dart';
 
@@ -11,7 +10,6 @@ class AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isZh = locale_utils.isZhLocale(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,7 +43,7 @@ class AboutSection extends StatelessWidget {
               const SettingsDivider(),
               ListTile(
                 leading: const Icon(Icons.code),
-                title: Text(isZh ? 'GitHub 开源' : 'GitHub Open Source'),
+                title: Text(AppLocalizations.of(context).get('github_open_source')),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
                     _launchUrl('https://github.com/minglaiyo/zlibx'),
@@ -65,7 +63,6 @@ class AboutSection extends StatelessWidget {
   }
 
   void _showAboutApp(BuildContext context) {
-    final isZh = locale_utils.isZhLocale(context);
     final cs = Theme.of(context).colorScheme;
 
     showDialog(
@@ -103,9 +100,7 @@ class AboutSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                isZh
-                    ? '🤖 AI构建的开源第三方客户端'
-                    : '🤖 AI-Built Open Source Third-Party Client',
+                AppLocalizations.of(context).get('about_ai_built_title'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -114,9 +109,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                isZh
-                    ? 'zlibx 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• zlibx 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容'
-                    : 'zlibx is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• zlibx is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above',
+                AppLocalizations.of(context).get('about_body'),
                 style: TextStyle(
                   fontSize: 14,
                   color: cs.onSurfaceVariant,
@@ -125,9 +118,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                isZh
-                    ? '致谢：本应用基于 shiyi-0x7f 的 olib-mobile 魔改。'
-                    : 'Credits: based on olib-mobile by shiyi-0x7f, heavily modded.',
+                AppLocalizations.of(context).get('about_credits'),
                 style: TextStyle(
                   fontSize: 13,
                   color: cs.onSurfaceVariant,
@@ -142,7 +133,7 @@ class AboutSection extends StatelessWidget {
                       onPressed: () => _launchUrl(
                           'https://github.com/shiyi-0x7f/olib-mobile'),
                       icon: const Icon(Icons.code, size: 16),
-                      label: Text(isZh ? '原版' : 'Original'),
+                      label: Text(AppLocalizations.of(context).get('original')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -170,9 +161,7 @@ class AboutSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        isZh
-                            ? '"知识无边界"'
-                            : '"Knowledge has no boundaries"',
+                        AppLocalizations.of(context).get('about_quote'),
                         style: TextStyle(
                           fontStyle: FontStyle.italic,
                           color: cs.onSurface,
@@ -188,7 +177,7 @@ class AboutSection extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isZh ? '关闭' : 'Close'),
+            child: Text(AppLocalizations.of(context).get('close')),
           ),
         ],
       ),

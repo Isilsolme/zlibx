@@ -4,7 +4,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/update_dialog.dart';
 import '../../l10n/app_localizations.dart';
-import '../../utils/locale_utils.dart' as locale_utils;
 import '../auth/login_screen.dart';
 import 'widgets/download_path_section.dart';
 import 'widgets/donation_key_section.dart';
@@ -23,7 +22,6 @@ class SettingsScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final t = AppLocalizations.of(context);
-    final isZh = locale_utils.isZhLocale(context);
 
     // No top bar: this is a bottom-nav tab, like the account page —
     // the title bar only eats vertical space.
@@ -84,18 +82,18 @@ class SettingsScreen extends ConsumerWidget {
           // ── Update ───────────────────────────────────────────────
           SectionHeader(
             icon: Icons.system_update_rounded,
-            title: isZh ? '更新' : 'Update',
+            title: AppLocalizations.of(context).get('update'),
           ),
           SettingsCard(
             child: ListTile(
               leading: const Icon(Icons.system_update),
-              title: Text(isZh ? '检查更新' : 'Check for Updates'),
+              title: Text(AppLocalizations.of(context).get('check_for_updates')),
               subtitle: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    isZh ? '当前版本: v$version' : 'Current version: v$version',
+                    AppLocalizations.of(context).get('current_version_label').replaceAll('{version}', '${version}'),
                   );
                 },
               ),

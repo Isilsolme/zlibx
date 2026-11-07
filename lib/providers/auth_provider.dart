@@ -1,4 +1,5 @@
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
@@ -205,15 +206,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // cookie store; clear them too so logout really logs out everywhere.
     try {
       await CookieManager.instance().deleteAllCookies();
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[auth_provider] ignored ${error.runtimeType}');
       // WebView never initialized — nothing to clear.
     }
     try {
       await WebStorageManager.instance().deleteAllData();
-    } catch (_) {}
+    } catch (error) { debugPrint('[auth_provider] ignored ${error.runtimeType}'); }
     try {
       await InAppWebViewController.clearAllCache();
-    } catch (_) {}
+    } catch (error) { debugPrint('[auth_provider] ignored ${error.runtimeType}'); }
     state = AuthState();
   }
 
@@ -255,7 +257,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(lineUnavailable: true);
       }
       // Other errors: leave existing state alone; user can logout manually.
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[auth_provider] ignored ${error.runtimeType}');
       state = state.copyWith(lineUnavailable: true);
     }
   }

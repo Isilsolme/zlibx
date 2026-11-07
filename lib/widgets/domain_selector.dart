@@ -84,8 +84,6 @@ class DomainSelectionDialog extends ConsumerWidget {
     final currentDomain = ref.watch(domainProvider);
     final domains = ref.watch(domainListProvider);
     final speedState = ref.watch(speedTestProvider);
-    final locale = Localizations.localeOf(context).languageCode;
-    final isZh = locale == 'zh';
 
     // Build lookup: domain -> DomainTestResult
     final Map<String, DomainTestResult> resultMap = {};
@@ -100,7 +98,7 @@ class DomainSelectionDialog extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              isZh ? '选择线路' : 'Select Network',
+              AppLocalizations.of(context).get('select_network'),
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -163,7 +161,7 @@ class DomainSelectionDialog extends ConsumerWidget {
               );
             }
             // Last item: custom domain
-            return _buildCustomTile(context, ref, currentDomain, domains, isZh);
+            return _buildCustomTile(context, ref, currentDomain, domains);
           },
         ),
       ),
@@ -181,13 +179,13 @@ class DomainSelectionDialog extends ConsumerWidget {
                 color: speedState.testing ? Colors.grey : null,
               ),
               const SizedBox(width: 4),
-              Text(isZh ? '重新测速' : 'Re-test'),
+              Text(AppLocalizations.of(context).get('retest')),
             ],
           ),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(isZh ? '关闭' : 'Close'),
+          child: Text(AppLocalizations.of(context).get('close')),
         ),
       ],
     );
@@ -251,7 +249,6 @@ class DomainSelectionDialog extends ConsumerWidget {
     WidgetRef ref,
     String currentDomain,
     List<String> domains,
-    bool isZh,
   ) {
     final isCustom = !domains.contains(currentDomain);
 
@@ -263,8 +260,8 @@ class DomainSelectionDialog extends ConsumerWidget {
           : const Icon(Icons.edit_outlined, size: 20, color: Colors.grey),
       title: Text(
         isCustom
-            ? (isZh ? '自定义线路' : 'Custom Line')
-            : (isZh ? '自定义线路...' : 'Custom line...'),
+            ? (AppLocalizations.of(context).get('custom_line'))
+            : (AppLocalizations.of(context).get('custom_line_ellipsis')),
         style: TextStyle(
           fontSize: 14,
           fontWeight: isCustom ? FontWeight.w700 : FontWeight.normal,
@@ -278,24 +275,22 @@ class DomainSelectionDialog extends ConsumerWidget {
 
   void _showCustomDomainDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
-    final locale = Localizations.localeOf(context).languageCode;
-    final isZh = locale == 'zh';
 
-    showDialog(
+    final dialog = showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isZh ? '自定义线路' : 'Custom Domain'),
+        title: Text(AppLocalizations.of(context).get('custom_line_dialog_title')),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            labelText: isZh ? '域名地址' : 'Domain URL',
+            labelText: AppLocalizations.of(context).get('domain_url'),
             hintText: 'e.g., example.com',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(isZh ? '取消' : 'Cancel'),
+            child: Text(AppLocalizations.of(context).get('cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -327,7 +322,7 @@ class DomainSelectionDialog extends ConsumerWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(warnCtx),
-                      child: Text(isZh ? '取消' : 'Cancel'),
+                      child: Text(AppLocalizations.of(context).get('cancel')),
                     ),
                     FilledButton(
                       onPressed: () {
@@ -350,9 +345,16 @@ class DomainSelectionDialog extends ConsumerWidget {
                 ),
               );
             },
-            child: Text(isZh ? '保存' : 'Save'),
+            child: Text(AppLocalizations.of(context).get('save')),
           ),
         ],
+      ),
+    );
+    // Release the controller once the dialog's exit animation is done.
+    dialog.whenComplete(
+      () => Future<void>.delayed(
+        const Duration(milliseconds: 400),
+        controller.dispose,
       ),
     );
   }

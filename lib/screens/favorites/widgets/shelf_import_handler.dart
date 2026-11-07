@@ -86,6 +86,12 @@ mixin ShelfImportHandler<T extends ConsumerStatefulWidget>
         ],
       ),
     );
+    // Dispose after the dialog's exit animation has finished: the
+    // TextField still reads the controller while the route fades out.
+    Future<void>.delayed(
+      const Duration(milliseconds: 400),
+      controller.dispose,
+    );
     if (result == null || result.trim().isEmpty) return null;
     return BooklistShareCodec.tryDecode(result);
   }

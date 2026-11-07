@@ -156,29 +156,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<_LineAction?> _showLineUnavailableDialog() async {
     final cs = Theme.of(context).colorScheme;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     return showDialog<_LineAction>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(isZh ? '线路不可用' : 'Line Unavailable'),
+        title: Text(AppLocalizations.of(context).get('line_unavailable')),
         content: Text(
-          isZh
-              ? '当前线路无法连接到 z站，请切换到其他线路后重试。'
-              : 'Current line cannot reach the site. Please switch to another line and retry.',
+          AppLocalizations.of(context).get('splash_line_unreachable'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.skip),
-            child: Text(isZh ? '跳过' : 'Skip'),
+            child: Text(AppLocalizations.of(context).get('skip')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.proceed),
-            child: Text(isZh ? '仍然继续' : 'Continue anyway'),
+            child: Text(AppLocalizations.of(context).get('continue_anyway')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.retry),
-            child: Text(isZh ? '重试' : 'Retry'),
+            child: Text(AppLocalizations.of(context).get('search_retry')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -192,7 +189,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               backgroundColor: cs.primary,
               foregroundColor: Colors.white,
             ),
-            child: Text(isZh ? '切换线路' : 'Switch Line'),
+            child: Text(AppLocalizations.of(context).get('switch_line')),
           ),
         ],
       ),

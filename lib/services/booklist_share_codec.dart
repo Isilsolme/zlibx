@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:io' show gzip;
 
 import 'package:olib_api_plugin/olib_api_plugin.dart';
@@ -123,7 +124,7 @@ class BooklistShareCodec {
       try {
         final m = jsonDecode(trimmed) as Map<String, dynamic>;
         return _fromJsonMap(m);
-      } catch (_) {}
+      } catch (error) { debugPrint('[booklist_share_codec] ignored ${error.runtimeType}'); }
     }
 
     // 2) 旧协议 olib_share:id1,id2
@@ -144,7 +145,8 @@ class BooklistShareCodec {
     Uri? uri;
     try {
       uri = Uri.parse(trimmed);
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[booklist_share_codec] ignored ${error.runtimeType}');
       return null;
     }
     if (uri.scheme != scheme || uri.host != host) return null;
@@ -157,7 +159,8 @@ class BooklistShareCodec {
         final json = utf8.decode(gzip.decode(bytes));
         final m = jsonDecode(json) as Map<String, dynamic>;
         return _fromJsonMap(m, compact: true);
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[booklist_share_codec] ignored ${error.runtimeType}');
         return null;
       }
     }

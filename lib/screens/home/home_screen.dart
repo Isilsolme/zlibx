@@ -86,7 +86,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         extendBodyBehindAppBar: true,
         extendBody: true,
-        body: PageView(
+        body: NotificationListener<ScrollNotification>(
+          onNotification: _onTabScroll,
+          child: PageView(
           controller: _pageController,
           onPageChanged: (index) {
             // Switching tabs resets the nav to visible: a home tab
@@ -111,6 +113,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const _KeepAlivePage(child: AccountScreen()),
             const _KeepAlivePage(child: SettingsScreen()),
           ],
+          ),
         ),
         bottomNavigationBar: _buildNavBar(
           context,
@@ -122,6 +125,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  /// Hide-on-scroll for the Downloads / Account / Settings tabs. The
+  /// Recommended tab drives the same provider from its own controller
+  /// (see _HomeTabState._onScroll), so it is skipped here. Only vertical
+  /// scrolling counts: the PageView's own horizontal swipes and the
+  /// Downloads TabBarView must not toggle the bar.
+  bool _onTabScroll(ScrollNotification n) {
+    if (_selectedIndex == 0 || n.metrics.axis != Axis.vertical) return false;
+    final hideEnabled =
+        ref.read(floatingNavProvider) && ref.read(hideNavOnScrollProvider);
+    if (!hideEnabled) return false;
+    void setVisible(bool v) {
+      if (ref.read(navBarVisibleProvider) != v) {
+        ref.read(navBarVisibleProvider.notifier).state = v;
+      }
+    }
+
+    if (n.metrics.pixels <= n.metrics.minScrollExtent) {
+      setVisible(true);
+    } else if (n is UserScrollNotification) {
+      if (n.direction == ScrollDirection.reverse) {
+        setVisible(false);
+      } else if (n.direction == ScrollDirection.forward) {
+        setVisible(true);
+      }
+    }
+    return false;
   }
 
   Widget _buildNavBar(
@@ -335,21 +366,19 @@ class _KeepAlivePageState extends State<_KeepAlivePage>
 /// Get time-based greeting message
 String _getGreeting(BuildContext context) {
   final hour = DateTime.now().hour;
-  final locale = Localizations.localeOf(context).languageCode;
-  final isZh = locale == 'zh';
 
   if (hour < 6) {
-    return isZh ? '夜深了，' : 'Late night,';
+    return AppLocalizations.of(context).get('greeting_late_night');
   } else if (hour < 12) {
-    return isZh ? '早上好，' : 'Good morning,';
+    return AppLocalizations.of(context).get('good_morning');
   } else if (hour < 14) {
-    return isZh ? '中午好，' : 'Good afternoon,';
+    return AppLocalizations.of(context).get('greeting_noon');
   } else if (hour < 18) {
-    return isZh ? '下午好，' : 'Good afternoon,';
+    return AppLocalizations.of(context).get('greeting_afternoon');
   } else if (hour < 22) {
-    return isZh ? '晚上好，' : 'Good evening,';
+    return AppLocalizations.of(context).get('greeting_evening');
   } else {
-    return isZh ? '夜深了，' : 'Late night,';
+    return AppLocalizations.of(context).get('greeting_late_night');
   }
 }
 
@@ -475,8 +504,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
     if (!hasUpdate || !mounted) return;
 
-    final locale = Localizations.localeOf(context).languageCode;
-    final isZh = locale == 'zh';
 
     if (UpdateService.forceUpdate) {
       // Force update - non-dismissable dialog with download channels
@@ -491,15 +518,13 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  isZh
-                      ? '发现新版本 ${UpdateService.latestVersion}'
-                      : 'New version ${UpdateService.latestVersion} available',
+                  AppLocalizations.of(context).get('new_version_found').replaceAll('{version}', '${UpdateService.latestVersion}'),
                 ),
               ),
             ],
           ),
           action: SnackBarAction(
-            label: isZh ? '更新' : 'Update',
+            label: AppLocalizations.of(context).get('update'),
             textColor: Colors.white,
             onPressed: () => showUpdateDialog(context),
           ),
@@ -523,7 +548,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     final user = authState.user;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final blurEnabled = ref.watch(blurEnabledProvider);
 
     // The glass header floats over the recommendation grid so the grid
@@ -616,7 +640,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.name ?? (isZh ? '读者' : 'Reader'),
+                  user?.name ?? (AppLocalizations.of(context).get('reader')),
                   style: theme.textTheme.displaySmall?.copyWith(
                     color: cs.onSurface,
                     fontWeight: FontWeight.bold,
@@ -640,7 +664,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     return Column(
       children: [
         if (authState.lineUnavailable)
-          _buildLineUnavailableBanner(context, isZh),
+          _buildLineUnavailableBanner(context),
         Expanded(
           child: Stack(
             children: [
@@ -667,7 +691,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     );
   }
 
-  Widget _buildLineUnavailableBanner(BuildContext context, bool isZh) {
+  Widget _buildLineUnavailableBanner(BuildContext context) {
     return Material(
       color: Colors.orange.shade50,
       child: InkWell(
@@ -691,7 +715,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isZh ? '当前线路不可用' : 'Current line unavailable',
+                        AppLocalizations.of(context).get('line_unavailable_current'),
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontWeight: FontWeight.w600,
@@ -699,9 +723,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                         ),
                       ),
                       Text(
-                        isZh
-                            ? '已使用缓存登录信息，点此切换线路'
-                            : 'Using cached login. Tap to switch line.',
+                        AppLocalizations.of(context).get('line_cached_login_hint'),
                         style: TextStyle(
                           color: Colors.orange.shade800,
                           fontSize: 11,

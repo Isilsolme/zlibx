@@ -217,7 +217,8 @@ class SlumCatalogue {
           entry.key.name: [for (final site in entry.value) _siteToJson(site)],
       };
       await store.write(_cacheKey, jsonEncode(json));
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[slum_catalogue] ignored ${error.runtimeType}');
       // Persistence is best-effort; the in-memory cache already has it.
     }
   }
@@ -246,7 +247,8 @@ class SlumCatalogue {
         // Deliberately leave _fetchedAt null: persisted data is a
         // fallback, not a fresh reading, so the next fetch still runs.
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[slum_catalogue] ignored ${error.runtimeType}');
       // A corrupt cache is simply ignored.
     }
   }

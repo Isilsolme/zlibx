@@ -94,7 +94,8 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
           _pollTimer?.cancel();
           if (mounted) Navigator.pop(context, true);
         }
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[challenge_solver_screen] ignored ${error.runtimeType}');
         // webview might be mid-navigation; keep polling
       }
     });

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +27,8 @@ class ShareIntentHandler {
       final initial =
           await ReceiveSharingIntent.instance.getInitialMedia();
       await _process(initial);
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[share_intent_handler] ignored ${error.runtimeType}');
       // 没有插件 / 平台不支持时静默
     }
 
@@ -53,7 +55,7 @@ class ShareIntentHandler {
     }
     try {
       ReceiveSharingIntent.instance.reset();
-    } catch (_) {}
+    } catch (error) { debugPrint('[share_intent_handler] ignored ${error.runtimeType}'); }
   }
 
   Future<String?> _extractRaw(SharedMediaFile f) async {
@@ -67,7 +69,8 @@ class ShareIntentHandler {
       case SharedMediaType.video:
         try {
           return await File(f.path).readAsString();
-        } catch (_) {
+        } catch (error) {
+          debugPrint('[share_intent_handler] ignored ${error.runtimeType}');
           return null;
         }
     }

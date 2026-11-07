@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../utils/locale_utils.dart' as locale_utils;
 import '../../widgets/empty_state.dart';
 import '../../widgets/user_profile_section.dart';
 import '../auth/login_screen.dart';
@@ -96,11 +95,7 @@ class AccountScreen extends ConsumerWidget {
                   const SizedBox(height: 28),
                   Center(
                     child: TextButton.icon(
-                      onPressed: () => _confirmLogout(
-                        context,
-                        ref,
-                        locale_utils.isZhLocale(context),
-                      ),
+                      onPressed: () => _confirmLogout(context, ref),
                       icon: const Icon(Icons.logout, size: 18),
                       label: Text(l10n.get('logout')),
                       style: TextButton.styleFrom(
@@ -139,18 +134,16 @@ class AccountScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmLogout(BuildContext context, WidgetRef ref, bool isZh) {
+  void _confirmLogout(BuildContext context, WidgetRef ref) {
     AwesomeDialog(
       context: context,
       dialogType: DialogType.warning,
       animType: AnimType.bottomSlide,
-      title: isZh ? '退出登录？' : 'Log out?',
-      desc: isZh
-          ? '退出后需要重新输入账号密码登录。'
-          : 'You will need to log in again with your credentials.',
-      btnCancelText: isZh ? '取消' : 'Cancel',
+      title: AppLocalizations.of(context).get('logout_confirm_title'),
+      desc: AppLocalizations.of(context).get('logout_confirm_desc'),
+      btnCancelText: AppLocalizations.of(context).get('cancel'),
       btnCancelOnPress: () {},
-      btnOkText: isZh ? '退出' : 'Log out',
+      btnOkText: AppLocalizations.of(context).get('logout_action'),
       btnOkColor: Theme.of(context).colorScheme.error,
       btnOkOnPress: () async {
         await ref.read(authProvider.notifier).logout();

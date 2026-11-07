@@ -23,7 +23,8 @@ Future<bool> openDownloadFolder() async {
         );
         await intent.launch();
         return true;
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[file_utils] ignored ${error.runtimeType}');
         // Fallback: try to open the general Downloads folder
         try {
           final intent = AndroidIntent(
@@ -34,7 +35,8 @@ Future<bool> openDownloadFolder() async {
           );
           await intent.launch();
           return true;
-        } catch (_) {
+        } catch (error) {
+          debugPrint('[file_utils] ignored ${error.runtimeType}');
           // Last fallback: open the system file manager app
           try {
             final intent = AndroidIntent(
@@ -44,7 +46,8 @@ Future<bool> openDownloadFolder() async {
             );
             await intent.launch();
             return true;
-          } catch (_) {
+          } catch (error) {
+            debugPrint('[file_utils] ignored ${error.runtimeType}');
             return false;
           }
         }

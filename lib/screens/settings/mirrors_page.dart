@@ -98,7 +98,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
         _loading = false;
         _loadError = false;
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[mirrors_page] ignored ${error.runtimeType}');
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -124,7 +125,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
         content: Text(l10n.get('mirror_speed_test_done')),
         duration: const Duration(seconds: 2),
       ));
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[mirrors_page] ignored ${error.runtimeType}');
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(
         content: Text(l10n.get('mirror_speed_test_failed')),

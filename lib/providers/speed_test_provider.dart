@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'domain_provider.dart';
@@ -148,13 +149,15 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
             (response.statusCode >= 200 && response.statusCode < 300);
 
         result.latencyMs = isSuccess ? sw.elapsedMilliseconds : -1;
-      } catch (_) {
+      } catch (error) {
+        debugPrint('[speed_test_provider] ignored ${error.runtimeType}');
         sw.stop();
         result.latencyMs = -1;
       } finally {
         client.close();
       }
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[speed_test_provider] ignored ${error.runtimeType}');
       sw.stop();
       result.latencyMs = -1;
     }

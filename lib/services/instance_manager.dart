@@ -93,7 +93,8 @@ class InstanceManager {
     try {
       final value = await _store?.read(_autoModeKey);
       return value == null ? true : value == true || value == 1;
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[instance_manager] ignored ${error.runtimeType}');
       return true;
     }
   }
@@ -119,7 +120,8 @@ class InstanceManager {
           if (entry.value is List)
             entry.key: [for (final v in entry.value as List) v.toString()],
       };
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[instance_manager] ignored ${error.runtimeType}');
       return {};
     }
   }

@@ -18,8 +18,6 @@ Future<void> showUpdateDialog(BuildContext context) {
 
 /// 设置页「检查更新」：强制请求一次，有新版本弹更新对话框，否则提示已是最新
 Future<void> showManualUpdateCheck(BuildContext context) async {
-  final isZh = Localizations.localeOf(context).languageCode == 'zh';
-
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -45,12 +43,12 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(isZh ? '已是最新版本' : 'Up to Date'),
-      content: Text(isZh ? '当前版本已是最新版本' : 'You are using the latest version.'),
+      title: Text(AppLocalizations.of(context).get('up_to_date_title')),
+      content: Text(AppLocalizations.of(context).get('up_to_date_desc')),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(isZh ? '好的' : 'OK'),
+          child: Text(AppLocalizations.of(context).get('got_it')),
         ),
       ],
     ),
@@ -81,7 +79,7 @@ class _UpdateDialog extends StatelessWidget {
         _Channel(l.name, l.url, Icons.cloud_download_outlined),
       if (UpdateService.downloadUrl != null)
         _Channel(
-          isZh ? '官网下载' : 'Website',
+          AppLocalizations.of(context).get('website_download'),
           UpdateService.downloadUrl!,
           Icons.language,
         ),
@@ -93,10 +91,8 @@ class _UpdateDialog extends StatelessWidget {
       icon: Icon(Icons.system_update, color: cs.primary, size: 32),
       title: Text(
         forced
-            ? (isZh ? '需要更新后才能继续使用' : 'Update Required')
-            : (isZh
-                  ? '发现新版本 v${UpdateService.latestVersion}'
-                  : 'Version ${UpdateService.latestVersion} available'),
+            ? (AppLocalizations.of(context).get('update_required'))
+            : (AppLocalizations.of(context).get('update_found_title').replaceAll('{version}', '${UpdateService.latestVersion}')),
         textAlign: TextAlign.center,
       ),
       content: SizedBox(
@@ -107,9 +103,7 @@ class _UpdateDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                isZh
-                    ? '当前版本 v${UpdateService.currentVersion} · 最新版本 v${UpdateService.latestVersion}'
-                    : 'Current v${UpdateService.currentVersion} · Latest v${UpdateService.latestVersion}',
+                AppLocalizations.of(context).get('update_current_latest').replaceAll('{current}', '${UpdateService.currentVersion}').replaceAll('{latest}', '${UpdateService.latestVersion}'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: cs.onSurfaceVariant,
@@ -118,9 +112,7 @@ class _UpdateDialog extends StatelessWidget {
               if (forced) ...[
                 const SizedBox(height: 12),
                 Text(
-                  isZh
-                      ? '当前版本已停止支持，搜索和下载功能已禁用，请下载新版本安装后再使用。'
-                      : 'This version is no longer supported. Search and download are disabled until you update.',
+                  AppLocalizations.of(context).get('update_unsupported'),
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -146,7 +138,7 @@ class _UpdateDialog extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               Text(
-                isZh ? '选择下载渠道' : 'Choose a download source',
+                AppLocalizations.of(context).get('choose_download_source'),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: cs.onSurfaceVariant,
                 ),
@@ -167,7 +159,7 @@ class _UpdateDialog extends StatelessWidget {
               UpdateService.dismissUpdate();
               Navigator.of(context).pop();
             },
-            child: Text(isZh ? '稍后再说' : 'Later'),
+            child: Text(AppLocalizations.of(context).get('later')),
           ),
       ],
     );

@@ -4,16 +4,15 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../../../providers/settings_provider.dart';
 import '../../../utils/file_utils.dart';
-import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
 import 'settings_card.dart';
+import '../../../l10n/app_localizations.dart';
 
 class DownloadPathSection extends ConsumerWidget {
   const DownloadPathSection({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isZh = locale_utils.isZhLocale(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,12 +20,12 @@ class DownloadPathSection extends ConsumerWidget {
         const SizedBox(height: 20),
         SectionHeader(
           icon: Icons.download_rounded,
-          title: isZh ? '下载' : 'Downloads',
+          title: AppLocalizations.of(context).get('downloads'),
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.folder_outlined),
-            title: Text(isZh ? '下载目录' : 'Download Directory'),
+            title: Text(AppLocalizations.of(context).get('download_directory')),
             subtitle: _buildSubtitle(context, ref),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showDownloadPathDialog(context, ref),
@@ -39,9 +38,7 @@ class DownloadPathSection extends ConsumerWidget {
   Widget _buildSubtitle(BuildContext context, WidgetRef ref) {
     if (Platform.isAndroid) {
       return Text(
-        locale_utils.isZhLocale(context)
-            ? '系统下载文件夹 (MediaStore)'
-            : 'System Downloads (MediaStore)',
+        AppLocalizations.of(context).get('system_downloads_mediastore'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
@@ -49,9 +46,7 @@ class DownloadPathSection extends ConsumerWidget {
     final path = ref.watch(downloadPathProvider);
     final displayPath = (path != null && path.isNotEmpty)
         ? path
-        : (locale_utils.isZhLocale(context)
-            ? '默认（应用文档目录）'
-            : 'Default (App Documents)');
+        : (AppLocalizations.of(context).get('default_app_documents'));
     return Text(
       displayPath,
       maxLines: 1,
@@ -60,7 +55,6 @@ class DownloadPathSection extends ConsumerWidget {
   }
 
   void _showDownloadPathDialog(BuildContext context, WidgetRef ref) {
-    final isZh = locale_utils.isZhLocale(context);
 
     showModalBottomSheet(
       context: context,
@@ -90,11 +84,9 @@ class DownloadPathSection extends ConsumerWidget {
                       leading: Icon(
                           Icons.download, color: Theme.of(context).colorScheme.primary),
                       title: Text(
-                          isZh ? '系统下载文件夹' : 'System Downloads Folder'),
+                          AppLocalizations.of(context).get('system_downloads_folder')),
                       subtitle: Text(
-                        isZh
-                            ? '使用 MediaStore API 保存到公共下载目录'
-                            : 'Uses MediaStore API to save to public Downloads',
+                        AppLocalizations.of(context).get('mediastore_desc'),
                       ),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(
@@ -107,7 +99,7 @@ class DownloadPathSection extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          isZh ? '推荐' : 'Recommended',
+                          AppLocalizations.of(context).get('recommended'),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 12,
@@ -132,9 +124,7 @@ class DownloadPathSection extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                isZh
-                                    ? '下载的书籍将保存到系统"下载"文件夹，可在文件管理器中找到。'
-                                    : 'Downloaded books will be saved to the system Downloads folder, accessible via file manager.',
+                                AppLocalizations.of(context).get('downloads_saved_hint'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.blue[700],
@@ -156,18 +146,14 @@ class DownloadPathSection extends ConsumerWidget {
                                 final success = await openDownloadFolder();
                                 if (!success && context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(isZh
-                                        ? '无法打开文件夹'
-                                        : 'Could not open folder')),
+                                    SnackBar(content: Text(AppLocalizations.of(context).get('cannot_open_folder'))),
                                   );
                                 } else if (context.mounted) {
                                   Navigator.pop(context);
                                 }
                               },
                               icon: const Icon(Icons.folder_open),
-                              label: Text(isZh
-                                  ? '打开下载文件夹'
-                                  : 'Open Download Folder'),
+                              label: Text(AppLocalizations.of(context).get('open_download_folder')),
                             ),
                           ),
                         ],
@@ -179,10 +165,8 @@ class DownloadPathSection extends ConsumerWidget {
                       ListTile(
                         leading: Icon(
                             Icons.folder_open, color: Theme.of(context).colorScheme.primary),
-                        title: Text(isZh ? '选择文件夹' : 'Select Folder'),
-                        subtitle: Text(isZh
-                            ? '选择自定义下载目录'
-                            : 'Choose a custom download directory'),
+                        title: Text(AppLocalizations.of(context).get('select_folder')),
+                        subtitle: Text(AppLocalizations.of(context).get('choose_custom_download_dir')),
                         onTap: () async {
                           Navigator.pop(context);
                           final result = await FilePicker
@@ -194,9 +178,7 @@ class DownloadPathSection extends ConsumerWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(isZh
-                                      ? '下载目录已更新'
-                                      : 'Download directory updated'),
+                                  content: Text(AppLocalizations.of(context).get('download_dir_updated')),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -208,10 +190,8 @@ class DownloadPathSection extends ConsumerWidget {
                         leading: Icon(
                             Icons.restore,
                             color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        title: Text(isZh ? '恢复默认' : 'Reset to Default'),
-                        subtitle: Text(isZh
-                            ? '使用应用默认文档目录'
-                            : 'Use app default documents directory'),
+                        title: Text(AppLocalizations.of(context).get('reset_to_default')),
+                        subtitle: Text(AppLocalizations.of(context).get('use_default_documents_dir')),
                         onTap: () {
                           Navigator.pop(context);
                           ref
@@ -219,9 +199,7 @@ class DownloadPathSection extends ConsumerWidget {
                               .clearDownloadPath();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(isZh
-                                  ? '已恢复默认目录'
-                                  : 'Reset to default directory'),
+                              content: Text(AppLocalizations.of(context).get('reset_to_default_dir_done')),
                             ),
                           );
                         },
@@ -230,7 +208,7 @@ class DownloadPathSection extends ConsumerWidget {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(isZh ? '关闭' : 'Close'),
+                    child: Text(AppLocalizations.of(context).get('close')),
                   ),
                 ],
               ),

@@ -53,8 +53,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (!hasUpdate || !mounted) return;
 
-    final locale = Localizations.localeOf(context).languageCode;
-    final isZh = locale == 'zh';
 
     if (UpdateService.forceUpdate) {
       // Force update - non-dismissable dialog with download channels
@@ -64,12 +62,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isZh
-                ? '发现新版本 ${UpdateService.latestVersion}'
-                : 'New version ${UpdateService.latestVersion} available',
+            AppLocalizations.of(context).get('new_version_found').replaceAll('{version}', '${UpdateService.latestVersion}'),
           ),
           action: SnackBarAction(
-            label: isZh ? '更新' : 'Update',
+            label: AppLocalizations.of(context).get('update'),
             onPressed: () => showUpdateDialog(context),
           ),
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -125,8 +121,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _navigateAfterAuthentication();
     } else {
       final error = ref.read(authProvider).error;
-      final locale = Localizations.localeOf(context).languageCode;
-      final isZh = locale == 'zh';
       final occurredAt = DateTime.now().toLocal().toIso8601String().split('.').first;
 
       final failureKind = classifyLoginFailure(error);
@@ -137,17 +131,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.warning,
           animType: AnimType.bottomSlide,
-          title: isZh ? '线路不可用' : 'Line Unavailable',
-          desc: isZh
-              ? (cf
-                    ? '当前线路被 Cloudflare 拦截，请切换其他线路后重试。'
-                    : '当前线路连接失败（可能被拦截或线路不通），并非账号密码错误。请切换其他线路后重试。')
-              : (cf
-                    ? 'Current line is blocked by Cloudflare. Please switch to another line and try again.'
-                    : 'Current line failed to connect (blocked or down) — not a credential error. Please switch lines and retry.'),
-          btnCancelText: isZh ? '关闭' : 'Close',
+          title: AppLocalizations.of(context).get('line_unavailable'),
+          desc: AppLocalizations.of(context).get(
+              cf ? 'login_line_blocked_cf' : 'login_line_connect_failed'),
+          btnCancelText: AppLocalizations.of(context).get('close'),
           btnCancelOnPress: () {},
-          btnOkText: isZh ? '切换线路' : 'Switch Line',
+          btnOkText: AppLocalizations.of(context).get('switch_line'),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             showDialog(
@@ -161,15 +150,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.error,
           animType: AnimType.bottomSlide,
-          title: isZh ? '登录失败' : 'Login Failed',
+          title: AppLocalizations.of(context).get('login_failed'),
           desc: failureKind == LoginFailureKind.credentials
-              ? (isZh
-                    ? '用户未注册或账号密码错误'
-                    : 'User not registered or incorrect credentials')
-              : (isZh
-                    ? '登录失败，暂时无法确认原因。\n线路：$lineName\n时间：$occurredAt\n\n错误详情：${safeLoginErrorDetail(error, email, password)}\n\n请截图此弹窗反馈。'
-                    : 'Login failed for an unknown reason.\nLine: $lineName\nTime: $occurredAt\n\nError details: ${safeLoginErrorDetail(error, email, password)}\n\nPlease screenshot this dialog and send it with your feedback.'),
-          btnOkText: isZh ? '确定' : 'OK',
+              ? (AppLocalizations.of(context).get('login_bad_credentials'))
+              : (AppLocalizations.of(context).get('login_unknown_failure').replaceAll('{line}', '${lineName}').replaceAll('{time}', '${occurredAt}').replaceAll('{detail}', '${safeLoginErrorDetail(error, email, password)}')),
+          btnOkText: AppLocalizations.of(context).get('confirm_ok'),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
         ).show();
@@ -498,7 +483,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildAccountHint(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -523,9 +507,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  isZh
-                      ? '请使用 z站 官网账号登录'
-                      : 'Please login with your z-site account',
+                  AppLocalizations.of(context).get('login_use_zsite_account'),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -537,9 +519,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            isZh
-                ? '没有账号？请自行前往官网注册，本软件不提供注册方式。'
-                : "No account? Please register on official site. This app doesn't provide registration.",
+            AppLocalizations.of(context).get('login_no_account_hint'),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -552,14 +532,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildSkipLogin(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return TextButton(
       onPressed: () {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       },
       child: Text(
-        isZh ? '跳过登录，先逛逛' : 'Skip login, explore first',
+        AppLocalizations.of(context).get('login_skip_explore'),
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.7),
           fontSize: 13,
@@ -569,7 +548,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildBadges(BuildContext context) {
-    final isZh = Localizations.localeOf(context).languageCode == 'zh';
 
     return Wrap(
       alignment: WrapAlignment.center,
@@ -578,17 +556,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       children: [
         _buildBadge(
           icon: Icons.code,
-          text: isZh ? '开源' : 'Open Source',
+          text: AppLocalizations.of(context).get('badge_open_source'),
           color: Colors.green,
         ),
         _buildBadge(
           icon: Icons.money_off,
-          text: isZh ? '免费' : 'Free',
+          text: AppLocalizations.of(context).get('search_free'),
           color: Colors.blue,
         ),
         _buildBadge(
           icon: Icons.smart_toy_outlined,
-          text: isZh ? 'AI构建' : 'AI-Built',
+          text: AppLocalizations.of(context).get('badge_ai_built'),
           color: Colors.purple,
         ),
       ],

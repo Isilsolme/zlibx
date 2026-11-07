@@ -251,7 +251,7 @@ class WebviewChallengeSolver {
               }
             }
           }
-        } catch (_) {}
+        } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
         await Future.delayed(const Duration(milliseconds: 1000));
       }
 
@@ -265,7 +265,7 @@ class WebviewChallengeSolver {
     } finally {
       try {
         await headless?.dispose();
-      } catch (_) {}
+      } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
     }
   }
 
@@ -311,11 +311,12 @@ class WebviewChallengeSolver {
         try {
           final decoded = json.decode(s);
           if (decoded is String) return decoded;
-        } catch (_) {}
+        } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
         return s.substring(1, s.length - 1);
       }
       return s;
-    } catch (_) {
+    } catch (error) {
+      debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}');
       return null;
     }
   }
