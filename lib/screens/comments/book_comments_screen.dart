@@ -41,9 +41,19 @@ class BookCommentsScreen extends ConsumerStatefulWidget {
 class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   static const int _pageSize = 50;
 
-  /// Safety cap on pages fetched in one open (20 pages = 1000
-  /// comments): beyond that the oldest comments simply stay unfetched.
-  static const int _maxFetchPages = 20;
+  /// Fetch size: the site itself loads a book's comments with
+  /// `limit=500` in one request, so do the same instead of paging
+  /// 50 at a time — one round trip covers nearly every book.
+  static const int _fetchLimit = 500;
+
+  /// Safety cap on comments collected in one open: beyond 1000 the
+  /// oldest comments simply stay unfetched.
+  static const int _maxFetchComments = 1000;
+
+  /// At most 4 fetch pages (4 x 500): the loop also stops early on a
+  /// short page, on a page that adds nothing new, and at the
+  /// [_maxFetchComments] cap, so this is only a backstop.
+  static const int _maxFetchPages = 4;
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _composerController = TextEditingController();
@@ -226,23 +236,30 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     }
   }
 
-  /// Fetch every page (oldest first, until a short page) and show the
-  /// newest thread first. The endpoint has no sort parameter and no
-  /// total, so the whole list is pulled on open and paged locally
-  /// afterwards; a later page failing just stops the fetch and shows
-  /// what arrived so far.
+  /// Fetch the whole list (oldest first) and show the newest thread
+  /// first. The endpoint has no sort parameter and no total, so the
+  /// list is pulled on open and paged locally afterwards; a later
+  /// page failing just stops the fetch and shows what arrived so far.
+  /// The fetch uses the site's own page size (`limit=500`) instead
+  /// of 50 at a time, and a page that repeats already-seen comments
+  /// ends the scan — that keeps both the wait and the list free of
+  /// repeats.
   Future<void> _loadAll() async {
     final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
     final api = ref.read(zlibraryApiProvider);
     final collected = <BookComment>[];
+    final seenIds = <int>{};
     var disabled = false;
     var error = '';
-    for (var page = 0; page < _maxFetchPages; page++) {
+    for (var page = 0;
+        page < _maxFetchPages &&
+            collected.length < _maxFetchComments;
+        page++) {
       try {
         final response = await api.getBookComments(
           args.bookId.toString(),
           page: page,
-          limit: _pageSize,
+          limit: _fetchLimit,
         );
         if (!mounted) return;
         if (!response.success || response.data == null) {
@@ -256,8 +273,19 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
           disabled = true;
           break;
         }
-        collected.addAll(data.comments);
-        if (data.comments.length < _pageSize) break;
+        // Drop repeats: if the server ever answers a later page with
+        // comments already seen, keep only the first copy — and stop,
+        // because a page that adds nothing new means the pages
+        // overlap and scanning on would only repeat them.
+        var newCount = 0;
+        for (final comment in data.comments) {
+          if (seenIds.add(comment.id)) {
+            collected.add(comment);
+            newCount++;
+          }
+        }
+        if (newCount == 0) break;
+        if (data.comments.length < _fetchLimit) break;
       } catch (e) {
         if (page == 0) error = e.toString();
         break;
