@@ -432,6 +432,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                                               userId: comment.userId,
                                               userName: comment.userName,
                                               userAvatar: comment.userAvatar,
+                                              userHash: comment.userHash,
                                             ),
                                           ),
                                         );

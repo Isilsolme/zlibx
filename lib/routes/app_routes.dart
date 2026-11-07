@@ -21,18 +21,24 @@ class AppRoutes {
 
 /// Arguments for the user profile page. The id drives the comments
 /// fetch; name/avatar come from the tapped comment itself (the
-/// comments endpoint carries no profile header). Kept here, next to
-/// the route, because the comments screen (avatar tap) and the
-/// profile screen (row tap-through) navigate to each other — a
-/// screen-local class would make those two files import each other.
+/// comments endpoint carries no profile header). [userHash] is the
+/// profile hash from the comment's `user.hash` — it drives the
+/// booklists fetch (`/profile/{userId}/{hash}`); null when the
+/// comment did not carry one, in which case the page shows comments
+/// only. Kept here, next to the route, because the comments screen
+/// (avatar tap) and the profile screen (row tap-through) navigate to
+/// each other — a screen-local class would make those two files
+/// import each other.
 class UserProfileArgs {
   final int userId;
   final String userName;
   final String userAvatar;
+  final String? userHash;
 
   const UserProfileArgs({
     required this.userId,
     required this.userName,
     required this.userAvatar,
+    this.userHash,
   });
 }

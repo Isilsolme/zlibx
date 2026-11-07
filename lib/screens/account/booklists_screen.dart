@@ -10,6 +10,7 @@ import '../../routes/app_routes.dart';
 import '../../services/challenge_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
 import '../../services/webview_challenge_solver.dart';
+import '../../widgets/booklist_row.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
@@ -439,7 +440,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                                       return const LoadingWidget.more();
                                     }
                                     final list = _lists[index];
-                                    return _BooklistRow(
+                                    return BooklistRow(
                                       list: list,
                                       onTap: () => Navigator.of(context)
                                           .pushNamed(
@@ -455,91 +456,6 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _BooklistRow extends StatelessWidget {
-  final Booklist list;
-  final VoidCallback onTap;
-
-  const _BooklistRow({required this.list, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final cs = Theme.of(context).colorScheme;
-    final meta = [
-      if (list.author.isNotEmpty) list.author,
-      if (list.count != null)
-        l10n
-            .get('booklist_book_count')
-            .replaceAll('{count}', list.count.toString()),
-      if (list.views.isNotEmpty) list.views,
-    ].join(' · ');
-    return ListTile(
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: SizedBox(
-          width: 40,
-          height: 56,
-          child: list.coverUrl.isEmpty
-              ? Container(
-                  color: cs.primaryContainer,
-                  child: Icon(
-                    Icons.collections_bookmark_outlined,
-                    color: cs.onPrimaryContainer,
-                  ),
-                )
-              : Image.network(
-                  list.coverUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: cs.primaryContainer,
-                    child: Icon(
-                      Icons.collections_bookmark_outlined,
-                      color: cs.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-        ),
-      ),
-      title: Text(
-        list.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (meta.isNotEmpty)
-            Text(
-              meta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          if (list.description.isNotEmpty)
-            Text(
-              list.description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-        ],
-      ),
-      trailing: Icon(
-        Icons.chevron_right_rounded,
-        color: cs.onSurfaceVariant,
-      ),
-      onTap: onTap,
     );
   }
 }

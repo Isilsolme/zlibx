@@ -190,6 +190,29 @@ BooklistsPage parseBooklistsPage(String html, {required String baseUrl}) {
   return BooklistsPage(lists: lists, totalPages: totalPages);
 }
 
+/// Booklists on one user's profile page, from the server-rendered
+/// `<z-booklist>` elements inside `<div z-tab="booklists">`.
+///
+/// The profile page (`GET /profile/{userId}/{hash}`) is one HTML
+/// document carrying every tab; the booklists tab holds the same
+/// `<z-booklist>` shape as the `/booklists` list pages (see
+/// [Booklist.fromElement]), including the preview-cover carousel.
+/// A profile with no booklists — or a page without the tab at all —
+/// parses to an empty list.
+List<Booklist> parseUserProfileBooklists(
+  String html, {
+  required String baseUrl,
+}) {
+  final doc = html_parser.parse(html);
+  final tab = doc.querySelector('div[z-tab="booklists"]');
+  if (tab == null) return const [];
+  return tab
+      .querySelectorAll('z-booklist')
+      .map((el) => Booklist.fromElement(el, baseUrl: baseUrl))
+      .whereType<Booklist>()
+      .toList();
+}
+
 /// Books on the FIRST page of a booklist detail page, from the
 /// server-rendered `<z-bookcard>` elements (`.readlist-view`).
 ///

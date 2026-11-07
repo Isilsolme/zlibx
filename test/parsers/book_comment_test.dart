@@ -29,6 +29,7 @@ void main() {
       expect(comment.userId, 7);
       expect(comment.text, '很好');
       expect(comment.userName, '徕');
+      expect(comment.userHash, 'abc');
       expect(comment.userAvatar, '$_baseUrl/img/profile/cover-0.png');
       expect(comment.dateRelative, '4年前');
       expect(comment.isCurrentUser, isFalse);

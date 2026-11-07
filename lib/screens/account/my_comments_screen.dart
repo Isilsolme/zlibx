@@ -21,6 +21,7 @@ class MyComment {
   final int likeCount;
   final int userId;
   final String userAvatar;
+  final String userHash;
 
   const MyComment({
     required this.bookId,
@@ -30,6 +31,7 @@ class MyComment {
     this.likeCount = 0,
     required this.userId,
     this.userAvatar = '',
+    this.userHash = '',
   });
 }
 
@@ -76,6 +78,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
               likeCount: e.comment.likeCount,
               userId: e.comment.userId,
               userAvatar: e.comment.userAvatar,
+              userHash: e.comment.userHash,
             ))
         .toList();
   }
@@ -153,6 +156,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                                         ?.name ??
                                     '',
                                 userAvatar: comment.userAvatar,
+                                userHash: comment.userHash,
                               ),
                             ),
                           );

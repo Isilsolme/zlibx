@@ -20,6 +20,14 @@ class BookComment {
   final String date;
   final String userName;
 
+  /// The profile hash from the comment's `user.hash` — the second
+  /// segment of the profile URL (`/profile/{userId}/{hash}`). This is
+  /// NOT the avatar filename suffix: the avatar URL carries a
+  /// different hash (own user: avatar `.../35899435_3cc9e9.jpg` vs
+  /// profile hash `5a9053`), so never derive it from the avatar.
+  /// '' when the server did not say.
+  final String userHash;
+
   /// Absolute avatar URL (resolved from the relative `cover`/`avatar`
   /// path against the mirror), or '' when the user has none.
   final String userAvatar;
@@ -42,6 +50,7 @@ class BookComment {
     required this.text,
     required this.date,
     required this.userName,
+    this.userHash = '',
     required this.userAvatar,
     required this.dateRelative,
     required this.isCurrentUser,
@@ -57,6 +66,7 @@ class BookComment {
       text: text,
       date: date,
       userName: userName,
+      userHash: userHash,
       userAvatar: userAvatar,
       dateRelative: dateRelative,
       isCurrentUser: isCurrentUser,
@@ -89,6 +99,7 @@ class BookComment {
       text: _asString(json['text']) ?? '',
       date: _asString(json['date']) ?? '',
       userName: _asString(user['name']) ?? '',
+      userHash: _asString(user['hash']) ?? '',
       userAvatar: resolvedAvatar,
       dateRelative: _asString(user['dateRelative']) ?? '',
       isCurrentUser: user['isCurrentUser'] == true,

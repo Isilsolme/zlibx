@@ -1,0 +1,96 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
+
+const _baseUrl = 'https://zh.z-library.sk';
+
+/// Minimal profile page modelled on the live HTML captured 2026-11-07
+/// (another user's `/profile/{id}/{hash}` document): one document
+/// carries every tab — plans, comments, booklists — and the booklists
+/// tab holds full `<z-booklist>` elements with preview covers.
+const _profileHtml = '''
+<html><body>
+<div z-tab="plans"></div>
+<div z-tab="comments">
+<z-comments total="1" type="user" id="21490583" username="someone" avatar="" lang="zh" sorting="asc"></z-comments>
+</div>
+<div z-tab="booklists">
+<div class="booklists-list">
+<z-booklist id="2690671" href="/booklist/2690671/2ac488/math-list.html" topic="数学书单" author="someone" authorProfile="/booklists/user/21490583" authorAvatar="" quantity="15" views="29" comments="0" description="" color="0">
+<a href="/book/abcdef123456/slug-one.html"><z-cover id="1045682" author="Author One" title="第一本书"><img data-src="https://cdn.example.com/1.jpg"></z-cover></a>
+<a href="/book/9876543210abcdef/slug-two.html"><z-cover id="5471430" author="Author Two" title="第二本书"><img data-src="https://cdn.example.com/2.jpg"></z-cover></a>
+</z-booklist>
+<z-booklist id="2690672" href="/booklist/2690672/abc/other-list.html" topic="另一书单" author="someone" authorProfile="/booklists/user/21490583" authorAvatar="" quantity="3" views="8" comments="0" description="desc" color="0"></z-booklist>
+</div>
+</div>
+</body></html>
+''';
+
+void main() {
+  group('parseUserProfileBooklists', () {
+    test('parses the lists in the booklists tab with preview books', () {
+      final lists = parseUserProfileBooklists(
+        _profileHtml,
+        baseUrl: _baseUrl,
+      );
+      expect(lists.length, 2);
+
+      final first = lists[0];
+      expect(first.id, '2690671');
+      expect(first.name, '数学书单');
+      expect(first.author, '/booklists/user/21490583');
+      expect(first.count, 15);
+      expect(first.views, '29');
+      expect(
+        first.url,
+        '$_baseUrl/booklist/2690671/2ac488/math-list.html',
+      );
+      expect(
+        first.coverUrl,
+        'https://cdn.example.com/1.jpg',
+      );
+      expect(first.previewBooks.length, 2);
+      expect(first.previewBooks[0].id, 1045682);
+      expect(first.previewBooks[0].title, '第一本书');
+      expect(first.previewBooks[0].author, 'Author One');
+      expect(first.previewBooks[0].hash, 'abcdef123456');
+      expect(
+        first.previewBooks[0].cover,
+        'https://cdn.example.com/1.jpg',
+      );
+      expect(first.previewBooks[1].id, 5471430);
+      expect(first.previewBooks[1].hash, '9876543210abcdef');
+
+      final second = lists[1];
+      expect(second.id, '2690672');
+      expect(second.name, '另一书单');
+      expect(second.count, 3);
+      expect(second.description, 'desc');
+      expect(second.previewBooks, isEmpty);
+    });
+
+    test('an empty booklists tab parses to an empty list', () {
+      const html = '''
+<html><body>
+<div z-tab="comments"><z-comments total="0"></z-comments></div>
+<div z-tab="booklists"></div>
+</body></html>
+''';
+      expect(
+        parseUserProfileBooklists(html, baseUrl: _baseUrl),
+        isEmpty,
+      );
+    });
+
+    test('a page without the booklists tab parses to an empty list', () {
+      const html = '''
+<html><body>
+<div z-tab="comments"><z-comments total="1"></z-comments></div>
+</body></html>
+''';
+      expect(
+        parseUserProfileBooklists(html, baseUrl: _baseUrl),
+        isEmpty,
+      );
+    });
+  });
+}

@@ -1142,6 +1142,64 @@ class ZLibraryApi {
     return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
   }
 
+  /// Absolute URL of a user's profile page, for callers that fetch the
+  /// HTML themselves (e.g. through the WebView challenge solver when
+  /// the mirror walls Dio). Same path construction as
+  /// [getUserProfileBooklists] — the app must not rebuild it.
+  String userProfilePageUrl({
+    required String userId,
+    required String userHash,
+  }) {
+    return '$_base/profile/$userId/$userHash';
+  }
+
+  /// Booklists on one user's profile page, from the profile document
+  /// (`GET /profile/{userId}/{hash}` — one HTML document carrying
+  /// every tab, with the booklists tab server-rendered as
+  /// `<z-booklist>` elements; see [parseUserProfileBooklists]).
+  /// [userHash] is the profile hash from a comment's `user.hash`
+  /// (NOT the avatar filename suffix). Empty list when the user has
+  /// no booklists. The profile page is an HTML route, so like the
+  /// list pages it can answer with the browser-check wall — reported
+  /// as `HTTP 503: browser check page` so the caller can fall back
+  /// to the WebView solver.
+  Future<ApiResponse<List<Booklist>>> getUserProfileBooklists({
+    required String userId,
+    required String userHash,
+  }) async {
+    if (userId.isEmpty) {
+      return ApiResponse.fail('missing user id');
+    }
+    if (userHash.isEmpty) {
+      return ApiResponse.fail('missing profile hash');
+    }
+    final raw = await _get(
+      '/profile/$userId/$userHash',
+      extraHeaders: const {'Accept': 'text/html'},
+    );
+    final status = raw.status;
+    if (status == null || status < 200 || status >= 300) {
+      return ApiResponse.fail(
+        raw.error ?? 'profile booklists failed (HTTP $status)',
+        statusCode: status,
+      );
+    }
+    final html = raw.body;
+    if (html == null || html.isEmpty) {
+      return ApiResponse.fail(
+        raw.error ?? 'profile booklists failed',
+        statusCode: status,
+      );
+    }
+    if (_looksLikeChallengePage(html)) {
+      return ApiResponse.fail(
+        'HTTP $status: browser check page',
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(parseUserProfileBooklists(html, baseUrl: _base));
+  }
+
   /// Books on the FIRST page of one booklist, parsed from the detail
   /// page's own HTML (`/booklist/{id}/{hash}/{slug}.html`, via
   /// [parseBooklistDetailBooks]).
