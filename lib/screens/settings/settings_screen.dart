@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/update_dialog.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/locale_utils.dart' as locale_utils;
@@ -26,11 +25,14 @@ class SettingsScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context);
     final isZh = locale_utils.isZhLocale(context);
 
+    // No top bar: this is a bottom-nav tab, like the account page —
+    // the title bar only eats vertical space.
     return Scaffold(
-      appBar: GradientAppBar(title: t.get('settings')),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
+      body: SafeArea(
+        top: true,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
           // Signed in: the profile card lives on the account page now.
           // Signed out (e.g. skipped login): offer the login screen
           // here — otherwise there is no in-app way back to login.
@@ -97,7 +99,8 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── About ────────────────────────────────────────────────
           const AboutSection(),
-        ],
+          ],
+        ),
       ),
     );
   }
