@@ -73,6 +73,12 @@ String _decodeHtmlEntities(String text) {
 }
 
 /// "&nbsp;" before a closing CJK punctuation mark leaves a stray space
-/// ("[1] 。") — drop it.
+/// ("[1] 。") — drop it. NOTE: Dart's `replaceAll` takes the replacement
+/// literally (no `$1` group interpolation — that is what `replaceAllMapped`
+/// is for), so a `$1` replacement here would have written a literal "$1"
+/// into the text; use `replaceAllMapped` and return the captured group.
 String _fixCjkPunctuationSpacing(String paragraph) =>
-    paragraph.replaceAll(RegExp(r' ([，。；：、！？）】》」』])'), r'$1');
+    paragraph.replaceAllMapped(
+      RegExp(r' ([，。；：、！？）】》」』])'),
+      (match) => match[1]!,
+    );

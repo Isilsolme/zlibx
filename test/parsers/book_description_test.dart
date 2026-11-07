@@ -32,6 +32,14 @@ void main() {
       );
     });
 
+    test('stray space before a closing CJK punctuation mark is dropped', () {
+      // Regression test for build #58: the old code used replaceAll with
+      // a "$1" replacement, which Dart inserts literally instead of
+      // interpolating the captured group.
+      expect(normalizedBookDescription('A 。 B'), 'A。 B');
+      expect(normalizedBookDescription('x [1] 。'), 'x [1]。');
+    });
+
     test('decodes named and numeric entities', () {
       expect(
         normalizedBookDescription('A &amp; B &hellip; &#39;quoted&#x27;'),
