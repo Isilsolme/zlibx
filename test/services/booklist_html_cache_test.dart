@@ -106,12 +106,12 @@ void main() {
     );
   });
 
-  test('clear empties the cache', () {
+  test('clear empties the cache', () async {
     BooklistHtmlCache.store(
       'https://example.com/booklists/my',
       '<html>mine</html>',
     );
-    BooklistHtmlCache.clear();
+    await BooklistHtmlCache.clear();
     expect(
       BooklistHtmlCache.get('https://example.com/booklists/my'),
       isNull,

@@ -132,7 +132,7 @@ class BooklistHtmlCache {
     });
   }
 
-  static void clear() => _box.clear();
+  static Future<void> clear() => _box.clear();
 
   static void _evictOldest(Box box) {
     if (box.length <= maxEntries) return;
