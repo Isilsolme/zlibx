@@ -27,14 +27,18 @@ class SettingsScreen extends ConsumerWidget {
 
     // No top bar: this is a bottom-nav tab, like the account page —
     // the title bar only eats vertical space.
-    return Scaffold(
-      body: SafeArea(
+    // Material instead of a nested Scaffold: this page sits under the
+    // home Scaffold (extendBody: true) and must paint exactly like the
+    // recommendation tab, which has no inner Scaffold.
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
         top: true,
-        // No bottom inset: the tab already reserves the floating nav
-        // bar's height via the outer bottom padding, and extendBody
-        // rewrites the MediaQuery bottom padding to that same height,
-        // so a bottom SafeArea would count it twice and leave a dead
-        // band of scaffold background above the pill. (AccountScreen
+        // No bottom inset: the list already reserves the floating nav
+        // bar's height (128dp bottom padding), and extendBody rewrites
+        // the MediaQuery bottom padding to that same height, so a
+        // bottom SafeArea would count it twice and leave a dead band
+        // of scaffold background above the pill. (AccountScreen
         // already does this.)
         bottom: false,
         child: ListView(

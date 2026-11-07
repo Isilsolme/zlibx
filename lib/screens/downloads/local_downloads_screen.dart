@@ -30,55 +30,71 @@ class LocalDownloadsScreen extends ConsumerWidget {
           );
     ongoing.sort((a, b) => _priority(a.status).compareTo(_priority(b.status)));
 
+    // No nested Scaffold: like the recommendation tab this page sits
+    // under the home Scaffold (extendBody: true), so the lists can run
+    // behind the floating nav. The header is a plain AppBar in a Column.
+    final appBar = AppBar(
+      title: Text(l.get('downloads')),
+      actions: [
+        IconButton(
+          tooltip: l.get('open_folder'),
+          icon: const Icon(Icons.folder_open_rounded),
+          onPressed: () async {
+            try {
+              final opened = await openDownloadFolder();
+              if (!opened && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.get('open_folder_failed'))),
+                );
+              }
+            } catch (error) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.get('open_folder_failed'))),
+                );
+              }
+            }
+          },
+        ),
+      ],
+      bottom: TabBar(
+        indicatorColor: Theme.of(context).colorScheme.primary,
+        labelColor: Theme.of(context).colorScheme.primary,
+        tabs: [
+          Tab(text: '${l.get('ongoing')} (${ongoing.length})'),
+          Tab(text: '${l.get('completed')} (${completed.length})'),
+        ],
+      ),
+    );
+
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(l.get('downloads')),
-          actions: [
-            IconButton(
-              tooltip: l.get('open_folder'),
-              icon: const Icon(Icons.folder_open_rounded),
-              onPressed: () async {
-                try {
-                  final opened = await openDownloadFolder();
-                  if (!opened && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l.get('open_folder_failed'))),
-                    );
-                  }
-                } catch (error) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l.get('open_folder_failed'))),
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-          bottom: TabBar(
-            indicatorColor: Theme.of(context).colorScheme.primary,
-            labelColor: Theme.of(context).colorScheme.primary,
-            tabs: [
-              Tab(text: '${l.get('ongoing')} (${ongoing.length})'),
-              Tab(text: '${l.get('completed')} (${completed.length})'),
-            ],
-          ),
-        ),
-        body: TabBarView(
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Column(
           children: [
-            _DownloadList(
-              tasks: ongoing,
-              emptyIcon: Icons.downloading_rounded,
-              emptyTitle: l.get('no_active_downloads'),
-              emptyMessage: l.get('downloads_appear_here'),
+            SizedBox(
+              height:
+                  appBar.preferredSize.height + MediaQuery.paddingOf(context).top,
+              child: appBar,
             ),
-            _DownloadList(
-              tasks: completed,
-              emptyIcon: Icons.check_circle_outline_rounded,
-              emptyTitle: l.get('no_completed_downloads'),
-              emptyMessage: l.get('downloaded_books_here'),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _DownloadList(
+                    tasks: ongoing,
+                    emptyIcon: Icons.downloading_rounded,
+                    emptyTitle: l.get('no_active_downloads'),
+                    emptyMessage: l.get('downloads_appear_here'),
+                  ),
+                  _DownloadList(
+                    tasks: completed,
+                    emptyIcon: Icons.check_circle_outline_rounded,
+                    emptyTitle: l.get('no_completed_downloads'),
+                    emptyMessage: l.get('downloaded_books_here'),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

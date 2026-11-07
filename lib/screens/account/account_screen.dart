@@ -34,8 +34,10 @@ class AccountScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final user = ref.watch(authProvider).user;
 
-    return Scaffold(
-      body: SafeArea(
+    // Material instead of a nested Scaffold (see SettingsScreen).
+    return Material(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
         top: true,
         bottom: false,
         child: user == null
