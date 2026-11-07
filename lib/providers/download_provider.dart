@@ -481,7 +481,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         // restart; anything else outside 2xx still throws.
         validateStatus: (status) =>
             status != null &&
-            ((status >= 200 && status < 300) || status == 416),
+            ((status >= 200 && status < 300) || (status == 416 && start > 0)),
       ),
       cancelToken: cancelToken,
     );

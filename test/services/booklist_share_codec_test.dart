@@ -57,6 +57,35 @@ void main() {
       expect(data!.entries.length, BooklistShareCodec.maxBookEntries);
     });
 
+    test('legacy and ids formats are capped at 2000 entries', () {
+      final ids = List.generate(2501, (i) => '$i').join(',');
+      final legacy = BooklistShareCodec.tryDecode('olib_share:$ids');
+      final compact = BooklistShareCodec.tryDecode('olib://booklist?ids=$ids');
+      expect(legacy!.entries.length, BooklistShareCodec.maxBookEntries);
+      expect(compact!.entries.length, BooklistShareCodec.maxBookEntries);
+    });
+
+    test('JSON entries without a usable id are ignored', () {
+      final data = BooklistShareCodec.tryDecode(jsonEncode({
+        'v': 1,
+        'books': [
+          {'title': 'missing'},
+          {'id': null},
+          {'id': ''},
+          {'id': '   '},
+          {'id': 'valid'},
+        ],
+      }));
+      expect(data!.entries.map((entry) => entry.id), ['valid']);
+    });
+
+    test('oversized plain input is rejected', () {
+      expect(
+        BooklistShareCodec.tryDecode('x' * (BooklistShareCodec.maxFileBytes + 1)),
+        isNull,
+      );
+    });
+
     test('a normal small share still decodes', () {
       const data = BooklistShareData(
         entries: [BooklistEntry(id: '123', title: 'Test')],

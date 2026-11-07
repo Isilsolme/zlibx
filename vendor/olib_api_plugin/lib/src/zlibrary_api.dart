@@ -1565,7 +1565,7 @@ class ZLibraryApi {
         receiveTimeout: const Duration(seconds: 300),
         followRedirects: false,
         validateStatus: (status) =>
-            status != null && (status < 400 || status == 416),
+            status != null && (status < 400 || (status == 416 && start > 0)),
       ),
       cancelToken: cancelToken,
     );

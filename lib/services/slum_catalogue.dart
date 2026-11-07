@@ -93,6 +93,10 @@ class SlumCatalogue {
   /// a fetch that produced nothing at all.
   DateTime? _lastAttemptAt;
 
+  /// Coalesces concurrent refreshes. A cold-cache caller must wait for the
+  /// in-flight request instead of mistaking it for a failed attempt.
+  Future<Map<MirrorService, List<SlumSite>>>? _inFlightFetch;
+
   /// True when the most recent fetch got at least one mirror (from SLUM
   /// or carried over from cache). The Mirrors page uses it to tell
   /// "nothing changed" apart from "SLUM was unreachable".
@@ -125,18 +129,31 @@ class SlumCatalogue {
   /// [_retryAfterFailedFetch] instead, and a "Try Again"/refresh passes
   /// `force: true`.
   Future<Map<MirrorService, List<SlumSite>>> fetchAll(
-      {bool force = false}) async {
-    if (!force && _isFresh) return _cache;
+      {bool force = false}) {
+    if (!force && _isFresh) return Future.value(_cache);
+
+    // Share an in-progress refresh even for force callers. Starting a second
+    // refresh would race cache merges and persistence writes.
+    final inFlight = _inFlightFetch;
+    if (inFlight != null) return inFlight;
 
     final nothingKnown = _cache.values.every((sites) => sites.isEmpty);
     if (!force &&
         nothingKnown &&
         _lastAttemptAt != null &&
         DateTime.now().difference(_lastAttemptAt!) < _retryAfterFailedFetch) {
-      return _cache;
+      return Future.value(_cache);
     }
     _lastAttemptAt = DateTime.now();
 
+    final future = _fetchAllInternal();
+    _inFlightFetch = future;
+    return future.whenComplete(() {
+      if (identical(_inFlightFetch, future)) _inFlightFetch = null;
+    });
+  }
+
+  Future<Map<MirrorService, List<SlumSite>>> _fetchAllInternal() async {
     final results = await Future.wait([
       for (final service in MirrorService.values) _fetchOne(service),
     ]);

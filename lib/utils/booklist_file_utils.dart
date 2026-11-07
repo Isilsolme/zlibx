@@ -33,8 +33,11 @@ class BooklistFileUtils {
       allowedExtensions: ['json'],
     );
     if (files.isEmpty) return null;
+    if (files.first.size > BooklistShareCodec.maxFileBytes) return null;
 
-    final content = utf8.decode(await files.first.readAsBytes());
+    final bytes = await files.first.readAsBytes();
+    if (bytes.length > BooklistShareCodec.maxFileBytes) return null;
+    final content = utf8.decode(bytes);
     return BooklistShareCodec.tryDecode(content);
   }
 }

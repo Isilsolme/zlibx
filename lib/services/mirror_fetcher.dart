@@ -32,9 +32,10 @@ class MirrorFetcherService {
     final Completer<List<String>> completer = Completer<List<String>>();
     final List<String> bookDownloadLinks = [];
 
+    HeadlessInAppWebView? headlessWebView;
     try {
       // Create a headless webview to load the page
-      final headlessWebView = HeadlessInAppWebView(
+      final webView = HeadlessInAppWebView(
         initialUrlRequest: URLRequest(url: WebUri(url)),
         onLoadStop: (controller, url) async {
           if (url == null) {
@@ -60,7 +61,7 @@ class MirrorFetcherService {
             } else {
               // For other mirror pages, extract all IPFS/mirror links
               String query =
-                  """var ipfsLinkTags=document.querySelectorAll('ul>li>a');var ipfsLinks=[];var getIpfsLinks=()=>{ipfsLinks.forEach(e=>{ipfsLinks.push(e.href)});return ipfsLinks};getIpfsLinks();""";
+                  """Array.from(document.querySelectorAll('ul>li>a')).map(e=>e.href).filter(Boolean);""";
               List<dynamic> mirrorLinks =
                   await controller.evaluateJavascript(source: query);
               bookDownloadLinks.addAll(mirrorLinks.cast<String>());
@@ -88,8 +89,9 @@ class MirrorFetcherService {
         },
       );
 
+      headlessWebView = webView;
       // Run the headless webview
-      await headlessWebView.run();
+      await webView.run();
       _logger.debug('Headless webview started', tag: 'MirrorFetcher');
 
       // Wait for the page to load and links to be extracted
@@ -102,15 +104,18 @@ class MirrorFetcherService {
         },
       );
 
-      // Dispose the headless webview
-      await headlessWebView.dispose();
-      _logger.debug('Headless webview disposed', tag: 'MirrorFetcher', metadata: {'mirrors_found': result.length});
-
+      _logger.debug('Headless webview completed', tag: 'MirrorFetcher', metadata: {'mirrors_found': result.length});
       return result;
     } catch (e, stackTrace) {
       _logger.error('Failed to fetch mirrors', tag: 'MirrorFetcher', error: e, stackTrace: stackTrace);
-      // Return empty list on error
       return [];
+    } finally {
+      try {
+        await headlessWebView?.dispose();
+        _logger.debug('Headless webview disposed', tag: 'MirrorFetcher');
+      } catch (disposeError) {
+        _logger.warning('Headless webview dispose failed', tag: 'MirrorFetcher', error: disposeError);
+      }
     }
   }
 }

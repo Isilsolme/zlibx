@@ -126,7 +126,9 @@ class BooklistShareCodec {
   /// 万能解析：URI / 旧 olib_share / JSON 文本 都能塞进来
   static BooklistShareData? tryDecode(String input) {
     final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty || utf8.encode(trimmed).length > maxFileBytes) {
+      return null;
+    }
 
     // 1) JSON 文件
     if (trimmed.startsWith('{')) {
@@ -143,6 +145,7 @@ class BooklistShareCodec {
           .split(',')
           .map((e) => e.split(':').first.trim())
           .where((e) => e.isNotEmpty)
+          .take(maxBookEntries)
           .toList();
       if (ids.isEmpty) return null;
       return BooklistShareData(
@@ -183,6 +186,7 @@ class BooklistShareCodec {
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
+          .take(maxBookEntries)
           .toList();
       if (ids.isEmpty) return null;
       return BooklistShareData(
@@ -206,13 +210,17 @@ class BooklistShareCodec {
     }
     final entries = rawBooks
         .whereType<Map>()
+        .where((e) {
+          final id = e['id'];
+          return (id is String && id.trim().isNotEmpty) || id is num;
+        })
         .map((e) => BooklistEntry.fromJson({
               'id': e['id'],
               't': e['t'] ?? e['title'],
               'a': e['a'] ?? e['author'],
               'h': e['h'] ?? e['hash'],
             }))
-        .where((e) => e.id.isNotEmpty)
+        .where((e) => e.id.isNotEmpty && e.id != 'null')
         .take(maxBookEntries)
         .toList();
 
