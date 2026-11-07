@@ -34,10 +34,7 @@ dependencies:
     sdk: flutter
 
   # UI & Icons
-  cupertino_icons: ^1.0.8
-  google_fonts: ^6.2.1
   cached_network_image: ^3.3.1
-  flutter_slidable: ^3.1.0
   dropdown_button2: ^2.3.9
   awesome_dialog: ^3.3.0
   # Material You dynamic color (Android 12+): ColorScheme from the wallpaper,
@@ -49,9 +46,9 @@ dependencies:
   
   # HTTP & Network
   dio: ^5.4.3+1
-  dio_cookie_manager: ^3.1.1
-  cookie_jar: ^4.0.8
-  http: ^1.2.0
+  # Imported directly by lib/services/libgen_service.dart and
+  # lib/services/annas_archieve.dart (used to be transitive-only).
+  meta: ^1.18.0
   # HTML parsing for the external book sources (Anna's Archive / LibGen).
   html: ^0.15.6
   
@@ -66,25 +63,20 @@ dependencies:
   flutter_secure_storage: ^11.2.0
 
   path_provider: ^2.1.4
-  permission_handler: ^12.0.1
   open_filex: ^4.4.0
   share_plus: ^13.1.0
   url_launcher: ^6.2.5
   android_intent_plus: ^6.0.0
 
   package_info_plus: ^10.1.0
-  device_info_plus: ^13.1.0
   file_picker: 12.0.0-beta.7
   flutter_inappwebview: ^6.1.5
-  
-  # Data Models
-  freezed_annotation: ^2.4.1
-  json_annotation: ^4.8.1
+
   mobile_scanner: ^7.1.4
   qr_flutter: ^4.1.0
 
-  # 私有 Z-API 客户端 + 数据模型,不对外开放。源码在 vendor/olib_api_plugin/
-  # （本地 + CI 都从 private repo 拉取，vendor/ 在 .gitignore 里）
+  # App's own Z-Library client + data models, rewritten in-repo at
+  # vendor/olib_api_plugin/ (committed to the repo; CI verifies it).
   olib_api_plugin:
     path: vendor/olib_api_plugin
   receive_sharing_intent: ^1.8.0
@@ -95,22 +87,17 @@ dev_dependencies:
 
   # Lints
   flutter_lints: ^5.0.0
-  
-  # Code Generation
-  build_runner: ^2.4.9
-  freezed: ^2.5.2
-  json_serializable: ^6.7.1
-  
+
   # App Icon Generator
   flutter_launcher_icons: ^0.14.2
 
 # App Icon Configuration
 flutter_launcher_icons:
   android: true
-  image_path: "assets/icons/olib-app-logo.png"
+  image_path: "tool/icons/olib-app-logo.png"
   adaptive_icon_background: "#FFEBCC"
-  adaptive_icon_foreground: "assets/icons/olib-app-logo.png"
-  min_sdk_android: 21
+  adaptive_icon_foreground: "tool/icons/olib-app-logo.png"
+  min_sdk_android: 24
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -122,10 +109,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  # To add assets to your application, add an assets section, like this:
-  assets:
-    - assets/icons/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
