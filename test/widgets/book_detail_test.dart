@@ -12,9 +12,9 @@ import 'package:zlibx/screens/book_detail/widgets/book_hero_section.dart';
 import 'package:zlibx/screens/book_detail/widgets/book_info_section.dart';
 
 Widget app(Widget body, {Brightness brightness = Brightness.light,
-  double scale = 1, Widget? actionBar}) => ProviderScope(
+  double scale = 1, Widget? actionBar, Locale locale = const Locale('en')}) => ProviderScope(
   child: MaterialApp(
-    locale: const Locale('en'),
+    locale: locale,
     supportedLocales: supportedLocales,
     localizationsDelegates: const [
       AppLocalizations.delegate,
@@ -117,6 +117,30 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Fiction - Horror'), findsOneWidget);
     expect(find.text('2018'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category chip is localized for the app language',
+      (tester) async {
+    const categorized = Book(
+      id: 7,
+      title: 'Categorized book',
+      author: 'An author',
+      year: 2014,
+      extension: 'epub',
+      filesizeString: '2.12 MB',
+      categories: '{307: History - World history, 271: Fiction - Horror}',
+      hash: 'sample',
+    );
+    await tester.pumpWidget(app(
+      CustomScrollView(slivers: const [BookInfoSection(book: categorized)]),
+      locale: const Locale('zh'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('历史 - 世界历史'), findsOneWidget);
+    expect(find.text('小说 - 恐怖'), findsOneWidget);
+    expect(find.text('History - World history'), findsNothing);
+    expect(find.byIcon(Icons.category_outlined), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 

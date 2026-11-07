@@ -4,6 +4,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../../core/book_description.dart';
 import '../../../models/display_book.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../l10n/book_categories.dart';
 import '../../../routes/app_routes.dart';
 import '../../similar/similar_books_screen.dart';
 import '../../comments/book_comments_screen.dart';
@@ -32,13 +33,16 @@ class BookInfoSection extends StatelessWidget {
           icon: Icons.calendar_today_outlined,
           text: '${book.year}',
         ),
-      // Website category (eapi `categories`, e.g. "Fiction - Horror"):
-      // shown only when the detail response carries one.
-      if (book.categories?.isNotEmpty ?? false)
-        BookDetailTag(
+      // Website categories (eapi `categories`, e.g. `{307: History -
+      // World history}`): one chip per category, localized to the app
+      // language (zh / zh_Hant via the category table; other locales show
+      // the English name from the API).
+      ...parseBookCategories(book.categories).map(
+        (c) => BookDetailTag(
           icon: Icons.category_outlined,
-          text: book.categories!,
+          text: localizedBookCategoryName(c, Localizations.localeOf(context)),
         ),
+      ),
     ];
     final fields = <String, String>{
       if (book.publisher?.isNotEmpty ?? false)
