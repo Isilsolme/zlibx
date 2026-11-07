@@ -30,6 +30,13 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         top: true,
+        // No bottom inset: the tab already reserves the floating nav
+        // bar's height via the outer bottom padding, and extendBody
+        // rewrites the MediaQuery bottom padding to that same height,
+        // so a bottom SafeArea would count it twice and leave a dead
+        // band of scaffold background above the pill. (AccountScreen
+        // already does this.)
+        bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
