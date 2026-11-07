@@ -74,6 +74,7 @@ keystore_base64.txt
 api_dump/
 test/*
 !test/widgets/
+!test/parsers/
 debug/
 publish_page/
 dev_docs/*
