@@ -44,11 +44,11 @@ void main() {
     test('zh shows the Chinese name', () {
       expect(
         localizedBookCategoryName(worldHistory, const Locale('zh')),
-        '历史 - 世界历史',
+        '世界历史',
       );
       expect(
         localizedBookCategoryName(horror, const Locale('zh')),
-        '小说 - 恐怖',
+        '恐怖',
       );
     });
 
@@ -59,11 +59,35 @@ void main() {
       );
       expect(
         localizedBookCategoryName(worldHistory, hant),
-        '歷史 - 世界歷史',
+        '世界歷史',
       );
       expect(
         localizedBookCategoryName(worldHistory, const Locale('zh', 'TW')),
-        '歷史 - 世界歷史',
+        '世界歷史',
+      );
+    });
+
+    test('a long parent name is dropped and the region shortens (613)', () {
+      const euroAmericanPhilosophy = (
+        id: 613,
+        name: 'Society, Politics & Philosophy - European & american philosophy',
+      );
+      expect(
+        localizedBookCategoryName(
+          euroAmericanPhilosophy,
+          const Locale('zh'),
+        ),
+        '欧美哲学',
+      );
+      expect(
+        localizedBookCategoryName(
+          euroAmericanPhilosophy,
+          const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+          ),
+        ),
+        '歐美哲學',
       );
     });
 

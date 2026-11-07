@@ -137,8 +137,8 @@ void main() {
       locale: const Locale('zh'),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('历史 - 世界历史'), findsOneWidget);
-    expect(find.text('小说 - 恐怖'), findsOneWidget);
+    expect(find.text('世界历史'), findsOneWidget);
+    expect(find.text('恐怖'), findsOneWidget);
     expect(find.text('History - World history'), findsNothing);
     expect(find.byIcon(Icons.category_outlined), findsNWidgets(2));
     expect(tester.takeException(), isNull);
