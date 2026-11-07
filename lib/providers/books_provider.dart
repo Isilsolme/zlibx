@@ -310,7 +310,7 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
   }
 
   /// NetworkError carries a human-readable userMessage (its toString is
-  /// just "NetworkError.<type>"); surface that, fall back to toString.
+  /// just `NetworkError.<type>`); surface that, fall back to toString.
   static String _errorMessage(Object e) {
     if (e is NetworkError) return e.userMessage;
     return e.toString();

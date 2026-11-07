@@ -13,13 +13,10 @@ class BookDetailArgs {
   final Book? book;
   final DisplayBook? displayBook;
 
-  const BookDetailArgs({required Book book})
-    : book = book,
-      displayBook = null;
+  const BookDetailArgs({required this.book}) : displayBook = null;
 
-  const BookDetailArgs.fromDisplayBook({required DisplayBook displayBook})
-    : book = null,
-      displayBook = displayBook;
+  const BookDetailArgs.fromDisplayBook({required this.displayBook})
+    : book = null;
 
   /// 是否 Anna's Archive 详情（按 DisplayBook.source 判断）。
   bool get isAnnasArchive => displayBook?.isAnnasArchive ?? false;

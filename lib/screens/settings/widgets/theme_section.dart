@@ -102,7 +102,7 @@ class AppearanceSheet extends ConsumerWidget {
         SwitchListTile(
           title: Text(t.get('system')),
           value: followingSystem,
-          activeColor: cs.primary,
+          activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: (value) {
             ref.read(themeModeProvider.notifier).setThemeMode(
@@ -113,7 +113,7 @@ class AppearanceSheet extends ConsumerWidget {
         SwitchListTile(
           title: Text(t.get('dark_mode')),
           value: themeMode == AppThemeMode.dark,
-          activeColor: cs.primary,
+          activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: followingSystem
               ? null
@@ -126,7 +126,7 @@ class AppearanceSheet extends ConsumerWidget {
         SwitchListTile(
           title: Text(t.get('blur_effect')),
           value: blurEnabled,
-          activeColor: cs.primary,
+          activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: (value) {
             ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
@@ -135,7 +135,7 @@ class AppearanceSheet extends ConsumerWidget {
         SwitchListTile(
           title: Text(t.get('floating_nav')),
           value: floatingNav,
-          activeColor: cs.primary,
+          activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: (value) {
             ref.read(floatingNavProvider.notifier).setFloatingNav(value);
@@ -144,7 +144,7 @@ class AppearanceSheet extends ConsumerWidget {
         SwitchListTile(
           title: Text(t.get('hide_nav_on_scroll')),
           value: hideNavOnScroll,
-          activeColor: cs.primary,
+          activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: floatingNav
               ? (value) {

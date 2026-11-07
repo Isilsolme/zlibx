@@ -4,7 +4,7 @@ import 'translations/en.dart' as t_en;
 import 'translations/ja.dart' as t_ja;
 import 'translations/ko.dart' as t_ko;
 import 'translations/zh.dart' as t_zh;
-import 'translations/zh_Hant.dart' as t_zh_hant;
+import 'translations/zh_hant.dart' as t_zh_hant;
 
 /// App translations for all supported languages
 class AppLocalizations {
@@ -21,7 +21,7 @@ class AppLocalizations {
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': t_en.en,
     'zh': t_zh.zh,
-    'zh_Hant': t_zh_hant.zh_Hant,
+    'zh_Hant': t_zh_hant.zhHant,
     'ja': t_ja.ja,
     'ko': t_ko.ko,
   };

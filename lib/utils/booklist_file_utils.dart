@@ -15,9 +15,11 @@ class BooklistFileUtils {
     final ts = DateTime.now().millisecondsSinceEpoch;
     final file = File('${dir.path}/olib_booklist_$ts.json');
     await file.writeAsString(json);
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json')],
-      text: 'zlibx booklist (${data.entries.length} books)',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json')],
+        text: 'zlibx booklist (${data.entries.length} books)',
+      ),
     );
   }
 

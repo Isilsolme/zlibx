@@ -792,10 +792,12 @@ class ZLibraryApi {
     final raw = await _get('/eapi/book/$bookId/$hashId/similar');
     if (raw.status == 404) {
       final info = await getBookInfo(bookId, hashId);
-      if (!info.success || info.data == null) return ApiResponse.fail(
-        info.error ?? 'similar failed',
-        statusCode: info.statusCode,
-      );
+      if (!info.success || info.data == null) {
+        return ApiResponse.fail(
+          info.error ?? 'similar failed',
+          statusCode: info.statusCode,
+        );
+      }
       final res = await search(message: info.data!.title, limit: 20);
       if (!res.success) return res;
       final books =

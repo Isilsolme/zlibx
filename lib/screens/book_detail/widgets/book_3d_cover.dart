@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' show BlurStyle, MaskFilter;
 
 import 'package:flutter/material.dart';
 
@@ -166,7 +165,7 @@ class _Book3DCoverState extends State<Book3DCover>
             child: Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()
-                ..translate(0.0, 0.0, -depth / 2)
+                ..translateByDouble(0.0, 0.0, -depth / 2, 1.0)
                 ..rotateY(math.pi),
               child: DecoratedBox(
                 decoration: BoxDecoration(

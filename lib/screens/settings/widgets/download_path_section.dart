@@ -160,7 +160,7 @@ class DownloadPathSection extends ConsumerWidget {
                                         ? '无法打开文件夹'
                                         : 'Could not open folder')),
                                   );
-                                } else {
+                                } else if (context.mounted) {
                                   Navigator.pop(context);
                                 }
                               },

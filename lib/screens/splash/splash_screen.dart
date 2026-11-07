@@ -236,6 +236,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final authState = ref.read(authProvider);
       if (!authState.isLoading) {
         // Auth finished loading
+        if (!mounted) return;
         if (authState.isAuthenticated) {
           Navigator.of(context).pushReplacementNamed(AppRoutes.home);
         } else {

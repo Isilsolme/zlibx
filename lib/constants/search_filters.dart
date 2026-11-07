@@ -1,4 +1,5 @@
 /// Search filter constants for book search API
+library;
 
 /// Language options for book search
 const searchLanguages = {

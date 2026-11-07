@@ -68,7 +68,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   /// 会话改走 WebView Cookie（HttpOnly + Secure），不再拼进 URL。
-  /// 阅读页在 reader.<domain>，其 API 也可能走 <domain>，两个 host 都写。
+  /// 阅读页在 reader.`<domain>`，其 API 也可能走 `<domain>`，两个 host 都写。
   Future<void> _installSessionCookies() async {
     final userId = widget.remixUserId;
     final userKey = widget.remixUserKey;
@@ -166,10 +166,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
         'entries': _probeLog,
       };
       await file.writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        subject: 'Litera Probe Log (${_probeLog.length} entries)',
-        text: '${_probeLog.length} 条资源记录',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          subject: 'Litera Probe Log (${_probeLog.length} entries)',
+          text: '${_probeLog.length} 条资源记录',
+        ),
       );
     } catch (e) {
       if (mounted) {
