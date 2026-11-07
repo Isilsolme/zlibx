@@ -22,9 +22,12 @@ class BookCommentsArgs {
 
 /// Book comments — view, post, reply and like.
 ///
-/// Loads the site's own `papi/` comments endpoint page by page (50 per
-/// page, 0-based) until a short page arrives. Replies (`parent_id` set)
-/// are indented. Posting and liking use the same `papi/` API the site's
+/// Loads the site's own `papi/` comments endpoint (50 per page,
+/// 0-based) until a short page arrives, then shows the newest thread
+/// first: the endpoint has no sort parameter, so every page is pulled
+/// on open, grouped into threads, and reversed; scrolling reveals more
+/// from the loaded list locally. Replies (`parent_id` set) are
+/// indented. Posting and liking use the same `papi/` API the site's
 /// own frontend uses (captured 2026-11-06). Requires a logged-in
 /// session: logged-out users get a login prompt instead of a request.
 class BookCommentsScreen extends ConsumerStatefulWidget {
@@ -38,15 +41,19 @@ class BookCommentsScreen extends ConsumerStatefulWidget {
 class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   static const int _pageSize = 50;
 
+  /// Safety cap on pages fetched in one open (20 pages = 1000
+  /// comments): beyond that the oldest comments simply stay unfetched.
+  static const int _maxFetchPages = 20;
+
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _composerController = TextEditingController();
   final FocusNode _composerFocus = FocusNode();
   final List<BookComment> _comments = [];
   final Set<int> _likingIds = {};
-  int _nextPage = 0;
+  final Map<int, int> _replyCounts = {};
+  int _visibleCount = _pageSize;
   bool _hasMore = true;
   bool _isLoading = true;
-  bool _isLoadingMore = false;
   bool _hasError = false;
   String _errorMessage = '';
   bool _disabled = false;
@@ -70,9 +77,17 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   }
 
   void _onScroll() {
-    if (!_hasMore || _isLoadingMore || _isLoading || _hasError) return;
+    if (!_hasMore || _isLoading || _hasError) return;
     if (_scrollController.position.extentAfter < 300) {
-      _loadPage(_nextPage);
+      // Local pagination: the whole list is already loaded, so
+      // scrolling just reveals more of it.
+      setState(() {
+        _visibleCount += _pageSize;
+        if (_visibleCount >= _comments.length) {
+          _visibleCount = _comments.length;
+          _hasMore = false;
+        }
+      });
     }
   }
 
@@ -116,10 +131,13 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                 _comments.indexWhere((c) => c.id == replyTo.id);
             if (parentIndex >= 0) {
               _comments.insert(parentIndex + 1, posted);
+              _replyCounts[replyTo.id] =
+                  (_replyCounts[replyTo.id] ?? 0) + 1;
             } else {
               _comments.insert(0, posted);
             }
           }
+          if (_comments.length > _visibleCount) _hasMore = true;
           _composerController.clear();
           _replyTo = null;
           _isPosting = false;
@@ -197,65 +215,77 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       _isLoading = true;
       _hasError = false;
       _comments.clear();
-      _nextPage = 0;
+      _replyCounts.clear();
+      _visibleCount = _pageSize;
       _hasMore = true;
       _disabled = false;
     });
-    await _loadPage(0);
+    await _loadAll();
     if (mounted) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loadPage(int page) async {
+  /// Fetch every page (oldest first, until a short page) and show the
+  /// newest thread first. The endpoint has no sort parameter and no
+  /// total, so the whole list is pulled on open and paged locally
+  /// afterwards; a later page failing just stops the fetch and shows
+  /// what arrived so far.
+  Future<void> _loadAll() async {
     final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
     final api = ref.read(zlibraryApiProvider);
-    if (page > 0) {
-      setState(() => _isLoadingMore = true);
-    }
-    try {
-      final response = await api.getBookComments(
-        args.bookId.toString(),
-        page: page,
-        limit: _pageSize,
-      );
-      if (!mounted) return;
-      if (response.success && response.data != null) {
-        final data = response.data!;
-        setState(() {
-          if (data.disabled) {
-            _disabled = true;
-            _hasMore = false;
-          } else {
-            _comments.addAll(data.comments);
-            _hasMore = data.comments.length >= _pageSize;
-            _nextPage = page + 1;
-          }
-          _isLoadingMore = false;
-        });
-      } else {
-        setState(() {
-          _isLoadingMore = false;
+    final collected = <BookComment>[];
+    var disabled = false;
+    var error = '';
+    for (var page = 0; page < _maxFetchPages; page++) {
+      try {
+        final response = await api.getBookComments(
+          args.bookId.toString(),
+          page: page,
+          limit: _pageSize,
+        );
+        if (!mounted) return;
+        if (!response.success || response.data == null) {
           if (page == 0) {
-            _hasError = true;
-            _errorMessage = response.error ?? 'Failed to load comments';
-          } else {
-            _hasMore = false;
+            error = response.error ?? 'Failed to load comments';
           }
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingMore = false;
-        if (page == 0) {
-          _hasError = true;
-          _errorMessage = e.toString();
-        } else {
-          _hasMore = false;
+          break;
         }
-      });
+        final data = response.data!;
+        if (data.disabled) {
+          disabled = true;
+          break;
+        }
+        collected.addAll(data.comments);
+        if (data.comments.length < _pageSize) break;
+      } catch (e) {
+        if (page == 0) error = e.toString();
+        break;
+      }
     }
+    if (!mounted) return;
+    setState(() {
+      if (disabled) {
+        _disabled = true;
+        _hasMore = false;
+      } else if (error.isNotEmpty && collected.isEmpty) {
+        _hasError = true;
+        _errorMessage = error;
+      } else {
+        _comments
+          ..clear()
+          ..addAll(orderCommentsNewestFirst(collected));
+        _replyCounts.clear();
+        for (final comment in _comments) {
+          final parentId = comment.parentId;
+          if (parentId != null) {
+            _replyCounts[parentId] = (_replyCounts[parentId] ?? 0) + 1;
+          }
+        }
+        _visibleCount = _pageSize;
+        _hasMore = _comments.length > _visibleCount;
+      }
+    });
   }
 
   @override
@@ -342,21 +372,21 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 8,
                                       ),
-                                      itemCount:
-                                          _comments.length +
-                                          (_isLoadingMore ? 1 : 0),
+                                      itemCount: _visibleCount <
+                                              _comments.length
+                                          ? _visibleCount
+                                          : _comments.length,
                                       separatorBuilder: (context, index) =>
                                           const Divider(
                                             height: 1,
                                             indent: 68,
                                           ),
                                       itemBuilder: (context, index) {
-                                        if (index >= _comments.length) {
-                                          return const LoadingWidget.more();
-                                        }
                                         final comment = _comments[index];
                                         return _CommentRow(
                                           comment: comment,
+                                          replyCount:
+                                              _replyCounts[comment.id] ?? 0,
                                           likePending: _likingIds.contains(
                                             comment.id,
                                           ),
@@ -482,12 +512,14 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
 class _CommentRow extends StatelessWidget {
   final BookComment comment;
+  final int replyCount;
   final bool likePending;
   final VoidCallback onLike;
   final VoidCallback onReply;
 
   const _CommentRow({
     required this.comment,
+    required this.replyCount,
     required this.likePending,
     required this.onLike,
     required this.onReply,
@@ -495,7 +527,6 @@ class _CommentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final date = comment.dateRelative.isNotEmpty
         ? comment.dateRelative
@@ -526,25 +557,12 @@ class _CommentRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        comment.userName,
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      date,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+                Text(
+                  comment.userName,
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -554,6 +572,40 @@ class _CommentRow extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Text(
+                      date,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    InkWell(
+                      onTap: onReply,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              size: 16,
+                              color: cs.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              replyCount.toString(),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
                     InkWell(
                       onTap: likePending ? null : onLike,
                       borderRadius: BorderRadius.circular(12),
@@ -574,44 +626,15 @@ class _CommentRow extends StatelessWidget {
                                   ? cs.primary
                                   : cs.onSurfaceVariant,
                             ),
-                            if (comment.likeCount > 0) ...[
-                              const SizedBox(width: 4),
-                              Text(
-                                comment.likeCount.toString(),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: comment.isLiked
-                                          ? cs.primary
-                                          : cs.onSurfaceVariant,
-                                    ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    InkWell(
-                      onTap: onReply,
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.reply_rounded,
-                              size: 16,
-                              color: cs.onSurfaceVariant,
-                            ),
                             const SizedBox(width: 4),
                             Text(
-                              l10n.get('reply'),
+                              comment.likeCount.toString(),
                               style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: cs.onSurfaceVariant),
+                                  ?.copyWith(
+                                    color: comment.isLiked
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),

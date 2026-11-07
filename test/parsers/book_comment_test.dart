@@ -62,6 +62,74 @@ void main() {
     });
   });
 
+  group('orderCommentsNewestFirst', () {
+    BookComment comment(int id, {int? parentId}) => BookComment(
+          id: id,
+          parentId: parentId,
+          userId: 1,
+          text: 'c$id',
+          date: '2022-01-01 00:00:00',
+          userName: 'u',
+          userAvatar: '',
+          dateRelative: '',
+          isCurrentUser: false,
+        );
+
+    List<int> ids(List<BookComment> comments) =>
+        comments.map((c) => c.id).toList();
+
+    test('threads reverse, replies stay after their parent', () {
+      expect(
+        ids(orderCommentsNewestFirst([
+          comment(1),
+          comment(11, parentId: 1),
+          comment(12, parentId: 1),
+          comment(2),
+          comment(21, parentId: 2),
+          comment(3),
+        ])),
+        [3, 2, 21, 1, 11, 12],
+      );
+    });
+
+    test('orphan reply keeps its server position', () {
+      expect(
+        ids(orderCommentsNewestFirst([
+          comment(1),
+          comment(99, parentId: 999),
+          comment(2),
+        ])),
+        [2, 99, 1],
+      );
+    });
+
+    test('reply before its parent still attaches', () {
+      expect(
+        ids(orderCommentsNewestFirst([
+          comment(11, parentId: 1),
+          comment(1),
+        ])),
+        [1, 11],
+      );
+    });
+
+    test('nested reply joins the ancestor thread', () {
+      expect(
+        ids(orderCommentsNewestFirst([
+          comment(1),
+          comment(2, parentId: 1),
+          comment(3, parentId: 2),
+        ])),
+        [1, 2, 3],
+      );
+    });
+
+    test('empty and single-comment lists pass through', () {
+      expect(orderCommentsNewestFirst(const []), isEmpty);
+      expect(ids(orderCommentsNewestFirst([comment(1)])), [1]);
+    });
+  });
+
   group('commentTitlesOf', () {
     test('map form keyed by book id, string and map values', () {
       final titles = commentTitlesOf(const {

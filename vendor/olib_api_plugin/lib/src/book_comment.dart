@@ -111,6 +111,66 @@ class BookCommentsPage {
   });
 }
 
+/// Reorder a server-order comment list (oldest first, replies directly
+/// after their parent) so the newest thread comes first: group each
+/// top-level comment with its replies, in server order, then reverse
+/// the thread order. Replies keep their position directly after their
+/// parent; a reply whose parent is missing (deleted, or not fetched)
+/// becomes its own thread at its server position. The site's read
+/// endpoint has no sort parameter and no total, so this is how the
+/// newest-first view is built client-side.
+List<BookComment> orderCommentsNewestFirst(List<BookComment> serverOrder) {
+  // Threads in server order, plus the server index each thread starts
+  // at (top-level comment, or first orphan reply).
+  final threads = <List<BookComment>>[];
+  final threadPositions = <int>[];
+  // Comment id -> thread index, for every comment placed so far.
+  final threadOf = <int, int>{};
+  // Replies whose parent has not been placed yet, keyed by parent id.
+  final pending = <int, List<BookComment>>{};
+  final pendingFirstIndex = <int, int>{};
+
+  void place(BookComment comment, int threadIndex) {
+    threads[threadIndex].add(comment);
+    threadOf[comment.id] = threadIndex;
+    // A reply waiting on this comment joins the same thread now.
+    final waiting = pending.remove(comment.id);
+    if (waiting != null) {
+      for (final reply in waiting) {
+        place(reply, threadIndex);
+      }
+    }
+  }
+
+  for (var i = 0; i < serverOrder.length; i++) {
+    final comment = serverOrder[i];
+    final parentId = comment.parentId;
+    if (parentId == null) {
+      threads.add(<BookComment>[]);
+      threadPositions.add(i);
+      place(comment, threads.length - 1);
+    } else if (threadOf.containsKey(parentId)) {
+      place(comment, threadOf[parentId]!);
+    } else {
+      pending.putIfAbsent(parentId, () => <BookComment>[]);
+      pendingFirstIndex.putIfAbsent(parentId, () => i);
+      pending[parentId]!.add(comment);
+    }
+  }
+  for (final entry in pending.entries) {
+    threads.add(entry.value);
+    threadPositions.add(pendingFirstIndex[entry.key]!);
+  }
+
+  final order = List<int>.generate(threads.length, (i) => i)
+    ..sort((a, b) => threadPositions[b].compareTo(threadPositions[a]));
+  final ordered = <BookComment>[];
+  for (final index in order) {
+    ordered.addAll(threads[index]);
+  }
+  return ordered;
+}
+
 /// One of the signed-in user's own comments, with the book it was posted
 /// on, from the website's profile Comments tab:
 /// `GET /papi/comments/user/{userId}/{page}?limit={limit}`.

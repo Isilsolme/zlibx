@@ -144,9 +144,10 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
   }
 }
 
-/// Same card styling as the per-book comments list
+/// Same row styling as the per-book comments list
 /// ([book_comments_screen.dart]'s comment row): book header, avatar +
-/// name + date, text, and a read-only like count.
+/// name, text, and a bottom row with the date on the left and a
+/// read-only like count on the right.
 class _MyCommentCard extends StatelessWidget {
   final MyComment comment;
   final String userName;
@@ -202,48 +203,40 @@ class _MyCommentCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              userName,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w600),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            comment.date,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ],
+                      Text(
+                        userName,
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         comment.text,
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                      if (comment.likeCount > 0) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.thumb_up_outlined,
-                              size: 16,
-                              color: cs.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              comment.likeCount.toString(),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ],
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            comment.date,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                          const Spacer(),
+                          Icon(
+                            Icons.thumb_up_outlined,
+                            size: 16,
+                            color: cs.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            comment.likeCount.toString(),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
