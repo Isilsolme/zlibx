@@ -35,7 +35,6 @@
 import 'dart:async';
 
 // Package imports:
-import 'package:dio/dio.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:

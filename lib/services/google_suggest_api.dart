@@ -8,11 +8,8 @@
 // list instead — a failed suggestion fetch must stay silent and never
 // show an error as if it were a suggestion.
 
-// Dart imports:
-import 'package:dio/dio.dart';
-
 // Project imports:
-import 'http_client.dart';
+import 'package:zlibx/services/http_client.dart';
 
 class GoogleSuggestApi {
   // Base URL for the Google Autocomplete service

@@ -3,9 +3,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:olib_mobile/models/display_book.dart';
-import 'package:olib_mobile/theme/app_theme.dart';
-import 'package:olib_mobile/widgets/book_cover_backdrop.dart';
+import 'package:zlibx/models/display_book.dart';
+import 'package:zlibx/theme/app_theme.dart';
+import 'package:zlibx/widgets/book_cover_backdrop.dart';
 
 void main() {
   const book = DisplayBook(

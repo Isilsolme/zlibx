@@ -3,13 +3,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
-import 'package:olib_mobile/l10n/app_localizations.dart';
-import 'package:olib_mobile/models/display_book.dart';
-import 'package:olib_mobile/providers/download_provider.dart';
-import 'package:olib_mobile/screens/book_detail/widgets/book_action_bar.dart';
-import 'package:olib_mobile/screens/book_detail/widgets/book_detail_content.dart';
-import 'package:olib_mobile/screens/book_detail/widgets/book_hero_section.dart';
-import 'package:olib_mobile/screens/book_detail/widgets/book_info_section.dart';
+import 'package:zlibx/l10n/app_localizations.dart';
+import 'package:zlibx/models/display_book.dart';
+import 'package:zlibx/providers/download_provider.dart';
+import 'package:zlibx/screens/book_detail/widgets/book_action_bar.dart';
+import 'package:zlibx/screens/book_detail/widgets/book_detail_content.dart';
+import 'package:zlibx/screens/book_detail/widgets/book_hero_section.dart';
+import 'package:zlibx/screens/book_detail/widgets/book_info_section.dart';
 
 Widget app(Widget body, {Brightness brightness = Brightness.light,
   double scale = 1, Widget? actionBar}) => ProviderScope(
@@ -37,6 +37,12 @@ void main() {
     author: 'An author with a long name', publisher: 'A publishing house with a long name',
     pages: 300, language: 'English', year: 2026, extension: 'epub',
     filesizeString: '12 MB', hash: 'sample', readOnlineUrl: 'https://example.com/read');
+  // Book has no copyWith: build the described variant as a new literal.
+  final describedBook = Book(id: book.id, title: book.title,
+    author: book.author, publisher: book.publisher, pages: book.pages,
+    language: book.language, year: book.year, extension: book.extension,
+    filesizeString: book.filesizeString, hash: book.hash,
+    readOnlineUrl: book.readOnlineUrl, description: longText);
   testWidgets('short description needs no expansion control', (tester) async {
     await tester.pumpWidget(app(const BookDetailDescription(text: 'Short introduction.')));
     await tester.pumpAndSettle();
@@ -72,7 +78,7 @@ void main() {
         await tester.binding.setSurfaceSize(const Size(320, 740));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         for (final section in [
-          BookInfoSection(book: book.copyWith(description: longText)),
+          BookInfoSection(book: describedBook),
         ]) {
           await tester.pumpWidget(app(CustomScrollView(slivers: [section]),
             brightness: brightness, scale: scale));
@@ -93,7 +99,7 @@ void main() {
     addTearDown(controller.dispose);
     await tester.pumpWidget(app(CustomScrollView(controller: controller, slivers: const [
       BookHeroSection(book: DisplayBook(id: '7', title: 'Scroll title', source: BookSource.zlibrary),
-        isDark: false, isFavorited: false),
+        isFavorited: false),
       SliverToBoxAdapter(child: SizedBox(height: 1500)),
     ])));
     await tester.pumpAndSettle();
