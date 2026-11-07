@@ -7,9 +7,11 @@ import '../../routes/app_routes.dart';
 import '../../widgets/empty_state.dart';
 
 /// Account tab (third nav destination): the signed-in user's profile
-/// header plus three entry cards — My Library (the old bookshelf
-/// screen, unchanged), My Comments (comments the user posted) and
-/// Booklists (own + public booklists, read-only v1).
+/// header plus four entry cards — My Library (the old bookshelf
+/// screen, unchanged), My Comments (comments the user posted),
+/// Booklists (own + public booklists, read-only v1) and Download
+/// History (cloud — books downloaded on any device, moved here from
+/// Settings).
 ///
 /// No AppBar: as a tab the page starts below the status bar (SafeArea)
 /// and the bottom nav already says where you are. The detail page's
@@ -68,6 +70,14 @@ class AccountScreen extends ConsumerWidget {
                     subtitle: l10n.get('booklists_subtitle'),
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.booklists),
+                  ),
+                  const SizedBox(height: 12),
+                  _EntryCard(
+                    icon: Icons.history,
+                    title: l10n.get('download_history'),
+                    subtitle: l10n.get('books_downloaded_any_device'),
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(AppRoutes.history),
                   ),
                 ],
               ),

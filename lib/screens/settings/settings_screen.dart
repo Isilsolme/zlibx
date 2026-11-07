@@ -62,15 +62,6 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── Library ──────────────────────────────────────────────
           SectionHeader(icon: Icons.menu_book_rounded, title: t.get('library')),
-          SettingsCard(
-            child: ListTile(
-              leading: const Icon(Icons.history),
-              title: Text(t.get('download_history')),
-              subtitle: Text(t.get('books_downloaded_any_device')),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).pushNamed(AppRoutes.history),
-            ),
-          ),
           const DownloadPathSection(),
           const DonationKeySection(),
 
