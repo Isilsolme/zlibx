@@ -32,6 +32,13 @@ class BookInfoSection extends StatelessWidget {
           icon: Icons.calendar_today_outlined,
           text: '${book.year}',
         ),
+      // Website category (eapi `categories`, e.g. "Fiction - Horror"):
+      // shown only when the detail response carries one.
+      if (book.categories?.isNotEmpty ?? false)
+        BookDetailTag(
+          icon: Icons.category_outlined,
+          text: book.categories!,
+        ),
     ];
     final fields = <String, String>{
       if (book.publisher?.isNotEmpty ?? false)

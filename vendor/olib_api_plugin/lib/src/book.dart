@@ -18,6 +18,11 @@ class Book {
   final String? publisher;
   final int? year;
   final String? language;
+
+  /// Website category, e.g. "Fiction - Horror" (eapi `categories`).
+  /// Present only when the detail response carries it — not every book
+  /// has one, so the detail page shows the chip only when non-empty.
+  final String? categories;
   final int? pages;
   final String? series;
   final String? extension;
@@ -39,6 +44,7 @@ class Book {
     this.publisher,
     this.year,
     this.language,
+    this.categories,
     this.pages,
     this.series,
     this.extension,
@@ -64,6 +70,7 @@ class Book {
       publisher: _asString(json['publisher']),
       year: _asInt(json['year']),
       language: _asString(json['language']),
+      categories: _joinCategories(json['categories']),
       pages: _asInt(json['pages']),
       series: _asString(json['series']),
       extension: _asString(json['extension']),
@@ -102,6 +109,7 @@ class Book {
     if (publisher != null) 'publisher': publisher,
     if (year != null) 'year': year,
     if (language != null) 'language': language,
+    if (categories != null) 'categories': categories,
     if (pages != null) 'pages': pages,
     if (series != null) 'series': series,
     if (extension != null) 'extension': extension,
@@ -130,6 +138,19 @@ class Book {
       return v.map((e) => e.toString()).where((e) => e.isNotEmpty).join(', ');
     }
     return _asString(v);
+  }
+
+  /// Categories arrive as one string ("Fiction - Horror") in the eapi
+  /// detail response; a list form is joined the same way as authors.
+  static String? _joinCategories(dynamic v) {
+    if (v == null) return null;
+    if (v is List) {
+      final parts =
+          v.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+      return parts.isEmpty ? null : parts.join(', ');
+    }
+    final text = _asString(v);
+    return text == null || text.isEmpty ? null : text;
   }
 
   static String? _filesizeString(Map<String, dynamic> json) {

@@ -207,6 +207,29 @@ void main() {
           .filesizeString, '2.0 KB');
     });
 
+    test('categories parse from string and list forms', () {
+      expect(
+        Book.fromJson(const {
+          'id': 1,
+          'title': 'T',
+          'categories': 'Fiction - Horror',
+        }).categories,
+        'Fiction - Horror',
+      );
+      expect(
+        Book.fromJson(const {
+          'id': 1,
+          'title': 'T',
+          'categories': ['Fiction', 'Horror'],
+        }).categories,
+        'Fiction, Horror',
+      );
+      expect(
+        Book.fromJson(const {'id': 1, 'title': 'T'}).categories,
+        isNull,
+      );
+    });
+
     test('minimal json degrades to defaults', () {
       final book = Book.fromJson(const {'id': 2, 'title': 'T'});
       expect(book.hash, isNull);

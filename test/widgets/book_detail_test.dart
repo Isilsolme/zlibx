@@ -99,6 +99,37 @@ void main() {
     }
   }
 
+  testWidgets('category chip shows when the detail carries categories',
+      (tester) async {
+    const categorized = Book(
+      id: 7,
+      title: 'Categorized book',
+      author: 'An author',
+      year: 2018,
+      extension: 'epub',
+      filesizeString: '5.72 MB',
+      categories: 'Fiction - Horror',
+      hash: 'sample',
+    );
+    await tester.pumpWidget(app(
+      CustomScrollView(slivers: const [BookInfoSection(book: categorized)]),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Fiction - Horror'), findsOneWidget);
+    expect(find.text('2018'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('no category chip when the detail carries none',
+      (tester) async {
+    await tester.pumpWidget(app(
+      CustomScrollView(slivers: [BookInfoSection(book: book)]),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.category_outlined), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('hero reveals the toolbar title after scrolling', (tester) async {
     final controller = ScrollController();
     addTearDown(controller.dispose);
