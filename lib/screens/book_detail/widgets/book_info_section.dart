@@ -65,7 +65,20 @@ class BookInfoSection extends StatelessWidget {
             BookDetailHeading(book: book.toDisplay(), subtitle: book.series),
             if (tags.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Wrap(spacing: 8, runSpacing: 8, children: tags),
+              // One row, never wrapped below: a category name can be long,
+              // so the row scrolls horizontally instead of dropping tags
+              // onto a second line.
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < tags.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      tags[i],
+                    ],
+                  ],
+                ),
+              ),
             ],
             if (description != null) ...[
               const SizedBox(height: 28),
