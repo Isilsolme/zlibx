@@ -24,11 +24,13 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 - Search: `search({message, yearFrom, yearTo, languages, extensions,
   order, page, limit})` — POST form, repeated keys for list values.
   `ApiResponse.meta['total_pages']` drives pagination.
-- Lists: `getBookInfo(bookId, hashId)`, `getMostPopular()`,
+- Lists: `getBookInfo(bookId, hashId, {title})` (with `title`, an
+  `Invalid hash` failure resolves the real eapi hash via a title
+  search matched by id and retries once), `getMostPopular()`,
   `getUserRecommended()`, `getRecently()`, `getUserSaved({page, limit})`,
   `getUserDownloaded({limit})`, `saveBook(bookId)`, `unsaveUserBook(bookId)`,
   `similar(bookId, hashId)`.
-- Download: `downloadBook(bookId, hash, savePath, {onProgress, cancelToken})`
+- Download: `downloadBook(bookId, hash, savePath, {onProgress, cancelToken, title})`
   — Dio `CancelToken`, `(received, total)` progress, throws on failure.
 - Error contract: `error == 'cf_blocked'` for Cloudflare walls, and
   timeout/socket/connection substrings for transient failures — the app's
@@ -41,8 +43,8 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | login | POST `/eapi/user/login` (+ website-login fields; falls back to POST `/rpc.php` on the same mirror if eapi login fails) | Eapi shape confirmed by independent public eapi clients (incl. heartleo/zlib, email+password only); the extra fields + rpc fallback were added 2026-11-05 after the app's community mirrors answered email+password-only with HTTP 400 on every line while the original app logs in — NOT yet live-verified |
 | loginWithToken / getProfile | GET `/eapi/user/profile` | Confirmed (also named in the app's own auth comment) |
 | search | POST `/eapi/book/search` | Confirmed, same parameter names |
-| getBookInfo | GET `/eapi/book/{id}/{hash}` | Confirmed |
-| downloadBook | GET `/eapi/book/{id}/{hash}/file` then stream the returned link | Confirmed |
+| getBookInfo | GET `/eapi/book/{id}/{hash}` | Confirmed; a webpage short hash is rejected with `Invalid hash` — with `title` the call resolves the real hash via a title search (matched by id) and retries once |
+| downloadBook | GET `/eapi/book/{id}/{hash}/file` then stream the returned link | Confirmed; same `Invalid hash` fallback as `getBookInfo` when `title` is given |
 | getUserSaved | GET `/eapi/user/book/saved` | Confirmed |
 | unsaveUserBook | GET `/eapi/user/book/{id}/unsave` | Confirmed |
 | getUserDownloaded | GET `/eapi/user/book/downloaded` | Confirmed by parameter shape in public clients |

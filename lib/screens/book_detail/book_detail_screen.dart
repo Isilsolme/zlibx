@@ -42,7 +42,11 @@ class BookDetailScreen extends ConsumerWidget {
         initialBook.readOnlineUrl?.isNotEmpty != true ||
         normalizedBookDescription(initialBook.description) == null;
     final identifier = needsDetails && hash != null && hash.isNotEmpty
-        ? BookIdentifier(initialBook.id.toString(), hash)
+        ? BookIdentifier(
+            initialBook.id.toString(),
+            hash,
+            title: initialBook.title,
+          )
         : null;
     final details = identifier == null
         ? null

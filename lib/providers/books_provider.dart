@@ -166,7 +166,11 @@ final bookDetailsProvider = FutureProvider.family<Book, BookIdentifier>((
   identifier,
 ) async {
   final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getBookInfo(identifier.bookId, identifier.hashId);
+  final response = await api.getBookInfo(
+    identifier.bookId,
+    identifier.hashId,
+    title: identifier.title,
+  );
   if (!response.success) {
     throw StateError(response.error ?? 'Failed to load book details');
   }
@@ -350,18 +354,23 @@ class BookIdentifier {
   final String bookId;
   final String hashId;
 
-  BookIdentifier(this.bookId, this.hashId);
+  /// Book title, used only to resolve the real eapi hash when the
+  /// stored hash is a webpage short hash (see `getBookInfo`).
+  final String? title;
+
+  BookIdentifier(this.bookId, this.hashId, {this.title});
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is BookIdentifier &&
         other.bookId == bookId &&
-        other.hashId == hashId;
+        other.hashId == hashId &&
+        other.title == title;
   }
 
   @override
-  int get hashCode => bookId.hashCode ^ hashId.hashCode;
+  int get hashCode => bookId.hashCode ^ hashId.hashCode ^ title.hashCode;
 }
 
 // ── Book Lists ──────────────────────────────────────────────────────

@@ -344,6 +344,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
               }
             },
             cancelToken: cancelToken,
+            title: book.title,
           );
         } on DownloadLimitReachedException {
           rethrow;

@@ -53,20 +53,23 @@ class ZLibraryApi {
   /// the raw request URL. Null means no handler.
   void Function(String url, String html)? onBooklistHtmlLoaded;
 
-  ZLibraryApi({String? domain})
+  /// [dio] is a test seam: a caller-provided client (with a fake
+  /// adapter) replaces the default one. Production code never passes it.
+  ZLibraryApi({String? domain, Dio? dio})
     : _domain = _cleanDomain(domain ?? _defaultDomain),
-      _dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 60),
-          headers: {
-            'User-Agent':
-                'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 '
-                'Chrome/120.0 Mobile Safari/537.36',
-            'Accept': 'application/json',
-          },
-        ),
-      );
+      _dio = dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 60),
+              headers: {
+                'User-Agent':
+                    'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 '
+                    'Chrome/120.0 Mobile Safari/537.36',
+                'Accept': 'application/json',
+              },
+            ),
+          );
 
   String get domain => _domain;
 
@@ -354,6 +357,15 @@ class ZLibraryApi {
     return s.toString() == '1' || s.toString().toLowerCase() == 'true';
   }
 
+  /// The eapi answers `{"success":0,"error":"Invalid hash"}` when the
+  /// hash is not the one it issued for the book. The webpage short hash
+  /// (the `/book/{hash}/...` link) and the card `termshash` are both
+  /// rejected — only the hash from an eapi response works. Booklist,
+  /// profile and shared books carry only the short hash, so callers
+  /// that hit this error resolve the real one with [resolveEapiHash].
+  static bool _isInvalidHashError(String? error) =>
+      error != null && error.toLowerCase().contains('invalid hash');
+
   static Map<String, dynamic>? _metaOf(Map<String, dynamic> json) {
     final pagination = json['pagination'];
     if (pagination is Map<String, dynamic>) return pagination;
@@ -629,7 +641,54 @@ class ZLibraryApi {
     return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
   }
 
-  Future<ApiResponse<Book>> getBookInfo(String bookId, String hashId) async {
+  /// Full detail for one book. [hashId] is the eapi hash from a search
+  /// response; a webpage short hash (from booklist/profile HTML, or a
+  /// shared-book link) is rejected with "Invalid hash". When [title]
+  /// is given and the first call fails exactly that way, the real hash
+  /// is resolved with [resolveEapiHash] and the call is retried once.
+  /// Any other failure is returned unchanged, and the fast path — a
+  /// search-sourced book with the right hash — costs no extra call.
+  Future<ApiResponse<Book>> getBookInfo(
+    String bookId,
+    String hashId, {
+    String? title,
+  }) async {
+    final response = await _fetchBookInfo(bookId, hashId);
+    if (response.success) return response;
+    if (title != null &&
+        title.isNotEmpty &&
+        _isInvalidHashError(response.error)) {
+      final resolved = await resolveEapiHash(bookId, title);
+      if (resolved != null && resolved != hashId) {
+        return _fetchBookInfo(bookId, resolved);
+      }
+    }
+    return response;
+  }
+
+  /// Resolve the real eapi hash for a book whose stored hash is a
+  /// webpage short hash: search by title and take the hash of the
+  /// result with the same numeric id. Returns null when the search
+  /// fails or no result matches. The search response is the only
+  /// place the eapi hash appears — booklist/profile HTML and the
+  /// get-books JSON carry only the short URL hash.
+  Future<String?> resolveEapiHash(String bookId, String title) async {
+    final res = await search(message: title, limit: 20);
+    if (!res.success || res.data == null) return null;
+    for (final book in res.data!) {
+      if (book.id.toString() == bookId &&
+          book.hash != null &&
+          book.hash!.isNotEmpty) {
+        return book.hash;
+      }
+    }
+    return null;
+  }
+
+  Future<ApiResponse<Book>> _fetchBookInfo(
+    String bookId,
+    String hashId,
+  ) async {
     final raw = await _get('/eapi/book/$bookId/$hashId');
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'book info failed',
@@ -1428,14 +1487,20 @@ class ZLibraryApi {
   ///
   /// `onProgress` receives `(received, total)`; `cancelToken` is the
   /// caller's Dio token (the app checks `isCancelled` itself).
+  ///
+  /// [title] is the book title, used only when the stored hash turns
+  /// out to be a webpage short hash: the file endpoint rejects it
+  /// with "Invalid hash", and the real hash is then resolved with
+  /// [resolveEapiHash] (see [getBookInfo]).
   Future<void> downloadBook(
     String bookId,
     String hash,
     String savePath, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
+    String? title,
   }) async {
-    var link = await _resolveDownloadLink(bookId, hash);
+    var link = await _resolveDownloadLink(bookId, hash, title: title);
     var headers = Map<String, String>.from(_headers);
     if (Uri.parse(link).host != Uri.parse(_base).host) {
       headers.remove('Cookie');
@@ -1540,7 +1605,30 @@ class ZLibraryApi {
     return res;
   }
 
-  Future<String> _resolveDownloadLink(String bookId, String hash) async {
+  Future<String> _resolveDownloadLink(
+    String bookId,
+    String hash, {
+    String? title,
+  }) async {
+    try {
+      return await _fetchDownloadLink(bookId, hash);
+    } on StateError catch (e) {
+      // Same short-hash trap as [getBookInfo]: the file endpoint
+      // rejects a webpage short hash with "Invalid hash". Resolve the
+      // real hash once and retry; anything else is rethrown unchanged.
+      if (title != null &&
+          title.isNotEmpty &&
+          _isInvalidHashError(e.message.toString())) {
+        final resolved = await resolveEapiHash(bookId, title);
+        if (resolved != null && resolved != hash) {
+          return _fetchDownloadLink(bookId, resolved);
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<String> _fetchDownloadLink(String bookId, String hash) async {
     final path = '/eapi/book/$bookId/$hash/file';
     try {
       final res = await _dio.get<String>(
