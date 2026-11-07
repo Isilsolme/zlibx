@@ -904,9 +904,12 @@ typedef ParsedBookCategory = ({int? id, String name});
 ///
 /// The wire format is `{307: History - World history, 14: Fiction}`; a
 /// plain name without braces or id (`Fiction - Horror`) parses as one entry
-/// with a null id. Names may contain commas (e.g. `Crime, Thrillers &
-/// Mystery`), so entries are split on the next `<digits>:` marker, never
-/// on commas.
+/// with a null id. Names may contain commas (e.g.
+/// `Crime, Thrillers & Mystery`), so entries are split on the next
+/// `<digits>:` marker, never on commas.
+/// NOTE: keep each backticked span on a single line — the
+/// `unintended_html_in_doc_comment` lint scans lines independently, so a
+/// code span split across lines leaves the `<digits>:` below unprotected.
 List<ParsedBookCategory> parseBookCategories(String? raw) {
   final text = raw?.trim();
   if (text == null || text.isEmpty) return const [];
