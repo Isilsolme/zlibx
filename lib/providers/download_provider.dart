@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import '../services/http_client.dart';
 import '../services/media_store.dart';
 import '../services/storage_service.dart';
 import 'zlibrary_provider.dart';
@@ -314,7 +315,8 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         // followRedirects 必须为 true：LibGen get.php 307 跳到 CDN 文件，
         // 不跟随会把重定向响应本身存成文件。LAN 不发重定向，不受影响；
         // 外部下载不带 presetHeaders，不存在 token 外泄问题。
-        final dio = Dio();
+        // receiveTimeout: null = 不限接收超时：大文件慢速网络不能被打断。
+        final dio = createDio(receiveTimeout: null);
         await _downloadResumable(
           dio,
           presetUrl,

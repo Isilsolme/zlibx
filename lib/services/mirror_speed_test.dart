@@ -16,21 +16,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import 'hive_service.dart';
+import 'http_client.dart';
 import 'instance_manager.dart';
 
 class MirrorSpeedTest {
   MirrorSpeedTest({Dio? dio})
       : _dio = dio ??
-            Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 8),
-                receiveTimeout: const Duration(seconds: 8),
-                headers: const {
-                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 '
-                      'Safari/537.36',
-                },
-              ),
+            createDio(
+              connectTimeout: const Duration(seconds: 8),
+              receiveTimeout: const Duration(seconds: 8),
             );
 
   final Dio _dio;

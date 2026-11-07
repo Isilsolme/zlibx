@@ -1,8 +1,8 @@
-import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'hive_service.dart';
+import 'http_client.dart';
 import 'update/update_manifest.dart';
 
 export 'update/update_manifest.dart' show UpdateLink;
@@ -62,19 +62,21 @@ class UpdateService {
         return _applyCached();
       }
 
-      final response = await http
-          .get(
+      final response = await createDio()
+          .getUri(
             Uri.parse(_releaseApiUrl),
-            headers: {
-              // 不带 token 走匿名 60 次/小时/IP — 对 24h 检查间隔够用
-              'Accept': 'application/vnd.github+json',
-              'X-GitHub-Api-Version': '2022-11-28',
-            },
+            options: Options(
+              headers: {
+                // 不带 token 走匿名 60 次/小时/IP — 对 24h 检查间隔够用
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+              },
+            ),
           )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        final body = response.body;
+        final body = response.data?.toString() ?? '';
         debugPrint(
           'UpdateService: GitHub releases API ${response.statusCode}: '
           '${body.length > 200 ? body.substring(0, 200) : body}',
@@ -82,7 +84,7 @@ class UpdateService {
         return _applyCached();
       }
 
-      final data = json.decode(response.body) as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
       final tagName = data['tag_name'] as String?;
       if (tagName == null || tagName.isEmpty) {
         debugPrint('UpdateService: release missing tag_name');

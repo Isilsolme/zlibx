@@ -9,10 +9,10 @@
 // show an error as if it were a suggestion.
 
 // Dart imports:
-import 'dart:convert';
+import 'package:dio/dio.dart';
 
-// Package imports:
-import 'package:http/http.dart' as http;
+// Project imports:
+import 'http_client.dart';
 
 class GoogleSuggestApi {
   // Base URL for the Google Autocomplete service
@@ -33,14 +33,14 @@ class GoogleSuggestApi {
     });
 
     try {
-      final response = await http.get(url);
+      final response = await createDio().getUri(url);
 
       if (response.statusCode == 200) {
-        // Google Suggest returns a JSON array. We expect the suggestions
-        // to be the second element (index 1).
-        final List data = jsonDecode(response.body);
+        // Google Suggest returns a JSON array (Dio already decodes it).
+        // We expect the suggestions to be the second element (index 1).
+        final data = response.data;
 
-        if (data.length > 1 && data[1] is List) {
+        if (data is List && data.length > 1 && data[1] is List) {
           final List rawSuggestions = data[1];
 
           return rawSuggestions

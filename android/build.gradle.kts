@@ -1,23 +1,31 @@
+// Aliyun Maven mirrors are opt-in via the `useCnMirror` Gradle property
+// (e.g. `useCnMirror=true` in ~/.gradle/gradle.properties for developers
+// in China). CI and other builds resolve from google()/mavenCentral()
+// directly. The mirrors exist because plugin subprojects (e.g.
+// mobile_scanner) resolve their buildscript classpath from their own
+// build.gradle's google()/mavenCentral(), which 403s on direct
+// connections from China — prefixing the same mirrors here fixes that.
+val useCnMirror: Boolean =
+    (findProperty("useCnMirror") as String?)?.toBoolean() == true
+
+fun RepositoryHandler.addCnMirrors() {
+    if (!useCnMirror) return
+    maven { url = uri("https://maven.aliyun.com/repository/google") }
+    maven { url = uri("https://maven.aliyun.com/repository/central") }
+    maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+    maven { url = uri("https://maven.aliyun.com/repository/public") }
+}
+
 allprojects {
-    // 插件子项目（如 device_info_plus）的 buildscript classpath 用的是各自
-    // build.gradle 里的 google()/mavenCentral()，不走下面的 repositories，
-    // 国内直连 Maven Central 会 403 —— 这里给所有项目的 buildscript 前置同一套镜像。
     buildscript {
         repositories {
-            maven { url = uri("https://maven.aliyun.com/repository/google") }
-            maven { url = uri("https://maven.aliyun.com/repository/central") }
-            maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
-            maven { url = uri("https://maven.aliyun.com/repository/public") }
+            addCnMirrors()
             google()
             mavenCentral()
         }
     }
     repositories {
-        // China mirrors for faster downloads
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/central") }
-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        addCnMirrors()
         // Fallback to original
         google()
         mavenCentral()

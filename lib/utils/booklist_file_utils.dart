@@ -23,24 +23,16 @@ class BooklistFileUtils {
 
   /// 让用户选一个 JSON 文件并解析。
   static Future<BooklistShareData?> pickAndParse() async {
-    final result = await FilePicker.pickFiles(
+    // file_picker 13.x: pickFiles() returns List<PlatformFile> (empty
+    // on cancel); the old FilePickerResult + withData are gone. Read
+    // the content via readAsBytes().
+    final files = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['json'],
-
-
-      withData: true,
     );
-    if (result == null || result.files.isEmpty) return null;
+    if (files.isEmpty) return null;
 
-    final f = result.files.first;
-    String content;
-    if (f.bytes != null) {
-      content = utf8.decode(f.bytes!);
-    } else if (f.path != null) {
-      content = await File(f.path!).readAsString();
-    } else {
-      return null;
-    }
+    final content = utf8.decode(await files.first.readAsBytes());
     return BooklistShareCodec.tryDecode(content);
   }
 }

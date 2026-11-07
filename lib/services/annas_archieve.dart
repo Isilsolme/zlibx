@@ -16,6 +16,7 @@ import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/network_error.dart';
 import 'package:zlibx/services/challenge_html_cache.dart';
+import 'package:zlibx/services/http_client.dart';
 import 'package:zlibx/services/webview_challenge_solver.dart';
 
 class BookData {
@@ -79,7 +80,7 @@ class BookInfoData extends BookData {
 
 class AnnasArchieve {
   AnnasArchieve({Dio? dio, InstanceManager? instanceManager})
-      : dio = dio ?? Dio(),
+      : dio = dio ?? createDio(),
         _instanceManager = instanceManager ?? InstanceManager();
 
   final Dio dio;

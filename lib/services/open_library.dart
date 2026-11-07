@@ -16,6 +16,7 @@ import 'package:html/parser.dart' show parse;
 
 // Project imports:
 import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/http_client.dart';
 
 class TrendingBookData {
   final String? title;
@@ -31,7 +32,7 @@ abstract class TrendingBooksImpl {
 
   Future<List<TrendingBookData>> trendingBooks() async {
     try {
-      final dio = Dio();
+      final dio = createDio();
       final response = await dio.get(url,
           options: Options(
               sendTimeout: Duration(seconds: timeOutDuration),
@@ -76,7 +77,7 @@ class OpenLibrary extends TrendingBooksImpl {
   @override
   Future<List<TrendingBookData>> trendingBooks() async {
     try {
-      final dio = Dio();
+      final dio = createDio();
       const timeOutDuration = 5;
       final response = await dio.get(url,
           options: Options(

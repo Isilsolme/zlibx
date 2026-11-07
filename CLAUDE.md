@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Olib (`olib_mobile`) is a Flutter-based Z-Library client app. This slim build targets Android arm64-v8a only. The UI and commit messages are primarily in Chinese.
+zlibx is a slim, Android-only (arm64-v8a) Flutter fork of shiyi-0x7f/olib-mobile: a Z-Library reader with Anna's Archive and LibGen sources added. No AI features, no ads, no WeRead. License is AGPL-3.0 (the original MIT text is preserved in LICENSE). The UI and commit messages are primarily in Chinese.
 
 ## Build & Run Commands
 
@@ -12,48 +12,47 @@ Olib (`olib_mobile`) is a Flutter-based Z-Library client app. This slim build ta
 flutter pub get                  # Install dependencies
 flutter run                      # Run debug build
 flutter build apk --release --target-platform android-arm64  # Build release APK (arm64-v8a only)
-dart run flutter_launcher_icons  # Regenerate app icons
+dart run flutter_launcher_icons  # Regenerate app icons (source: tool/icons/olib-app-logo.png)
 flutter analyze                  # Run linter
-
-# Code generation (freezed, json_serializable) — required after cloning or modifying models
-dart run build_runner build --delete-conflicting-outputs
-
-# Override backend URLs
-flutter run --dart-define=BACKEND_URL=https://... --dart-define=AUTH_URL=https://...
+flutter test                     # Run widget tests in test/widgets/
 ```
 
-Generated files (`*.freezed.dart`, `*.g.dart`) are gitignored and must be regenerated locally.
-
-There are no meaningful unit/widget tests. The `test/` directory contains API debugging scripts and is gitignored.
+There is no code generation in this project: `Book`/`User` and all other models are hand-written (no freezed, no json_serializable, no build_runner). Do not add generated-model tooling.
 
 ## Architecture
 
 **Layered organization** in `lib/`:
 
-- **`services/`** — API clients and storage. `ZLibraryApi` (Dio + cookie auth) talks to Z-Library's `/eapi/` and `/papi/` endpoints. `BackendApi` and `AiService` (Dio + JWT Bearer) talk to the project's own backends. Services return raw `Map<String, dynamic>`.
-- **`providers/`** — Riverpod state management. `StateNotifierProvider` for mutable state (auth, downloads, domain selection, settings). `FutureProvider` / `FutureProvider.family` for async data (search, book details, popular lists). Providers parse raw maps into typed models.
+- **`services/`** — API clients and storage. The Z-Library client is `ZLibraryApi` in `vendor/olib_api_plugin/lib/src/zlibrary_api.dart` (Dio with a hand-managed Cookie header; there is no cookie jar). External sources live in `lib/services/annas_archieve.dart` (Anna's Archive — yes, the filename typo is real, do not rename it casually) and `lib/services/libgen_service.dart` (LibGen). Mirror lists come from open-slum.org via `lib/services/slum_catalogue.dart`, `lib/core/slum.dart`, `lib/services/instance_manager.dart`. Cloudflare/DDoS-Guard-style challenge pages are solved in a WebView by `lib/services/webview_challenge_solver.dart` with `lib/services/challenge_html_cache.dart`. One shared Dio factory lives in `lib/services/http_client.dart` (`createDio`); do not create ad-hoc `Dio()` instances.
+- **`providers/`** — Riverpod state management. `StateNotifierProvider` for mutable state (auth, downloads, domain selection, settings). `FutureProvider` / `FutureProvider.family` for async data (search, book details, popular lists).
 - **`screens/`** — UI pages, each a `ConsumerWidget` or `ConsumerStatefulWidget`.
-- **`models/`** — `Book` and `User` use freezed + json_serializable. Other models (`ReadingBag`, `ReadingTip`, `ApiResponse`) are hand-written.
+- **`models/`** — Hand-written models (`Book`, `User` in the vendor plugin; `display_book.dart` etc. in `lib/models/`).
 - **`widgets/`** — Shared reusable UI components.
+- **`vendor/olib_api_plugin/`** — The in-repo Z-Library client plugin (Dio API + models). Committed to this repo; CI verifies it is present. Do not change its interface behavior without a reason.
 
 **State management**: Riverpod (classic hand-written providers, not `@riverpod` annotation style).
 
-**Routing**: Named routes via `MaterialApp.routes`. Route constants in `lib/routes/app_routes.dart`. The `reader` route expects `ReaderArgs` via route arguments.
+**Routing**: Named routes via `MaterialApp.routes`. Route constants in `lib/routes/app_routes.dart`.
 
-**Local storage**: Hive with two boxes — `settings` (theme, locale, domain, downloads, favorites) and `auth` (credentials, saved accounts, backend JWT).
+**Local storage**: Hive boxes for non-secret state (settings, caches, download history). Credentials (account session, tokens) live in `flutter_secure_storage` (Android Keystore), never in Hive — see `lib/services/secure_storage.dart` and `lib/services/auth_storage.dart`.
 
-**Internationalization**: Custom hand-rolled system (not `intl` ARB). Translation files are Dart `Map<String, String>` in `lib/l10n/translations/` (16 locales). Usage: `AppLocalizations.of(context).get('key')`.
+**Internationalization**: Custom hand-rolled system (not `intl` ARB). Translation files are Dart `Map<String, String>` in `lib/l10n/translations/` — 5 languages: en, zh, zh_Hant, ja, ko. Usage: `AppLocalizations.of(context).get('key')`.
+
+## Tests
+
+`test/widgets/` has 3 widget tests. Note `.gitignore` ignores `test/*` except `!test/widgets/` — new tests belong under `test/widgets/` (or update `.gitignore` first).
 
 ## Key Patterns
 
 - `ZLibraryApi` uses lazy async init (`_initFuture`) — all methods await it before proceeding.
-- Domain/mirror switching updates Dio's base URL at runtime; speed testing is in `SpeedTestNotifier`.
-- Multi-account support: `AuthStorage` persists multiple credential sets in the Hive `auth` box.
-- Backend environment URLs are configurable via `--dart-define` (see `lib/config/env.dart`).
-- Ads integration exists (Unity Ads) but is globally disabled (`AdService.adsEnabled = false`).
+- Domain/mirror switching updates Dio's base URL at runtime; device-side speed testing is in `lib/services/mirror_speed_test.dart`.
+- Multi-account support: `AuthStorage` persists multiple credential sets in secure storage.
+- Downloads are single-stream with resume (`Range` + append to a stable `<final>.part` file). Segmented parallel downloading is deliberately NOT implemented.
+- Anna's Archive fast download needs the user's own donation key, entered by the user in Settings (never ask the user to send it to you).
 
 ## Repo Notes
 
-- `olib-api/` is a separate Python project (own git repo) for API scraping tools — not part of the Flutter build.
-- Android build uses China-based Maven mirrors (configured in `android/build.gradle.kts`).
-- Requires Dart SDK ^3.8.1 / Flutter 3.8+. Android minSdk 23, compileSdk 36.
+- Android build uses `android/build.gradle.kts`. China-based Maven mirrors (Aliyun) are added only when the `useCnMirror` Gradle property is set; CI does not use them.
+- Requires Dart SDK ^3.10.0; CI pins Flutter 3.44.0. Android `compileSdk = 37`, `minSdk = flutter.minSdkVersion` (24 with Flutter 3.44), arm64-v8a only (`abiFilters`).
+- CI workflow: `.github/workflows/oliblite-build-android-arm64.yml` ("Build Android APK") — runs `flutter analyze` and `flutter test` before building the release APK; publishes a GitHub Release only on tag pushes.
+- Release signing uses a keystore restored from repo secrets in CI; the workflow refuses to build if the signing material is missing.

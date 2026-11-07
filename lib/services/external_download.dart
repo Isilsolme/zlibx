@@ -44,6 +44,7 @@ import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/download_target.dart';
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/hive_service.dart';
+import 'package:zlibx/services/http_client.dart';
 import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/mirror_fetcher.dart';
 
@@ -154,11 +155,7 @@ Future<DownloadTarget> resolveExternalDownload(BookInfoData info) async {
     // Route 4 — plain Dio GET on the slow page (unprotected mirrors
     // only) + HTML parse.
     try {
-      final dio = Dio(BaseOptions(headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-            'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 '
-            'Safari/537.36',
-      }));
+      final dio = createDio();
       final response =
           await dio.get<String>(mirror).timeout(const Duration(seconds: 15));
       final link = ArchiveParsing.extractSlowDownloadLink(
