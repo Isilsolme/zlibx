@@ -146,7 +146,6 @@ const Map<String, String> zh = {
 
   // Settings
   'settings': '设置',
-  'library': '书库',
   'download_history': '下载历史（云端）',
   'books_downloaded_any_device': '在任何设备上下载的书籍',
   'network': '网络',

@@ -149,7 +149,6 @@ const Map<String, String> en = {
 
   // Settings
   'settings': 'Settings',
-  'library': 'Library',
   'download_history': 'Download History (Cloud)',
   'books_downloaded_any_device': 'Books downloaded on any device',
   'network': 'Network',

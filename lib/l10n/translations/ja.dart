@@ -147,7 +147,6 @@ const Map<String, String> ja = {
 
   // Settings
   'settings': '設定',
-  'library': 'ライブラリ',
   'download_history': 'ダウンロード履歴（クラウド）',
   'books_downloaded_any_device': 'どのデバイスでもダウンロードした本',
   'network': 'ネットワーク',

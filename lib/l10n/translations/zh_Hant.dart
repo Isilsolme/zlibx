@@ -146,7 +146,6 @@ const Map<String, String> zh_Hant = {
 
   // Settings
   'settings': '設定',
-  'library': '書庫',
   'download_history': '下載紀錄（雲端）',
   'books_downloaded_any_device': '在任何裝置上下載的書籍',
   'network': '網路',

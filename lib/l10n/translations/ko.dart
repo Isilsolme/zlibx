@@ -147,7 +147,6 @@ const Map<String, String> ko = {
 
   // Settings
   'settings': '설정',
-  'library': '서재',
   'download_history': '다운로드 기록 (클라우드)',
   'books_downloaded_any_device': '모든 기기에서 다운로드한 책',
   'network': '네트워크',
