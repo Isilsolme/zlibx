@@ -10,7 +10,7 @@ class BooklistRow extends StatelessWidget {
   final Booklist list;
   final VoidCallback onTap;
 
-  const BooklistRow({required this.list, required this.onTap});
+  const BooklistRow({super.key, required this.list, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
