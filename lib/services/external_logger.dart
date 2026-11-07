@@ -7,9 +7,6 @@
 // provides the AppLogger API surface that the ported files call, plus
 // createDioWithLogging (used by SlumCatalogue).
 
-// Dart imports:
-import 'dart:async';
-
 // Package imports:
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';

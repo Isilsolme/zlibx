@@ -72,11 +72,10 @@ class SearchState {
 
 class SearchNotifier extends StateNotifier<SearchState> {
   final ZLibraryApi _api;
-  final Ref _ref;
   SearchParams? _lastParams;
   int _requestId = 0;
 
-  SearchNotifier(this._api, this._ref) : super(const SearchState());
+  SearchNotifier(this._api) : super(const SearchState());
 
   /// 统一取数入口，search / loadMore 共用。
   Future<ApiResponse<List<Book>>> _fetch(SearchParams params, int page) async {
@@ -157,7 +156,7 @@ final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((
   ref,
 ) {
   final api = ref.watch(zlibraryApiProvider);
-  return SearchNotifier(api, ref);
+  return SearchNotifier(api);
 });
 
 // ── Book Details ────────────────────────────────────────────────────

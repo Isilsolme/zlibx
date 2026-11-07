@@ -100,8 +100,8 @@ class Booklist {
           '';
       dom.Element? linkEl;
       var node = cover.parent;
-      while (node != null) {
-        if (node is dom.Element && node.localName == 'a') {
+      while (node is dom.Element) {
+        if (node.localName == 'a') {
           linkEl = node;
           break;
         }

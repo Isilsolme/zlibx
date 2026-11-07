@@ -146,12 +146,12 @@ Map<int, String> commentTitlesOf(Map<String, dynamic> pageJson) {
   final out = <int, String>{};
   final titles = pageJson['commentsTitles'];
   if (titles is! Map) return out;
-  final books = (titles as Map)['book'];
+  final books = titles['book'];
   if (books is List) {
     for (final entry in books) {
       if (entry is! Map) continue;
       final id = _asInt(
-        (entry as Map)['book_id'] ??
+        entry['book_id'] ??
             entry['id'] ??
             entry['object_id'],
       );
@@ -241,7 +241,7 @@ Map<int, CommentLikeResult> commentReactionsOf(
       final id = int.tryParse(entry.key.toString());
       final value = entry.value;
       final count = value is Map
-          ? _asInt((value as Map)['count'])
+          ? _asInt(value['count'])
           : _asInt(value);
       if (id != null && count != null) counts[id] = count;
     }

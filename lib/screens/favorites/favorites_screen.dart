@@ -10,7 +10,6 @@ import '../../providers/books_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/shelf_categories_provider.dart';
 import '../../providers/shelf_provider.dart';
-import '../../routes/app_routes.dart';
 import '../../screens/book_detail/book_detail_screen.dart';
 import '../../screens/search/search_screen.dart';
 import '../../services/booklist_share_codec.dart';

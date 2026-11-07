@@ -155,33 +155,6 @@ class ZLibraryApi {
     }
   }
 
-  /// Fetch a page as raw HTML text (the site's list pages are HTML, not
-  /// JSON). Returns null on any failure: non-2xx status (a 302 to the
-  /// login page when the session is gone, a Cloudflare wall), an empty
-  /// body, or a transport error. The body is carried on [_Raw.body],
-  /// which [_fromResponse] only fills for non-JSON responses.
-  ///
-  /// Sends `Accept: text/html`: the shared Dio default is
-  /// `application/json`, and the site answers a page route asked for as
-  /// JSON with JSON (or an error) instead of the page — which is why the
-  /// booklists screen failed with a bare "booklists failed" on device
-  /// (2026-11-06, both tabs) while the same pages load in a browser.
-  Future<String?> _getHtml(
-    String path, {
-    Map<String, dynamic>? query,
-  }) async {
-    final raw = await _get(
-      path,
-      query: query,
-      extraHeaders: const {'Accept': 'text/html'},
-    );
-    final status = raw.status;
-    if (status == null || status < 200 || status >= 300) return null;
-    final body = raw.body;
-    if (body == null || body.isEmpty) return null;
-    return body;
-  }
-
   Future<_Raw> _postForm(
     String path,
     Map<String, dynamic> fields,
@@ -276,7 +249,7 @@ class ZLibraryApi {
         return _Raw(status: status, error: 'cf_blocked');
       }
       // Not JSON — keep the raw body: the site's list pages (booklists)
-      // are HTML, fetched through [_getHtml].
+      // are HTML, fetched with `Accept: text/html`.
       return _Raw(
         status: status,
         error: 'non-JSON response (HTTP $status)',
@@ -1105,11 +1078,13 @@ class ZLibraryApi {
       order: order,
       page: page,
     );
-    // Call [_get] directly (not [_getHtml]) so a failure can report its
-    // real cause: the old code collapsed every failure into a bare
+    // Call [_get] directly so a failure can report its real cause:
+    // the old code collapsed every failure into a bare
     // "booklists failed", which hid whether the page 302'd, hit a wall,
     // timed out, or came back as JSON. The `Accept: text/html` override
-    // is the same one [_getHtml] sends (see its doc comment).
+    // is needed because the shared Dio default is `application/json`,
+    // and the site answers a page route asked for as JSON with JSON
+    // (or an error) instead of the page.
     final raw = await _get(
       path,
       query: params,
@@ -1162,7 +1137,7 @@ class ZLibraryApi {
     if (path.isEmpty) {
       return ApiResponse.fail('booklist has no page url');
     }
-    // Call [_get] directly (not [_getHtml]) so a failure can report
+    // Call [_get] directly so a failure can report
     // its real cause, like [_searchBooklists] does.
     final raw = await _get(
       path,
@@ -1527,7 +1502,8 @@ class _Raw {
   final List<String> cookies;
 
   /// Raw response body, only filled when the response was not JSON
-  /// (see [_fromResponse]) — the HTML list pages fetched by [_getHtml].
+  /// (see [_fromResponse]) — the HTML list pages
+  /// (fetched with `Accept: text/html`).
   final String? body;
 
   const _Raw({

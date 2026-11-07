@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
-import 'package:path_provider/path_provider.dart';
 import 'package:android_intent_plus/android_intent.dart';
 
 import '../services/media_store.dart';
