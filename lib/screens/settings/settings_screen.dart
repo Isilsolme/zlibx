@@ -50,8 +50,6 @@ class SettingsScreen extends ConsumerWidget {
             ),
           if (user == null) const SizedBox(height: 24),
 
-          // ── Library ──────────────────────────────────────────────
-          SectionHeader(icon: Icons.menu_book_rounded, title: t.get('library')),
           const DownloadPathSection(),
           const DonationKeySection(),
 
