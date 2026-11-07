@@ -429,4 +429,9 @@ const Map<String, String> ja = {
   'later': 'あとで',
   'login_line_blocked_cf': '現在の回線は Cloudflare にブロックされています。別の回線に切り替えて再試行してください。',
   'login_line_connect_failed': '現在の回線に接続できませんでした（ブロックまたは回線障害の可能性）。認証情報の誤りではありません。回線を切り替えて再試行してください。',
+  'reader_session_write_failed': 'リーダーセッションの書き込みに失敗しました。再度ログインしてお試しください。',
+  'reader_resource_log_count': 'リソース記録 {count} 件',
+  'reader_log_export_failed': 'ログのエクスポートに失敗しました: {error}',
+  'reader_export_resource_log': 'リソースログをエクスポート',
+  'sort': '並べ替え',
 };

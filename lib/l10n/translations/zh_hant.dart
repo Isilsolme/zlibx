@@ -426,4 +426,9 @@ const Map<String, String> zhHant = {
   'later': '稍後再說',
   'login_line_blocked_cf': '目前線路被 Cloudflare 攔截，請切換其他線路後重試。',
   'login_line_connect_failed': '目前線路連線失敗（可能被攔截或線路不通），並非帳號密碼錯誤。請切換其他線路後重試。',
+  'reader_session_write_failed': '閱讀器會話寫入失敗，請重新登入再試',
+  'reader_resource_log_count': '{count} 條資源記錄',
+  'reader_log_export_failed': '日誌匯出失敗: {error}',
+  'reader_export_resource_log': '匯出資源日誌',
+  'sort': '排序',
 };

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show debugPrint;
@@ -86,6 +87,34 @@ String formatFileSize(int bytes) {
   }
 }
 
+/// Android caps a single filename at 255 bytes (UTF-8). Keep our
+/// generated names comfortably below that so a long (e.g. Chinese)
+/// title can never fail the write. The cap counts the whole
+/// `name.extension` filename, not just the title part.
+const int maxFileNameBytes = 200;
+
+/// Truncate [input] so its UTF-8 byte length is at most [maxBytes],
+/// cutting only on rune boundaries so a multi-byte character is
+/// never split in half. Returns [input] unchanged when it fits.
+String truncateUtf8ByBytes(String input, int maxBytes) {
+  if (utf8.encode(input).length <= maxBytes) return input;
+  var bytes = 0;
+  var end = 0; // UTF-16 code-unit index into [input]
+  for (final rune in input.runes) {
+    final runeBytes = rune < 0x80
+        ? 1
+        : rune < 0x800
+            ? 2
+            : rune < 0x10000
+                ? 3
+                : 4;
+    if (bytes + runeBytes > maxBytes) break;
+    bytes += runeBytes;
+    end += rune > 0xFFFF ? 2 : 1;
+  }
+  return input.substring(0, end);
+}
+
 /// Build a safe filename for saving files
 String buildSafeFileName(String name, {String? extension}) {
   String safeName = name.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
@@ -93,7 +122,12 @@ String buildSafeFileName(String name, {String? extension}) {
     safeName = 'file_${DateTime.now().millisecondsSinceEpoch}';
   }
   if (extension != null && extension.isNotEmpty) {
-    return '$safeName.$extension';
+    final suffix = '.$extension';
+    safeName = truncateUtf8ByBytes(
+      safeName,
+      maxFileNameBytes - utf8.encode(suffix).length,
+    );
+    return '$safeName$suffix';
   }
-  return safeName;
+  return truncateUtf8ByBytes(safeName, maxFileNameBytes);
 }

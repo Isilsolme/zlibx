@@ -218,6 +218,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     // the next HTML load skips the solver. The solved page also goes
     // into the persistent cache so the next open paints it instantly.
     await bridgeWallCookies(api, url);
+    if (!mounted) return;
     BooklistHtmlCache.store(url, pageHtml);
     setState(() {
       _booklists = parseUserProfileBooklists(

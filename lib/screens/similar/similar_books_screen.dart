@@ -58,6 +58,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
     try {
       final response = await api.similar(args.bookId.toString(), args.hashId);
 
+      if (!mounted) return;
       if (response.success && response.data != null) {
         setState(() {
           _books = response.data!;
@@ -71,6 +72,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _hasError = true;

@@ -428,4 +428,9 @@ const Map<String, String> ko = {
   'later': '나중에',
   'login_line_blocked_cf': '현재 회선이 Cloudflare에 의해 차단되었습니다. 다른 회선으로 전환한 후 다시 시도하세요.',
   'login_line_connect_failed': '현재 회선에 연결하지 못했습니다(차단되었거나 회선 문제). 계정 정보 오류가 아닙니다. 회선을 전환한 후 다시 시도하세요.',
+  'reader_session_write_failed': '리더 세션을 기록하지 못했습니다. 다시 로그인한 후 시도하세요.',
+  'reader_resource_log_count': '리소스 기록 {count}개',
+  'reader_log_export_failed': '로그 내보내기 실패: {error}',
+  'reader_export_resource_log': '리소스 로그 내보내기',
+  'sort': '정렬',
 };

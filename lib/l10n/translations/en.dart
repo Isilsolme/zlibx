@@ -444,4 +444,9 @@ const Map<String, String> en = {
   'later': 'Later',
   'login_line_blocked_cf': 'Current line is blocked by Cloudflare. Please switch to another line and try again.',
   'login_line_connect_failed': 'Current line failed to connect (blocked or down) — not a credential error. Please switch lines and retry.',
+  'reader_session_write_failed': 'Failed to write reader session. Please log in again and retry.',
+  'reader_resource_log_count': '{count} resource log entries',
+  'reader_log_export_failed': 'Failed to export log: {error}',
+  'reader_export_resource_log': 'Export resource log',
+  'sort': 'Sort',
 };

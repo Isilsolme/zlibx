@@ -781,7 +781,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   ) {
     final l10n = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final locale = Localizations.localeOf(context).languageCode;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -817,7 +816,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildDropdown2(
-                  hint: locale.startsWith('zh') ? '排序' : 'Sort',
+                  hint: l10n.get('sort'),
                   value: _selectedOrder,
                   items: orderNames.entries
                       .map(

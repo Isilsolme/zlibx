@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class ScannerScreen extends StatefulWidget {
   /// 底部提示浮层文案（如「对准书单分享二维码」）；null 则不显示。
   final String? hint;
@@ -23,7 +25,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text(AppLocalizations.of(context).get('scan_qr_code')),
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: const CloseButton(),

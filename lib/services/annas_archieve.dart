@@ -684,10 +684,13 @@ class AnnasArchieve {
 
     try {
       final url = await _requestWithRetry<String>((currentBaseUrl) async {
+        // The key is URL-encoded: it is user input and must never be
+        // pasted raw into a query string.
         final fastDownloadUrl =
-            '$currentBaseUrl/dyn/api/fast_download.json?md5=$md5&key=$key';
+            '$currentBaseUrl/dyn/api/fast_download.json?md5=$md5&key=${Uri.encodeQueryComponent(key)}';
+        // Log only the md5, never the URL: it carries the donation key.
         _logger.debug('Calling fast download API',
-            tag: 'AnnasArchive', metadata: {'url': fastDownloadUrl});
+            tag: 'AnnasArchive', metadata: {'md5': md5});
 
         final response = await dio.get(fastDownloadUrl,
             options: Options(headers: defaultDioHeaders));

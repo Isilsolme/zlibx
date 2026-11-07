@@ -38,6 +38,7 @@ import 'dart:async';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:zlibx/core/annas_archive.dart';
 import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/download_target.dart';
@@ -46,24 +47,64 @@ import 'package:zlibx/services/hive_service.dart';
 import 'package:zlibx/services/http_client.dart';
 import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/mirror_fetcher.dart';
+import 'package:zlibx/services/secure_storage.dart';
 
-/// Hive settings-box key for the user's own Anna's Archive donation key.
+/// Secure-storage key for the user's own Anna's Archive donation key.
+/// Credentials live in flutter_secure_storage, never in plaintext Hive.
+const String annasDonationKeySecureKey = 'annasDonationKey';
+
+/// Legacy Hive settings-box key for the donation key. Only read by
+/// the one-time migration below; new writes never touch Hive.
 const String annasDonationKeyHiveKey = 'annasDonationKey';
 
+/// One-time migration of the donation key out of plaintext Hive into
+/// secure storage. Runs at most once per process (cached future).
+/// Best-effort: a failure leaves the key in Hive, and reads fall back
+/// to Hive so the key is never lost because of a migration error.
+Future<void>? _donationKeyMigration;
+Future<void> _migrateAnnasDonationKeyFromHive() {
+  return _donationKeyMigration ??= () async {
+    try {
+      final value = HiveService.settingsBox.get(annasDonationKeyHiveKey);
+      if (value is String && value.trim().isNotEmpty) {
+        await SecureStorage.write(
+          annasDonationKeySecureKey,
+          value.trim(),
+        );
+      }
+      await HiveService.settingsBox.delete(annasDonationKeyHiveKey);
+    } catch (error) {
+      debugPrint(
+        '[external_download] donation key migration failed: '
+        '${error.runtimeType}',
+      );
+    }
+  }();
+}
+
 /// Reads the stored donation key ('' when none was entered).
-String readAnnasDonationKey() {
-  final value = HiveService.settingsBox.get(annasDonationKeyHiveKey);
-  return value is String ? value.trim() : '';
+/// Migrates any legacy Hive value to secure storage first.
+Future<String> readAnnasDonationKey() async {
+  await _migrateAnnasDonationKeyFromHive();
+  final stored = await SecureStorage.read(annasDonationKeySecureKey);
+  if (stored != null && stored.trim().isNotEmpty) return stored.trim();
+  // Fallback: the migration may have failed, so the key might still
+  // be in Hive. Never lose the user's key over a storage error.
+  final hiveValue = HiveService.settingsBox.get(annasDonationKeyHiveKey);
+  return hiveValue is String ? hiveValue.trim() : '';
 }
 
 /// Stores the donation key (empty clears it). Never logs the value.
 Future<void> saveAnnasDonationKey(String key) async {
+  await _migrateAnnasDonationKeyFromHive();
   final trimmed = key.trim();
   if (trimmed.isEmpty) {
-    await HiveService.settingsBox.delete(annasDonationKeyHiveKey);
+    await SecureStorage.delete(annasDonationKeySecureKey);
   } else {
-    await HiveService.settingsBox.put(annasDonationKeyHiveKey, trimmed);
+    await SecureStorage.write(annasDonationKeySecureKey, trimmed);
   }
+  // Drop any stale Hive copy.
+  await HiveService.settingsBox.delete(annasDonationKeyHiveKey);
 }
 
 /// Stable int id for an external book, derived from its md5.
@@ -119,7 +160,7 @@ Future<DownloadTarget> resolveExternalDownload(BookInfoData info) async {
 
   // Route 2 — Anna fast download with the user's donation key, but only
   // when a mirror is reachable by plain Dio (see the header comment).
-  final donationKey = readAnnasDonationKey();
+  final donationKey = await readAnnasDonationKey();
   if (donationKey.isNotEmpty) {
     final hasOpen = await InstanceManager()
         .hasUnprotectedMirror(MirrorService.annasArchive);

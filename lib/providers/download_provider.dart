@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/http_client.dart';
 import '../services/media_store.dart';
 import '../services/storage_service.dart';
+import '../utils/file_utils.dart';
 import 'zlibrary_provider.dart';
 
 enum DownloadStatus { pending, downloading, completed, error, cancelled }
@@ -240,7 +242,15 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
         .replaceAll(RegExp(r'[^A-Za-z0-9]'), '')
         .toLowerCase();
     final ext = cleanExtension.isEmpty ? 'epub' : cleanExtension;
-    return '$safeTitle - ${book.id}.$ext';
+    // Android caps a filename at 255 bytes; keep the whole
+    // 'title - id.ext' within maxFileNameBytes so a long (e.g.
+    // Chinese) title can never fail the write.
+    final suffix = ' - ${book.id}.$ext';
+    safeTitle = truncateUtf8ByBytes(
+      safeTitle,
+      maxFileNameBytes - utf8.encode(suffix).length,
+    );
+    return '$safeTitle$suffix';
   }
 
   /// Build save path for a book (for non-MediaStore platforms)

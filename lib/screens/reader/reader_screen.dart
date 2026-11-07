@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../l10n/app_localizations.dart';
+
 class ReaderScreen extends StatefulWidget {
   final String url;
   final String title;
@@ -113,7 +115,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (!names.contains('remix_userid') ||
           !names.contains('remix_userkey')) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('阅读器会话写入失败，请重新登录再试')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).get('reader_session_write_failed'),
+            ),
+          ),
         );
       }
     } catch (error) {
@@ -171,13 +177,21 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ShareParams(
           files: [XFile(file.path)],
           subject: 'Litera Probe Log (${_probeLog.length} entries)',
-          text: '${_probeLog.length} 条资源记录',
+          text: AppLocalizations.of(context)
+              .get('reader_resource_log_count')
+              .replaceAll('{count}', '${_probeLog.length}'),
         ),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('日志导出失败: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)
+                  .get('reader_log_export_failed')
+                  .replaceAll('{error}', '$e'),
+            ),
+          ),
         );
       }
     }
@@ -213,7 +227,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
             ),
             IconButton(
-              tooltip: '导出资源日志',
+              tooltip: AppLocalizations.of(context)
+                .get('reader_export_resource_log'),
               icon: const Icon(Icons.ios_share),
               onPressed: _probeLog.isEmpty ? null : _shareProbeLog,
             ),

@@ -427,4 +427,9 @@ const Map<String, String> zh = {
   'later': '稍后再说',
   'login_line_blocked_cf': '当前线路被 Cloudflare 拦截，请切换其他线路后重试。',
   'login_line_connect_failed': '当前线路连接失败（可能被拦截或线路不通），并非账号密码错误。请切换其他线路后重试。',
+  'reader_session_write_failed': '阅读器会话写入失败，请重新登录再试',
+  'reader_resource_log_count': '{count} 条资源记录',
+  'reader_log_export_failed': '日志导出失败: {error}',
+  'reader_export_resource_log': '导出资源日志',
+  'sort': '排序',
 };

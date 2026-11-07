@@ -34,7 +34,9 @@ class ShareIntentHandler {
 
     _sub = ReceiveSharingIntent.instance.getMediaStream().listen(
       _process,
-      onError: (_) {},
+      onError: (error) {
+        debugPrint('[share_intent_handler] stream error ${error.runtimeType}');
+      },
     );
   }
 
@@ -68,7 +70,12 @@ class ShareIntentHandler {
       case SharedMediaType.image:
       case SharedMediaType.video:
         try {
-          return await File(f.path).readAsString();
+          // 先查大小再读：别的应用能分享一个超大文件，别一次读进内存。
+          final file = File(f.path);
+          if (await file.length() > BooklistShareCodec.maxFileBytes) {
+            return null;
+          }
+          return await file.readAsString();
         } catch (error) {
           debugPrint('[share_intent_handler] ignored ${error.runtimeType}');
           return null;

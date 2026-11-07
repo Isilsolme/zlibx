@@ -169,37 +169,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<ApiResponse<void>> sendVerificationCode(
-    String email,
-    String password,
-    String name,
-  ) async {
-    return await _api.sendCode(email, password, name);
-  }
-
-  Future<bool> register(
-    String email,
-    String password,
-    String name,
-    String code,
-  ) async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    try {
-      final response = await _api.verifyCode(email, password, name, code);
-
-      if (response.success) {
-        return await login(email, password);
-      } else {
-        state = AuthState(error: response.error ?? 'Registration failed');
-        return false;
-      }
-    } catch (e) {
-      state = AuthState(error: e.toString());
-      return false;
-    }
-  }
-
   Future<void> logout() async {
     await _storage.clearCredentials();
     // Session cookies installed for the online reader live in the WebView

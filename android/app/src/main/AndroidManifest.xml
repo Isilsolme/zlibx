@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Camera is optional: the QR scanner uses it when present, but the
+         app must install on devices without a camera. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     
     <!-- Storage permission: only for the system file picker on Android 12
          and below (file import). Downloads use the app-specific external
@@ -48,7 +51,7 @@
                 <data android:scheme="olib"/>
             </intent-filter>
 
-            <!-- Share text (incoming "Share to Olib" with plain text containing olib:// token) -->
+            <!-- Share text (incoming "Share to zlibx" with plain text containing olib:// token) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>

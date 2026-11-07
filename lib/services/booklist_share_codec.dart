@@ -70,6 +70,15 @@ class BooklistShareCodec {
   /// 二维码可承载的近似字符上限（QR v40 + 中等纠错，留余量）
   static const int qrSafeChars = 1800;
 
+  /// 入站分享的安全上限：`d` 参数（base64url）超过它直接拒绝，
+  /// gzip 解压产物超过它直接失败，书目条数超过它直接截断，
+  /// 分享进来的文件超过它不读。
+  /// 不设上限时别的应用能发一个压缩炸弹把本应用撑爆。
+  static const int maxDParamChars = 512 * 1024;
+  static const int maxGzipOutputBytes = 2 * 1024 * 1024;
+  static const int maxBookEntries = 2000;
+  static const int maxFileBytes = 2 * 1024 * 1024;
+
   /// 把书单编成紧凑 URI（仅 ID）
   static String encodeIdsUri(Iterable<String> ids) {
     final cleaned = ids.where((e) => e.trim().isNotEmpty).join(',');
@@ -154,9 +163,11 @@ class BooklistShareCodec {
     // 3a) 完整版 d=
     final d = uri.queryParameters['d'];
     if (d != null && d.isNotEmpty) {
+      // 拒绝超长参数：base64 解码和 gzip 解压之前先拦住。
+      if (d.length > maxDParamChars) return null;
       try {
         final bytes = base64Url.decode(_padBase64(d));
-        final json = utf8.decode(gzip.decode(bytes));
+        final json = utf8.decode(_decodeGzipCapped(bytes));
         final m = jsonDecode(json) as Map<String, dynamic>;
         return _fromJsonMap(m, compact: true);
       } catch (error) {
@@ -202,6 +213,7 @@ class BooklistShareCodec {
               'h': e['h'] ?? e['hash'],
             }))
         .where((e) => e.id.isNotEmpty)
+        .take(maxBookEntries)
         .toList();
 
     DateTime? exportedAt;
@@ -221,4 +233,35 @@ class BooklistShareCodec {
     final pad = (4 - s.length % 4) % 4;
     return s + '=' * pad;
   }
+
+  /// 解压 gzip，但产物超过 [maxGzipOutputBytes] 时抛异常（而不是
+  /// 把几百 MB 的压缩炸弹整个解到内存里）。调用方捕获后返回 null。
+  static List<int> _decodeGzipCapped(List<int> bytes) {
+    final sink = _CappedBytesSink(maxGzipOutputBytes);
+    final conversion = gzip.decoder.startChunkedConversion(sink);
+    conversion.add(bytes);
+    conversion.close();
+    return sink.out.takeBytes();
+  }
+}
+
+/// 分块收集 gzip 解压产物，超过上限立刻抛异常，中断解压。
+class _CappedBytesSink extends ByteConversionSinkBase {
+  final BytesBuilder out = BytesBuilder(copy: false);
+  final int maxBytes;
+
+  _CappedBytesSink(this.maxBytes);
+
+  @override
+  void add(List<int> chunk) {
+    out.add(chunk);
+    if (out.length > maxBytes) {
+      throw FormatException(
+        'gzip output exceeds $maxBytes bytes',
+      );
+    }
+  }
+
+  @override
+  void close() {}
 }

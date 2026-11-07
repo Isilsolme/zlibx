@@ -11,7 +11,6 @@ import 'providers/zlibrary_provider.dart';
 import 'routes/app_routes.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
-// import 'screens/auth/register_screen.dart'; // Registration disabled - API不支持
 import 'screens/home/home_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/book_detail/book_detail_screen.dart';
@@ -156,7 +155,6 @@ class _MyAppState extends ConsumerState<MyApp> {
           routes: {
             AppRoutes.splash: (context) => const SplashScreen(),
             AppRoutes.login: (context) => const LoginScreen(),
-            // AppRoutes.register: (context) => const RegisterScreen(), // Disabled
             AppRoutes.home: (context) => const HomeScreen(),
             AppRoutes.search: (context) => const SearchScreen(),
             AppRoutes.bookDetail: (context) => const BookDetailScreen(),

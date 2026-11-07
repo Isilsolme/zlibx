@@ -1,9 +1,8 @@
 // Anna's Archive donation key — the user's own key, stored locally in
-// the Hive settings box (key 'annasDonationKey', see
-// external_download.dart). Entering it enables Anna fast downloads;
-// with no key, slow download is the only Anna route (LibGen needs no
-// key). The key is never logged and never leaves the device except to
-// the Anna fast-download endpoint.
+// secure storage (see external_download.dart). Entering it enables Anna
+// fast downloads; with no key, slow download is the only Anna route
+// (LibGen needs no key). The key is never logged and never leaves the
+// device except to the Anna fast-download endpoint.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,10 +20,23 @@ class DonationKeySection extends ConsumerStatefulWidget {
 }
 
 class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
+  String _key = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKey();
+  }
+
+  Future<void> _loadKey() async {
+    final value = await readAnnasDonationKey();
+    if (mounted) setState(() => _key = value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
-    final key = readAnnasDonationKey();
+    final key = _key;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,11 +59,11 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
             onTap: () async {
               await showDialog(
                 context: context,
-                builder: (_) => const _DonationKeyDialog(),
+                builder: (_) => _DonationKeyDialog(initialValue: key),
               );
-              // The dialog writes Hive directly; re-read to refresh the
-              // subtitle (set / still empty).
-              if (mounted) setState(() {});
+              // The dialog writes secure storage directly; re-read to
+              // refresh the subtitle (set / still empty).
+              if (mounted) _loadKey();
             },
           ),
         ),
@@ -61,7 +73,9 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
 }
 
 class _DonationKeyDialog extends StatefulWidget {
-  const _DonationKeyDialog();
+  const _DonationKeyDialog({required this.initialValue});
+
+  final String initialValue;
 
   @override
   State<_DonationKeyDialog> createState() => _DonationKeyDialogState();
@@ -74,7 +88,7 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: readAnnasDonationKey());
+    _controller = TextEditingController(text: widget.initialValue);
   }
 
   @override
