@@ -344,5 +344,11 @@ const Map<String, String> zh_Hant = {
   'no_booklists': '暫無書單',
   'no_booklist_books': '這個書單裡還沒有書',
   'booklist_book_count': '{count} 本書',
+  'create': '建立',
+  'create_booklist': '新增書單',
+  'booklist_title': '書單名稱',
+  'booklist_description_optional': '描述（選填）',
+  'booklist_created': '書單已建立',
+  'booklist_create_failed': '建立失敗：{error}',
   'login_to_view_booklists': '登入後查看書單',
 };

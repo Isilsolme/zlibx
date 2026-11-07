@@ -362,5 +362,11 @@ const Map<String, String> en = {
   'no_booklists': 'No booklists yet',
   'no_booklist_books': 'No books in this booklist yet',
   'booklist_book_count': '{count} books',
+  'create': 'Create',
+  'create_booklist': 'New booklist',
+  'booklist_title': 'Booklist name',
+  'booklist_description_optional': 'Description (optional)',
+  'booklist_created': 'Booklist created',
+  'booklist_create_failed': 'Could not create: {error}',
   'login_to_view_booklists': 'Log in to view booklists',
 };

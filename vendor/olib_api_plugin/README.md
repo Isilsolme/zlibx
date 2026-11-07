@@ -57,6 +57,7 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | getMyComments | GET `/papi/comments/user/{userId}/{page}?limit={limit}` (limit 500) | Confirmed by packet capture 2026-11-06 (zh.z-library.sk profile Comments tab) — `comments` is a MAP keyed by comment id (not a list), `commentsTitles: {book: {...}}` gives each comment's book title, plus `reactionsInfo`/`reactionsUsers` |
 | searchPublicBooklists / searchMyBooklists | GET `/booklists?searchQuery={q}&order={order}&page={n}` and `/booklists/my?searchQuery={q}&page={n}` (HTML, `<z-booklist>` elements) | Shape from the public sertraline/zlibrary client (read as reference only, no code copied) — NOT yet live-verified; list HTML may drift |
 | getBooklistBooks | GET `/papi/booklist/{key}/get-books/{page}` (JSON `{books: [{book: {...}}], pagination: {total_pages}}`) — `{key}` is the hash segment of the list href, NOT the numeric id | Same source — NOT yet live-verified |
+| createBooklist | POST `/papi/booklist/create`, JSON body `{title, description}` as `text/plain` | URL + request body confirmed by a Firefox capture 2026-11-07 (zh.z-library.sk); HTTP method assumed POST; the capture showed NO response data, so a 2xx with an empty body counts as success and callers reload the list |
 | sendCode / verifyCode | POST `/eapi/user/send_code`, `/eapi/user/verify_code` | Inferred, no fallback — registration is the least certain flow |
 
 ## What is NOT verified

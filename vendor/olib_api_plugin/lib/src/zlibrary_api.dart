@@ -1154,6 +1154,96 @@ class ZLibraryApi {
     );
   }
 
+  /// Create a booklist owned by the signed-in user. `POST
+  /// /papi/booklist/create` with a JSON body `{title, description}`
+  /// sent as `text/plain` (the same transport as [postBookComment],
+  /// so redirects are followed). Request shape taken from a browser
+  /// capture on 2026-11-07 (Firefox, zh.z-library.sk), which showed no
+  /// response data: the site answers with an empty body, so a 2xx
+  /// with an empty body is success.
+  ///
+  /// A JSON answer is still handled leniently in case the site starts
+  /// returning one: an explicit failure flag or an `error`/`message`
+  /// field fails the call, otherwise it counts as created.
+  /// [ApiResponse.data] is the new list only when a JSON response
+  /// carries one in a recognizable shape, and null otherwise (always
+  /// null today) — callers must not depend on it and should reload the
+  /// "my booklists" page after a successful create.
+  Future<ApiResponse<Booklist?>> createBooklist({
+    required String title,
+    String description = '',
+  }) async {
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return ApiResponse.fail('booklist title is empty');
+    }
+    final raw = await _postText(
+      '/papi/booklist/create',
+      jsonEncode({'title': cleanTitle, 'description': description.trim()}),
+    );
+    final status = raw.status;
+    final json = raw.json;
+    if (json == null) {
+      // The create call answers with an EMPTY body (confirmed by the
+      // 2026-11-07 capture: no response data), so a 2xx with no body
+      // is the success case. [_fromResponse] marks it with an
+      // 'empty response' error and leaves [_Raw.body] null. Anything
+      // else without JSON (a non-JSON page, a wall, a transport error,
+      // a non-2xx status) is a failure and keeps its real cause.
+      final is2xx = status != null && status >= 200 && status < 300;
+      final emptyBody = raw.body == null &&
+          (raw.error?.startsWith('empty response') ?? false);
+      if (is2xx && emptyBody) {
+        return ApiResponse.ok(null);
+      }
+      return ApiResponse.fail(
+        raw.error ?? 'create booklist failed',
+        statusCode: status,
+      );
+    }
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'create booklist failed',
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(_booklistFromCreateResponse(json, cleanTitle));
+  }
+
+  /// Best-effort read of the list a create call returned. The response
+  /// shape is unconfirmed, so this tries the plausible wrappers
+  /// (`booklist`, `list`, `data`, or the top level) and needs a numeric
+  /// `id` to count as a list. Returns null when nothing matches.
+  Booklist? _booklistFromCreateResponse(
+    Map<String, dynamic> json,
+    String title,
+  ) {
+    for (final candidate in [
+      json['booklist'],
+      json['list'],
+      json['data'],
+      json,
+    ]) {
+      if (candidate is! Map<String, dynamic>) continue;
+      final id = candidate['id']?.toString() ?? '';
+      if (!RegExp(r'^\d+$').hasMatch(id)) continue;
+      final hash = candidate['hash']?.toString() ?? '';
+      final name = candidate['title']?.toString() ??
+          candidate['topic']?.toString() ??
+          title;
+      return Booklist(
+        id: id,
+        name: name,
+        description: candidate['description']?.toString() ?? '',
+        count: 0,
+        url: '$_base/booklist/$id',
+        booksKey: hash,
+      );
+    }
+    return null;
+  }
+
   // ── Download ───────────────────────────────────────────────────────
 
   /// Resolve the file link via `/eapi/book/{id}/{hash}/file` and stream

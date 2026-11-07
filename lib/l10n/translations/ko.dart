@@ -346,5 +346,11 @@ const Map<String, String> ko = {
   'no_booklists': '책 목록이 없습니다',
   'no_booklist_books': '이 책 목록에는 아직 책이 없습니다',
   'booklist_book_count': '{count}권',
+  'create': '만들기',
+  'create_booklist': '새 북리스트',
+  'booklist_title': '북리스트 이름',
+  'booklist_description_optional': '설명 (선택)',
+  'booklist_created': '북리스트를 만들었습니다',
+  'booklist_create_failed': '만들지 못했습니다: {error}',
   'login_to_view_booklists': '로그인하여 책 목록 보기',
 };

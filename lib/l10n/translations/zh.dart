@@ -345,5 +345,11 @@ const Map<String, String> zh = {
   'no_booklists': '暂无书单',
   'no_booklist_books': '这个书单里还没有书',
   'booklist_book_count': '{count} 本书',
+  'create': '创建',
+  'create_booklist': '新建书单',
+  'booklist_title': '书单名称',
+  'booklist_description_optional': '描述（可选）',
+  'booklist_created': '书单已创建',
+  'booklist_create_failed': '创建失败：{error}',
   'login_to_view_booklists': '登录后查看书单',
 };

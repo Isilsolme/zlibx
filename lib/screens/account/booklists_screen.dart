@@ -16,10 +16,11 @@ import 'booklist_detail_screen.dart';
 
 enum _BooklistTab { mine, discover }
 
-/// Booklists, read-only v1: the signed-in user's own booklists and
-/// public booklists to discover, with search on both. Tapping a list
-/// opens its books. Creating a booklist or adding books to one is NOT
-/// wired — those write endpoints have not been confirmed yet.
+/// Booklists: the signed-in user's own booklists and public booklists
+/// to discover, with search on both. Tapping a list opens its books.
+/// The "my booklists" tab can create a new list (`createBooklist`).
+/// Adding books to a list and deleting lists are NOT wired yet — those
+/// write endpoints have not been captured.
 ///
 /// List pages are the site's HTML (`/booklists`, `/booklists/my`),
 /// parsed by the plugin. The mirror walls Dio on those page routes
@@ -268,6 +269,44 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     );
   }
 
+  /// Ask for a name (and optional description), create the list on the
+  /// account, then reload "my booklists" so the new list shows up.
+  Future<void> _createBooklist() async {
+    final l10n = AppLocalizations.of(context);
+    final result = await showDialog<({String title, String description})>(
+      context: context,
+      builder: (context) => const _CreateBooklistDialog(),
+    );
+    if (result == null || !mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final response = await ref
+        .read(zlibraryApiProvider)
+        .createBooklist(
+          title: result.title,
+          description: result.description,
+        );
+    if (!mounted) return;
+    if (response.success) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.get('booklist_created'))),
+      );
+      if (_tab == _BooklistTab.mine) {
+        await _loadFirst();
+      }
+    } else {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n
+                .get('booklist_create_failed')
+                .replaceAll('{error}', response.error ?? ''),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -275,6 +314,13 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
 
     return Scaffold(
       appBar: GradientAppBar(title: l10n.get('booklists')),
+      floatingActionButton: _tab == _BooklistTab.mine && _loggedIn
+          ? FloatingActionButton.extended(
+              onPressed: _createBooklist,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(l10n.get('create_booklist')),
+            )
+          : null,
       body: Column(
         children: [
           Padding(
@@ -482,6 +528,77 @@ class _BooklistRow extends StatelessWidget {
         color: cs.onSurfaceVariant,
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// Name + optional description form for a new booklist. Pops a record
+/// `(title, description)`, or null when cancelled.
+class _CreateBooklistDialog extends StatefulWidget {
+  const _CreateBooklistDialog();
+
+  @override
+  State<_CreateBooklistDialog> createState() => _CreateBooklistDialogState();
+}
+
+class _CreateBooklistDialogState extends State<_CreateBooklistDialog> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return;
+    Navigator.of(context).pop((
+      title: title,
+      description: _descriptionController.text.trim(),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.get('create_booklist')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _titleController,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: l10n.get('booklist_title'),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _descriptionController,
+            maxLines: 3,
+            minLines: 1,
+            decoration: InputDecoration(
+              labelText: l10n.get('booklist_description_optional'),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.get('cancel')),
+        ),
+        FilledButton(
+          onPressed: _titleController.text.trim().isEmpty ? null : _submit,
+          child: Text(l10n.get('create')),
+        ),
+      ],
     );
   }
 }

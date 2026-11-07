@@ -347,5 +347,11 @@ const Map<String, String> ja = {
   'no_booklists': 'ブックリストがありません',
   'no_booklist_books': 'このブックリストにはまだ本がありません',
   'booklist_book_count': '{count} 冊',
+  'create': '作成',
+  'create_booklist': 'ブックリストを作成',
+  'booklist_title': 'ブックリスト名',
+  'booklist_description_optional': '説明（任意）',
+  'booklist_created': 'ブックリストを作成しました',
+  'booklist_create_failed': '作成に失敗しました：{error}',
   'login_to_view_booklists': 'ログインしてブックリストを見る',
 };

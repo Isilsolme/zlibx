@@ -6,10 +6,10 @@ import 'book.dart';
 /// One Z-Library booklist (the website's "booklists" feature: a named,
 /// shareable collection of books with an author and a book count).
 ///
-/// Read-only v1: browsing public booklists, the signed-in user's own
-/// booklists, and the books inside one booklist. Creating a booklist or
-/// adding books to one is NOT wired — those write endpoints have not
-/// been confirmed yet.
+/// Browsing public booklists, the signed-in user's own booklists, and
+/// the books inside one booklist, plus creating a booklist
+/// (`ZLibraryApi.createBooklist`). Adding books to a list and deleting
+/// lists are NOT wired — those write endpoints have not been captured.
 class Booklist {
   /// The numeric id from the list URL (`/booklists/{id}/...`).
   final String id;
