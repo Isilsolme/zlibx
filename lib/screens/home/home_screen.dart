@@ -559,7 +559,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   Navigator.of(context).pushNamed(AppRoutes.search),
               child: Container(
                 height: searchBarHeight,
-                padding: const EdgeInsets.only(left: 20, right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: cs.surface.withValues(alpha: 0.8),
                   borderRadius: BorderRadius.circular(30),
@@ -573,8 +573,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.search, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         AppLocalizations.of(context).get('search_for_books'),
@@ -585,16 +583,8 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                         ),
                       ),
                     ),
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: cs.primary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(Icons.arrow_forward,
-                          color: Colors.white, size: 20),
-                    ),
+                    const SizedBox(width: 12),
+                    Icon(Icons.search, color: cs.onSurfaceVariant),
                   ],
                 ),
               ),
