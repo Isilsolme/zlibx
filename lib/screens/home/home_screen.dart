@@ -102,24 +102,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // reserves 96 below its last row for the floating nav.
               child: _HomeTab(key: _homeTabKey),
             ),
-            const _KeepAlivePage(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 96),
-                child: LocalDownloadsScreen(),
-              ),
-            ),
-            const _KeepAlivePage(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 96),
-                child: AccountScreen(),
-              ),
-            ),
-            const _KeepAlivePage(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 96),
-                child: SettingsScreen(),
-              ),
-            ),
+            // No outer bottom padding on these tabs: like the home
+            // grid, each tab reserves the floating nav's 96dp inside
+            // its own scrollable content, so items scroll behind the
+            // pill (and show through the blur) instead of stopping
+            // at a fixed blank band above it.
+            const _KeepAlivePage(child: LocalDownloadsScreen()),
+            const _KeepAlivePage(child: AccountScreen()),
+            const _KeepAlivePage(child: SettingsScreen()),
           ],
         ),
         bottomNavigationBar: _buildNavBar(

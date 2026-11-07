@@ -49,7 +49,10 @@ class AccountScreen extends ConsumerWidget {
                 ),
               )
             : ListView(
-                padding: const EdgeInsets.all(16),
+                // Bottom 112 = 16 gap + 96 floating-nav clearance,
+                // reserved inside the list so items scroll behind
+                // the pill (like the home grid).
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
                 children: [
                   UserProfileSection(
                     user: user,

@@ -118,7 +118,10 @@ class _DownloadList extends StatelessWidget {
       );
     }
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+      // Bottom 124 = 28 gap + 96 floating-nav clearance, reserved
+      // inside the list so items scroll behind the pill (like the
+      // home grid).
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 124),
       itemCount: tasks.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) => _DownloadItem(task: tasks[index]),

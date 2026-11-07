@@ -38,7 +38,10 @@ class SettingsScreen extends ConsumerWidget {
         // already does this.)
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          // Bottom 128 = 32 gap + 96 floating-nav clearance, reserved
+          // inside the list (like the home grid) so items scroll
+          // behind the pill instead of stopping at a blank band.
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
           children: [
           // Signed in: the profile card lives on the account page now.
           // Signed out (e.g. skipped login): offer the login screen
