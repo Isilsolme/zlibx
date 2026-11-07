@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+
+  /// Replaces the title text (e.g. a search field while searching).
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final Widget? leading;
   final bool centerTitle;
@@ -9,6 +12,7 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   const GradientAppBar({
     super.key,
     required this.title,
+    this.titleWidget,
     this.actions,
     this.leading,
     this.centerTitle = true,
@@ -20,13 +24,15 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
     final cs = theme.colorScheme;
     // Minimalist AppBar: matches scaffold background, theme-driven text color.
     return AppBar(
-      title: Text(
-        title,
-        style: theme.textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: cs.onSurface,
-        ),
-      ),
+      title:
+          titleWidget ??
+          Text(
+            title,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: cs.onSurface,
+            ),
+          ),
       backgroundColor: theme.scaffoldBackgroundColor,
       elevation: 0,
       centerTitle: centerTitle,

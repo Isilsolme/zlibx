@@ -49,6 +49,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   String _errorMessage = '';
   bool _loggedIn = true;
 
+  /// Search lives in the AppBar (right side, mirroring the back
+  /// arrow): a search icon opens the field in place of the title, a
+  /// close icon exits it and clears the query.
+  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +79,33 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     if (tab == _tab) return;
     setState(() => _tab = tab);
     _loadFirst();
+  }
+
+  /// The search field that replaces the AppBar title while searching.
+  /// Same behaviour as the old body field: submit runs the search on
+  /// the current tab.
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      autofocus: true,
+      decoration: InputDecoration(
+        hintText: AppLocalizations.of(context).get('search_booklists'),
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+      ),
+      style: Theme.of(context).textTheme.bodyLarge,
+      textInputAction: TextInputAction.search,
+      onSubmitted: (_) => _loadFirst(),
+    );
+  }
+
+  /// Exit search: hide the field, and clear the query (reloading the
+  /// unfiltered list) when one was typed.
+  void _exitSearch() {
+    final hadQuery = _searchController.text.isNotEmpty;
+    if (hadQuery) _searchController.clear();
+    setState(() => _isSearching = false);
+    if (hadQuery) _loadFirst();
   }
 
   Future<void> _loadFirst() async {
@@ -318,7 +350,20 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('booklists')),
+      appBar: GradientAppBar(
+        title: l10n.get('booklists'),
+        titleWidget: _isSearching ? _buildSearchField() : null,
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close_rounded : Icons.search_rounded,
+            ),
+            onPressed: _isSearching
+                ? _exitSearch
+                : () => setState(() => _isSearching = true),
+          ),
+        ],
+      ),
       floatingActionButton: _tab == _BooklistTab.mine && _loggedIn
           ? FloatingActionButton.extended(
               onPressed: _createBooklist,
@@ -346,37 +391,6 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 selected: {_tab},
                 onSelectionChanged: (selected) => _switchTab(selected.first),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: l10n.get('search_booklists'),
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 20),
-                        onPressed: () {
-                          _searchController.clear();
-                          _loadFirst();
-                        },
-                      ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-              ),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _loadFirst(),
-              onChanged: (_) => setState(() {}),
             ),
           ),
           Expanded(
