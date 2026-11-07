@@ -425,6 +425,15 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                                             );
                                             _composerFocus.requestFocus();
                                           },
+                                          onAvatarTap: () =>
+                                              Navigator.of(context).pushNamed(
+                                            AppRoutes.userProfile,
+                                            arguments: UserProfileArgs(
+                                              userId: comment.userId,
+                                              userName: comment.userName,
+                                              userAvatar: comment.userAvatar,
+                                            ),
+                                          ),
                                         );
                                       },
                                     ),
@@ -544,6 +553,7 @@ class _CommentRow extends StatelessWidget {
   final bool likePending;
   final VoidCallback onLike;
   final VoidCallback onReply;
+  final VoidCallback onAvatarTap;
 
   const _CommentRow({
     required this.comment,
@@ -551,6 +561,7 @@ class _CommentRow extends StatelessWidget {
     required this.likePending,
     required this.onLike,
     required this.onReply,
+    required this.onAvatarTap,
   });
 
   @override
@@ -566,19 +577,23 @@ class _CommentRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: cs.primaryContainer,
-            backgroundImage: comment.userAvatar.isNotEmpty
-                ? NetworkImage(comment.userAvatar)
-                : null,
-            child: comment.userAvatar.isEmpty
-                ? Icon(
-                    Icons.person_rounded,
-                    color: cs.onPrimaryContainer,
-                    size: 22,
-                  )
-                : null,
+          InkWell(
+            onTap: onAvatarTap,
+            customBorder: const CircleBorder(),
+            child: CircleAvatar(
+              radius: 20,
+              backgroundColor: cs.primaryContainer,
+              backgroundImage: comment.userAvatar.isNotEmpty
+                  ? NetworkImage(comment.userAvatar)
+                  : null,
+              child: comment.userAvatar.isEmpty
+                  ? Icon(
+                      Icons.person_rounded,
+                      color: cs.onPrimaryContainer,
+                      size: 22,
+                    )
+                  : null,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

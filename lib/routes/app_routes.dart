@@ -15,5 +15,24 @@ class AppRoutes {
   static const String booklists = '/booklists';
   static const String booklistDetail = '/booklist-detail';
   static const String myComments = '/my-comments';
+  static const String userProfile = '/user-profile';
   static const String reader = '/reader';
+}
+
+/// Arguments for the user profile page. The id drives the comments
+/// fetch; name/avatar come from the tapped comment itself (the
+/// comments endpoint carries no profile header). Kept here, next to
+/// the route, because the comments screen (avatar tap) and the
+/// profile screen (row tap-through) navigate to each other — a
+/// screen-local class would make those two files import each other.
+class UserProfileArgs {
+  final int userId;
+  final String userName;
+  final String userAvatar;
+
+  const UserProfileArgs({
+    required this.userId,
+    required this.userName,
+    required this.userAvatar,
+  });
 }

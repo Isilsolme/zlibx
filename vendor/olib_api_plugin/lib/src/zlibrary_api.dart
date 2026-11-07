@@ -883,6 +883,29 @@ class ZLibraryApi {
     if (userId == null || userId.isEmpty) {
       return ApiResponse.fail('not logged in');
     }
+    return _fetchUserCommentsPage(userId, page, limit);
+  }
+
+  /// Another user's posted comments, same endpoint as [getMyComments]
+  /// but for an arbitrary user id (the id comes from a tapped
+  /// comment's `user_id`). Same page/limit semantics; the viewer
+  /// still needs a logged-in session (remix cookies).
+  Future<ApiResponse<UserCommentsPage>> getUserComments(
+    String userId, {
+    int page = 0,
+    int limit = 500,
+  }) async {
+    if (userId.isEmpty) {
+      return ApiResponse.fail('missing user id');
+    }
+    return _fetchUserCommentsPage(userId, page, limit);
+  }
+
+  Future<ApiResponse<UserCommentsPage>> _fetchUserCommentsPage(
+    String userId,
+    int page,
+    int limit,
+  ) async {
     final raw = await _get('/papi/comments/user/$userId/$page?limit=$limit');
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'my comments failed',

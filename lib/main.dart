@@ -23,6 +23,7 @@ import 'screens/account/account_screen.dart';
 import 'screens/account/booklists_screen.dart';
 import 'screens/account/booklist_detail_screen.dart';
 import 'screens/account/my_comments_screen.dart';
+import 'screens/account/user_profile_screen.dart';
 import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_share_codec.dart';
@@ -156,6 +157,7 @@ class _MyAppState extends ConsumerState<MyApp> {
               return BooklistDetailScreen(args: args);
             },
             AppRoutes.myComments: (context) => const MyCommentsScreen(),
+            AppRoutes.userProfile: (context) => const UserProfileScreen(),
             AppRoutes.reader: (context) {
               final args =
                   ModalRoute.of(context)!.settings.arguments as ReaderArgs;

@@ -19,6 +19,8 @@ class MyComment {
   final String text;
   final String date;
   final int likeCount;
+  final int userId;
+  final String userAvatar;
 
   const MyComment({
     required this.bookId,
@@ -26,6 +28,8 @@ class MyComment {
     required this.text,
     required this.date,
     this.likeCount = 0,
+    required this.userId,
+    this.userAvatar = '',
   });
 }
 
@@ -70,6 +74,8 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                   ? e.comment.dateRelative
                   : e.comment.date,
               likeCount: e.comment.likeCount,
+              userId: e.comment.userId,
+              userAvatar: e.comment.userAvatar,
             ))
         .toList();
   }
@@ -136,6 +142,19 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                                 bookTitle: comment.bookTitle,
                               ),
                             ),
+                            onAvatarTap: () =>
+                                Navigator.of(context).pushNamed(
+                              AppRoutes.userProfile,
+                              arguments: UserProfileArgs(
+                                userId: comment.userId,
+                                userName: ref
+                                        .read(authProvider)
+                                        .user
+                                        ?.name ??
+                                    '',
+                                userAvatar: comment.userAvatar,
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -152,11 +171,13 @@ class _MyCommentCard extends StatelessWidget {
   final MyComment comment;
   final String userName;
   final VoidCallback onTap;
+  final VoidCallback onAvatarTap;
 
   const _MyCommentCard({
     required this.comment,
     required this.userName,
     required this.onTap,
+    required this.onAvatarTap,
   });
 
   @override
@@ -189,13 +210,22 @@ class _MyCommentCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: cs.primaryContainer,
-                  child: Icon(
-                    Icons.person_rounded,
-                    color: cs.onPrimaryContainer,
-                    size: 22,
+                InkWell(
+                  onTap: onAvatarTap,
+                  customBorder: const CircleBorder(),
+                  child: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: cs.primaryContainer,
+                    backgroundImage: comment.userAvatar.isNotEmpty
+                        ? NetworkImage(comment.userAvatar)
+                        : null,
+                    child: comment.userAvatar.isEmpty
+                        ? Icon(
+                            Icons.person_rounded,
+                            color: cs.onPrimaryContainer,
+                            size: 22,
+                          )
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
