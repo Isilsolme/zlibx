@@ -9,6 +9,7 @@ const Map<String, String> zhHant = {
   'error': '錯誤',
   'success': '成功',
   'loading': '載入中...',
+  'checking_updates': '正在檢查更新...',
 
   // Auth
   'login': '登入',
@@ -65,6 +66,7 @@ const Map<String, String> zhHant = {
   'search_for_books': '搜尋書籍...',
   'trending': '熱門',
   'trending_on_open_library': 'Open Library 熱門',
+  'loading_trending_books': '正在載入熱門書籍...',
   'new_releases': '新書',
 
   // Search

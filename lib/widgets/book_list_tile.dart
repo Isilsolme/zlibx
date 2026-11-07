@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/display_book.dart';
+import 'cover_placeholder.dart';
 
 /// Compact list tile for books.
 class BookListTile extends StatelessWidget {
@@ -39,11 +40,12 @@ class BookListTile extends StatelessWidget {
                           memCacheWidth:
                               (48 * MediaQuery.devicePixelRatioOf(context))
                                   .ceil(),
-                          placeholder: (context, url) => _coverPlaceholder(cs),
+                          placeholder: (context, url) =>
+                              const CoverPlaceholder.static(),
                           errorWidget: (context, url, error) =>
-                              _coverPlaceholder(cs),
+                              const CoverPlaceholder.static(),
                         )
-                      : _coverPlaceholder(cs),
+                      : const CoverPlaceholder.static(),
                 ),
               )
             : Container(
@@ -154,15 +156,6 @@ class BookListTile extends StatelessWidget {
         trailing:
             trailing ?? Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
         onTap: onTap,
-      ),
-    );
-  }
-
-  Widget _coverPlaceholder(ColorScheme cs) {
-    return ColoredBox(
-      color: cs.primary.withValues(alpha: 0.1),
-      child: Center(
-        child: Icon(Icons.menu_book_rounded, color: cs.primary, size: 22),
       ),
     );
   }

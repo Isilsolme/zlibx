@@ -6,9 +6,21 @@ import 'package:flutter/material.dart';
 /// Determinate transfers continue to use progress indicators with real values.
 /// (Ported from the c001apk fork.)
 class ExpressiveLoadingIndicator extends StatefulWidget {
-  const ExpressiveLoadingIndicator({super.key, this.size = 40});
+  const ExpressiveLoadingIndicator({
+    super.key,
+    this.size = 40,
+    this.color,
+    this.value,
+  });
 
   final double size;
+
+  /// Overrides the theme primary color (e.g. white on a filled button).
+  final Color? color;
+
+  /// Determinate progress 0..1; when set, the blob holds the matching phase
+  /// instead of looping. Null (the default) loops forever.
+  final double? value;
 
   @override
   State<ExpressiveLoadingIndicator> createState() =>
@@ -25,7 +37,21 @@ class _ExpressiveLoadingIndicatorState extends State<ExpressiveLoadingIndicator>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) ||
+    _syncAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExpressiveLoadingIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    final value = widget.value;
+    if (value != null) {
+      _controller.stop();
+      _controller.value = value.clamp(0.0, 1.0);
+    } else if (MediaQuery.disableAnimationsOf(context) ||
         !TickerMode.valuesOf(context).enabled) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
@@ -48,7 +74,8 @@ class _ExpressiveLoadingIndicatorState extends State<ExpressiveLoadingIndicator>
             child: CustomPaint(
               painter: _MorphingShapePainter(
                 animation: _controller,
-                color: Theme.of(context).colorScheme.primary,
+                color:
+                    widget.color ?? Theme.of(context).colorScheme.primary,
               ),
             ),
           ),

@@ -420,12 +420,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
                                   _books.length + (_isLoadingMore ? 1 : 0),
                               itemBuilder: (context, index) {
                                 if (index >= _books.length) {
-                                  return const Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Center(
-                                      child: CircularProgressIndicator(),
-                                    ),
-                                  );
+                                  return const LoadingWidget.more();
                                 }
                                 final book = _books[index];
                                 return BookListTile(

@@ -18,6 +18,7 @@ import '../../services/share_intent_handler.dart';
 import 'widgets/shelf_book_item.dart';
 import 'widgets/shelf_filter_bar.dart';
 import 'widgets/shelf_import_handler.dart';
+import '../../widgets/loading_widget.dart';
 
 enum _ShelfSort { defaultOrder, title, author }
 
@@ -78,7 +79,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
 
     return Scaffold(
       body: shelf is AsyncLoading && allItems.isEmpty
-          ? const Center(child: CircularProgressIndicator())
+          ? LoadingWidget.page(message: l.get('loading_favorites'))
           : RefreshIndicator(
               onRefresh: () async {
                 await ref

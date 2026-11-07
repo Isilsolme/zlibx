@@ -16,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../../services/instance_manager.dart';
 import '../../services/mirror_speed_test.dart';
 import '../../widgets/gradient_app_bar.dart';
+import '../../widgets/loading_widget.dart';
 
 /// Settings > Network > Mirrors.
 ///
@@ -189,11 +190,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
           if (_probing)
             const Padding(
               padding: EdgeInsets.only(right: 16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+              child: LoadingWidget.inline(),
             )
           else
             IconButton(
@@ -204,7 +201,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingWidget.page()
           : _loadError
           ? Center(
               child: Padding(
@@ -296,9 +293,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
   Widget _serviceList(AppLocalizations l10n, MirrorService service) {
     final views = _views[service];
     if (views == null) {
-      return const Padding(
+      return const LoadingWidget.page(
         padding: EdgeInsets.all(16),
-        child: Center(child: CircularProgressIndicator()),
       );
     }
     if (views.isEmpty) {

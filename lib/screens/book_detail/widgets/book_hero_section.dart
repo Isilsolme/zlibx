@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/display_book.dart';
 import '../../../providers/books_provider.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../widgets/loading_widget.dart';
 import 'book_3d_cover.dart';
 
 class BookHeroSection extends ConsumerStatefulWidget {
@@ -110,13 +111,8 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
                   ),
                   onPressed: _saving ? null : _toggleFavorite,
                   icon: _saving
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: collapsed ? cs.primary : Colors.white,
-                          ),
+                      ? LoadingWidget.inline(
+                          color: collapsed ? cs.primary : Colors.white,
                         )
                       : Icon(
                           widget.isFavorited

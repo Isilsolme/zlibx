@@ -88,10 +88,7 @@ class BookDetailScreen extends ConsumerWidget {
           // ── 1. 封面与滚动导航 ──
           BookHeroSection(book: book.toDisplay(), isFavorited: isFavorited),
 
-          if (details?.isLoading ?? false)
-            const SliverToBoxAdapter(
-              child: LinearProgressIndicator(minHeight: 2),
-            ),
+          if (details?.isLoading ?? false) const _DetailLoadingBar(),
           if (details?.hasError ?? false)
             SliverToBoxAdapter(
               child: Padding(
@@ -162,10 +159,7 @@ class _ExternalBookDetail extends ConsumerWidget {
           // shows it when book.isZLibrary), so isFavorited is always false.
           BookHeroSection(book: displayBook, isFavorited: false),
 
-          if (details.isLoading)
-            const SliverToBoxAdapter(
-              child: LinearProgressIndicator(minHeight: 2),
-            ),
+          if (details.isLoading) const _DetailLoadingBar(),
           if (details.hasError)
             SliverToBoxAdapter(
               child: Padding(
@@ -196,4 +190,14 @@ class _ExternalBookDetail extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Indeterminate loading bar under the hero while full details load.
+/// Shared by the Z-Library and the Anna / LibGen detail pages.
+class _DetailLoadingBar extends StatelessWidget {
+  const _DetailLoadingBar();
+
+  @override
+  Widget build(BuildContext context) =>
+      const SliverToBoxAdapter(child: LinearProgressIndicator(minHeight: 2));
 }

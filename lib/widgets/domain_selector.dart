@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/domain_provider.dart';
 import '../providers/speed_test_provider.dart';
 import '../theme/app_colors.dart';
+import 'loading_widget.dart';
 
 class DomainSelector extends ConsumerWidget {
   final bool compact;
@@ -111,16 +112,11 @@ class DomainSelectionDialog extends ConsumerWidget {
                     key: const ValueKey('testing'),
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          value: speedState.results.isEmpty
-                              ? null
-                              : speedState.testedCount /
-                                    speedState.results.length,
-                        ),
+                      LoadingWidget.inline(
+                        value: speedState.results.isEmpty
+                            ? null
+                            : speedState.testedCount /
+                                  speedState.results.length,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -211,11 +207,7 @@ class DomainSelectionDialog extends ConsumerWidget {
     // Status indicator
     Widget trailing;
     if (status == DomainLatencyStatus.untested) {
-      trailing = const SizedBox(
-        width: 14,
-        height: 14,
-        child: CircularProgressIndicator(strokeWidth: 1.5),
-      );
+      trailing = const LoadingWidget.inline();
     } else if (status == DomainLatencyStatus.unavailable) {
       trailing = Icon(Icons.close, size: 16, color: Theme.of(context).colorScheme.error);
     } else {

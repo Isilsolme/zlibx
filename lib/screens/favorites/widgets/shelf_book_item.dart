@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../models/unified_shelf_item.dart';
+import '../../../widgets/cover_placeholder.dart';
 
 /// 封面 + 书名/作者的网格卡片，与首页、搜索页的卡片语言保持一致。
 class ShelfGridItem extends StatelessWidget {
@@ -52,7 +53,6 @@ class ShelfGridItem extends StatelessWidget {
               children: [
                 _ShelfCover(
                   key: ValueKey(item.categoryKey),
-                  title: book.title,
                   cover: book.cover,
                   selected: selected,
                 ),
@@ -209,7 +209,6 @@ class ShelfListItem extends StatelessWidget {
                 height: 78,
                 child: _ShelfCover(
                   key: ValueKey('list-${item.categoryKey}'),
-                  title: book.title,
                   cover: book.cover,
                   selected: false,
                   radius: 8,
@@ -280,18 +279,16 @@ class ShelfListItem extends StatelessWidget {
   }
 }
 
-/// 圆角封面：带柔和阴影，无封面时用主色渐变 + 书名兜底（同首页卡片）。
+/// 圆角封面：带柔和阴影，无封面时用共享静态占位（同首页卡片）。
 class _ShelfCover extends StatelessWidget {
   const _ShelfCover({
     super.key,
-    required this.title,
     required this.cover,
     required this.selected,
     this.radius = 10,
     this.compact = false,
   });
 
-  final String title;
   final String? cover;
   final bool selected;
   final double radius;
@@ -329,56 +326,16 @@ class _ShelfCover extends StatelessWidget {
                     fit: BoxFit.cover,
                     memCacheWidth: cacheWidth > 0 ? cacheWidth : null,
                     fadeInDuration: const Duration(milliseconds: 250),
-                    placeholder: (_, __) => _fallback(cs, dark),
-                    errorWidget: (_, __, ___) => _fallback(cs, dark),
+                    placeholder: (_, __) => const CoverPlaceholder.static(),
+                    errorWidget: (_, __, ___) =>
+                        const CoverPlaceholder.static(),
                   )
-                : _fallback(cs, dark),
+                : const CoverPlaceholder.static(),
           ),
         );
       },
     );
   }
-
-  Widget _fallback(ColorScheme cs, bool dark) => DecoratedBox(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: dark
-            ? [
-                cs.primary.withValues(alpha: 0.45),
-                cs.primary.withValues(alpha: 0.2),
-              ]
-            : [
-                cs.primary.withValues(alpha: 0.85),
-                cs.primary.withValues(alpha: 0.6),
-              ],
-      ),
-    ),
-    child: Padding(
-      padding: EdgeInsets.all(compact ? 5 : 10),
-      child: Center(
-        child: compact
-            ? Icon(
-                Icons.auto_stories_rounded,
-                size: 22,
-                color: Colors.white.withValues(alpha: 0.8),
-              )
-            : Text(
-                title,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
-                ),
-              ),
-      ),
-    ),
-  );
 }
 
 class _CoverPill extends StatelessWidget {

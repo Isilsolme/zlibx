@@ -9,6 +9,7 @@ const Map<String, String> en = {
   'error': 'Error',
   'success': 'Success',
   'loading': 'Loading...',
+  'checking_updates': 'Checking for updates...',
 
   // Auth
   'login': 'Login',
@@ -66,6 +67,7 @@ const Map<String, String> en = {
   'search_for_books': 'Search for books...',
   'trending': 'Trending',
   'trending_on_open_library': 'Trending on Open Library',
+  'loading_trending_books': 'Loading trending books...',
   'new_releases': 'New Releases',
 
   // Search

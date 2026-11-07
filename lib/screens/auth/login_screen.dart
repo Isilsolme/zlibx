@@ -6,6 +6,7 @@ import '../../providers/domain_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/update_service.dart';
 import '../../widgets/domain_selector.dart';
+import '../../widgets/loading_widget.dart';
 import '../../widgets/update_dialog.dart';
 import '../../l10n/app_localizations.dart';
 import 'widgets/account_manager_sheet.dart';
@@ -392,13 +393,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
+                                  ? const LoadingWidget.inline(
+                                      color: Colors.white,
                                     )
                                   : Text(
                                       AppLocalizations.of(context).get('login'),

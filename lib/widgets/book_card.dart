@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../l10n/app_localizations.dart';
 import '../models/display_book.dart';
 import 'book_cover_backdrop.dart';
+import 'cover_placeholder.dart';
 
 class BookCard extends StatefulWidget {
   final DisplayBook book;
@@ -30,61 +31,11 @@ class BookCard extends StatefulWidget {
   State<BookCard> createState() => _BookCardState();
 }
 
-class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin {
+class _BookCardState extends State<BookCard> {
   // Press feedback
   double _scale = 1.0;
 
-  // Shimmer animation
-  late final AnimationController _shimmerController;
-  late final Animation<double> _shimmerAnimation;
-
   bool get _hasCover => widget.book.cover?.isNotEmpty ?? false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Shimmer sweep animation
-    _shimmerController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _shimmerAnimation = Tween<double>(begin: -1.0, end: 2.0).animate(
-      CurvedAnimation(parent: _shimmerController, curve: Curves.easeInOutSine),
-    );
-
-    if (_hasCover) {
-      _shimmerController.repeat();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant BookCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.book.cover == widget.book.cover) return;
-
-    if (_hasCover) {
-      _shimmerController.repeat();
-    } else {
-      _shimmerController.stop();
-    }
-  }
-
-  void _stopShimmerAfterFrame(String coverUrl) {
-    if (!_shimmerController.isAnimating) return;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || widget.book.cover != coverUrl) return;
-      _shimmerController.stop();
-    });
-  }
-
-  @override
-  void dispose() {
-    _shimmerController.dispose();
-    super.dispose();
-  }
 
   void _onTapDown(TapDownDetails details) {
     setState(() => _scale = 0.96);
@@ -245,12 +196,10 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
       fadeOutDuration: const Duration(milliseconds: 100),
       httpHeaders: const {'Connection': 'keep-alive'},
       imageBuilder: (context, imageProvider) {
-        _stopShimmerAfterFrame(widget.book.cover!);
         return content(image: imageProvider);
       },
       placeholder: (context, url) => content(loading: true),
       errorWidget: (context, url, error) {
-        _stopShimmerAfterFrame(url);
         return content();
       },
     );
@@ -277,11 +226,9 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
                 fadeOutDuration: const Duration(milliseconds: 100),
                 httpHeaders: const {'Connection': 'keep-alive'},
                 imageBuilder: (context, imageProvider) {
-                  _stopShimmerAfterFrame(widget.book.cover!);
                   return Image(image: imageProvider, fit: BoxFit.cover);
                 },
                 errorWidget: (context, url, error) {
-                  _stopShimmerAfterFrame(url);
                   return _buildPlaceholder();
                 },
                 placeholder: (context, url) => _buildShimmer(),
@@ -480,63 +427,20 @@ class _BookCardState extends State<BookCard> with SingleTickerProviderStateMixin
     );
   }
 
-  /// Placeholder when no cover or load error — gradient background + book icon
+  /// Placeholder when no cover or load error — shared static cover icon.
   Widget _buildPlaceholder({bool showBookInfo = false}) {
-    final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  cs.primary.withValues(alpha:0.15),
-                  cs.primary.withValues(alpha:0.08),
-                ]
-              : [
-                  cs.primary.withValues(alpha:0.08),
-                  cs.primary.withValues(alpha:0.04),
-                ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.auto_stories_rounded,
-          color: cs.primary.withValues(alpha:isDark ? 0.4 : 0.25),
-          size: 36,
-        ),
-      ),
+    return _withFallbackBookInfo(
+      const CoverPlaceholder.static(),
+      showBookInfo: showBookInfo,
     );
-    return _withFallbackBookInfo(background, showBookInfo: showBookInfo);
   }
-  
-  /// Real shimmer effect — animated gradient sweep
+
+  /// Loading shimmer — the shared animated cover placeholder.
   Widget _buildShimmer({bool showBookInfo = false}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final baseColor = isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE);
-    final highlightColor = isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
-    
-    final shimmer = AnimatedBuilder(
-      animation: _shimmerAnimation,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [baseColor, highlightColor, baseColor],
-              stops: [
-                (_shimmerAnimation.value - 0.3).clamp(0.0, 1.0),
-                _shimmerAnimation.value.clamp(0.0, 1.0),
-                (_shimmerAnimation.value + 0.3).clamp(0.0, 1.0),
-              ],
-            ),
-          ),
-        );
-      },
+    return _withFallbackBookInfo(
+      const CoverPlaceholder.shimmer(),
+      showBookInfo: showBookInfo,
     );
-    return _withFallbackBookInfo(shimmer, showBookInfo: showBookInfo);
   }
 
   Widget _withFallbackBookInfo(

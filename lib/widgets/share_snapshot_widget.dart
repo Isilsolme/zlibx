@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'cover_placeholder.dart';
 
 enum ShareStyle {
   museum,    // 极简留白风格
@@ -577,10 +578,10 @@ class ShareSnapshotWidget extends StatelessWidget {
               imageUrl: book.cover!,
               fit: BoxFit.cover,
               memCacheWidth: (width * 3).toInt(), // for high res capture
-              errorWidget: (_, __, ___) => _coverPlaceholder(),
-              placeholder: (_, __) => _coverPlaceholder(),
+              errorWidget: (_, __, ___) => const CoverPlaceholder.static(),
+              placeholder: (_, __) => const CoverPlaceholder.static(),
             )
-          : _coverPlaceholder(),
+          : const CoverPlaceholder.static(),
     );
 
     if (radius > 0) {
@@ -590,14 +591,5 @@ class ShareSnapshotWidget extends StatelessWidget {
       );
     }
     return child;
-  }
-
-  Widget _coverPlaceholder() {
-    return Container(
-      color: const Color(0xFFE0E0E0),
-      child: const Center(
-        child: Icon(Icons.book, size: 16, color: Colors.grey),
-      ),
-    );
   }
 }

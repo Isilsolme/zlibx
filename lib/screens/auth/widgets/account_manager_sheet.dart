@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../widgets/loading_widget.dart';
 
 enum AccountManagerResult { switched, addAccount }
 
@@ -188,7 +189,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
     final cs = Theme.of(context).colorScheme;
 
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const LoadingWidget.page();
     }
 
     if (_accounts.isEmpty) {
@@ -284,10 +285,7 @@ class _AccountTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       trailing: isSwitching
-          ? const SizedBox.square(
-              dimension: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+          ? const LoadingWidget.inline()
           : isCurrent
           ? Tooltip(
               message: l10n.get('current_account'),

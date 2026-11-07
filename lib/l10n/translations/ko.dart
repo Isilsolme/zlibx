@@ -9,6 +9,7 @@ const Map<String, String> ko = {
   'error': '오류',
   'success': '성공',
   'loading': '로딩 중...',
+  'checking_updates': '업데이트를 확인하는 중...',
 
   // Auth
   'login': '로그인',
@@ -65,6 +66,7 @@ const Map<String, String> ko = {
   'search_for_books': '책 검색...',
   'trending': '인기',
   'trending_on_open_library': 'Open Library 인기',
+  'loading_trending_books': '인기 도서를 불러오는 중...',
   'new_releases': '신간',
 
   // Search

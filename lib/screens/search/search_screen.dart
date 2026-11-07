@@ -8,6 +8,7 @@ import '../../providers/books_provider.dart';
 import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
+import '../../widgets/cover_placeholder.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -183,11 +184,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         .toList();
     if (_recentSearches.isEmpty && trendingBooks.isEmpty) {
       if (trendingAsync.isLoading) {
-        return const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: CircularProgressIndicator(),
-          ),
+        return const LoadingWidget.page(
+          padding: EdgeInsets.all(24),
         );
       }
       return EmptyState(
@@ -260,11 +258,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   /// Suggestions for the text being typed. Tapping one searches it.
   Widget _buildSuggestionsView(AppLocalizations l10n) {
     if (_suggestionsLoading && _suggestions.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CircularProgressIndicator(),
-        ),
+      return const LoadingWidget.page(
+        padding: EdgeInsets.all(24),
       );
     }
     if (_suggestions.isEmpty) {
@@ -345,17 +340,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             height: 145,
                             width: 105,
                             fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              height: 145,
-                              width: 105,
-                              color: colors.surfaceContainerHighest,
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              height: 145,
-                              width: 105,
-                              color: colors.surfaceContainerHighest,
-                              child: const Icon(Icons.image_outlined),
-                            ),
+                            placeholder: (context, url) =>
+                                const CoverPlaceholder.static(),
+                            errorWidget: (context, url, error) =>
+                                const CoverPlaceholder.static(),
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -737,12 +725,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     books.length + (isLoadingMore ? 1 : 0),
                                 itemBuilder: (context, index) {
                                   if (index >= books.length) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
+                                    return const LoadingWidget.more();
                                   }
                                   final book = books[index];
                                   return BookListTile(
@@ -771,12 +754,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     books.length + (isLoadingMore ? 1 : 0),
                                 itemBuilder: (context, index) {
                                   if (index >= books.length) {
-                                    return const Center(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    );
+                                    return const LoadingWidget.more();
                                   }
 
                                   final book = books[index];

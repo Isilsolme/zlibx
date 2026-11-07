@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../l10n/app_localizations.dart';
 import '../services/update_service.dart';
+import 'loading_widget.dart';
 
 /// 更新对话框：Release 清单里的下载渠道（网盘等）+ 官网 + GitHub，用户自选。
 ///
@@ -24,9 +26,9 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
     builder: (_) => AlertDialog(
       content: Row(
         children: [
-          const CircularProgressIndicator(),
+          const LoadingWidget.inline(),
           const SizedBox(width: 20),
-          Text(isZh ? '正在检查更新...' : 'Checking for updates...'),
+          Text(AppLocalizations.of(context).get('checking_updates')),
         ],
       ),
     ),

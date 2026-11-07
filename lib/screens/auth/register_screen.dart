@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/domain_selector.dart';
+import '../../widgets/loading_widget.dart';
 import '../../l10n/app_localizations.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -238,13 +239,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
+                                  ? const LoadingWidget.inline(
+                                      color: Colors.white,
                                     )
                                   : Text(_codeSent
                                       ? AppLocalizations.of(context).get('register')

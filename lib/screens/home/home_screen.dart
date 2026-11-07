@@ -744,7 +744,6 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
             return RefreshIndicator(
               onRefresh: _refreshRecommendations,
-              color: Theme.of(context).colorScheme.primary,
               // The spinner must appear below the floating glass header,
               // not behind it (the header paints on top of the grid).
               edgeOffset: topPadding,
@@ -780,7 +779,9 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       },
       loading: () => Padding(
         padding: EdgeInsets.only(top: topPadding + 40, bottom: 40),
-        child: const LoadingWidget(message: 'Loading trending books...'),
+        child: LoadingWidget(
+          message: AppLocalizations.of(context).get('loading_trending_books'),
+        ),
       ),
       error: (error, stack) => Padding(
         padding: EdgeInsets.fromLTRB(20, topPadding + 20, 20, 20),

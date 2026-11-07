@@ -43,6 +43,7 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
   InAppWebViewController? _controller;
   Timer? _pollTimer;
   bool _done = false;
+  double _progress = 0;
 
   @override
   void dispose() {
@@ -119,6 +120,8 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
                     ),
               ),
             ),
+            if (_progress < 1)
+              LinearProgressIndicator(value: _progress, minHeight: 2),
             Expanded(
               child: InAppWebView(
                 initialUrlRequest: URLRequest(url: WebUri(widget.url)),
@@ -129,6 +132,11 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
                 onWebViewCreated: (controller) {
                   _controller = controller;
                   _startPolling();
+                },
+                onProgressChanged: (controller, progress) {
+                  if (mounted) {
+                    setState(() => _progress = progress / 100);
+                  }
                 },
               ),
             ),

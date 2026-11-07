@@ -9,6 +9,7 @@ const Map<String, String> zh = {
   'error': '错误',
   'success': '成功',
   'loading': '加载中...',
+  'checking_updates': '正在检查更新...',
 
   // Auth
   'login': '登录',
@@ -65,6 +66,7 @@ const Map<String, String> zh = {
   'search_for_books': '搜索书籍...',
   'trending': '热门',
   'trending_on_open_library': 'Open Library 热门',
+  'loading_trending_books': '正在加载热门书籍...',
   'new_releases': '新书',
 
   // Search

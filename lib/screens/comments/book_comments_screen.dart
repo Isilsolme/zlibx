@@ -352,13 +352,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                                           ),
                                       itemBuilder: (context, index) {
                                         if (index >= _comments.length) {
-                                          return const Padding(
-                                            padding: EdgeInsets.all(16),
-                                            child: Center(
-                                              child:
-                                                  CircularProgressIndicator(),
-                                            ),
-                                          );
+                                          return const LoadingWidget.more();
                                         }
                                         final comment = _comments[index];
                                         return _CommentRow(
@@ -464,13 +458,8 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                           return IconButton.filled(
                             onPressed: canSend ? _submitComment : null,
                             icon: _isPosting
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
+                                ? const LoadingWidget.inline(
+                                    color: Colors.white,
                                   )
                                 : const Icon(
                                     Icons.send_rounded,

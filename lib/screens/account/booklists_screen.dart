@@ -436,13 +436,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                                       const Divider(height: 1, indent: 72),
                                   itemBuilder: (context, index) {
                                     if (index >= _lists.length) {
-                                      return const Padding(
-                                        padding: EdgeInsets.all(16),
-                                        child: Center(
-                                          child:
-                                              CircularProgressIndicator(),
-                                        ),
-                                      );
+                                      return const LoadingWidget.more();
                                     }
                                     final list = _lists[index];
                                     return _BooklistRow(
