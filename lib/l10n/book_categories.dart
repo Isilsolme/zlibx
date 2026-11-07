@@ -936,19 +936,38 @@ List<ParsedBookCategory> parseBookCategories(String? raw) {
 
 /// Localize one parsed category for [locale]: zh / zh_Hant use the table
 /// above; every other locale (and any id missing from the table) shows the
-/// English name the API returned.
+/// English name the API returned. When the name repeats the parent word
+/// ("Psychology - Psychology - theory, history & research"), the parent
+/// part is dropped so the chip does not show the word twice.
 String localizedBookCategoryName(ParsedBookCategory category, Locale locale) {
   final entry =
       category.id == null ? null : kBookCategoryNames[category.id];
-  if (entry == null) return category.name;
-  // Same zh / zh_Hant split as _lookupKey in app_localizations.dart.
-  if (locale.languageCode == 'zh') {
-    if (locale.scriptCode == 'Hant') return entry.zhHant;
-    final country = locale.countryCode;
-    if (country == 'TW' || country == 'HK' || country == 'MO') {
-      return entry.zhHant;
+  final String name;
+  if (entry == null) {
+    name = category.name;
+  } else if (locale.languageCode == 'zh') {
+    // Same zh / zh_Hant split as _lookupKey in app_localizations.dart.
+    if (locale.scriptCode == 'Hant') {
+      name = entry.zhHant;
+    } else {
+      final country = locale.countryCode;
+      name = (country == 'TW' || country == 'HK' || country == 'MO')
+          ? entry.zhHant
+          : entry.zh;
     }
-    return entry.zh;
+  } else {
+    name = category.name;
   }
-  return category.name;
+  return _dedupeParent(name);
+}
+
+/// Drop a doubled parent word: for "A - A..." (the child part already
+/// starts with the parent name) show the child part alone.
+String _dedupeParent(String name) {
+  final dash = name.indexOf(' - ');
+  if (dash <= 0) return name;
+  final parent = name.substring(0, dash);
+  final child = name.substring(dash + 3);
+  if (child.startsWith(parent)) return child;
+  return name;
 }

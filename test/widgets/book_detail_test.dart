@@ -144,6 +144,28 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a doubled parent word shows once in the category chip',
+      (tester) async {
+    const categorized = Book(
+      id: 7,
+      title: 'Categorized book',
+      author: 'An author',
+      year: 2021,
+      extension: 'epub',
+      filesizeString: '4.74 MB',
+      categories: '{528: Psychology - Psychology - theory, history & research}',
+      hash: 'sample',
+    );
+    await tester.pumpWidget(app(
+      CustomScrollView(slivers: const [BookInfoSection(book: categorized)]),
+      locale: const Locale('zh'),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('心理学：理论、历史与研究'), findsOneWidget);
+    expect(find.text('心理学 - 心理学：理论、历史与研究'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('no category chip when the detail carries none',
       (tester) async {
     await tester.pumpWidget(app(

@@ -67,6 +67,40 @@ void main() {
       );
     });
 
+    test('a doubled parent word is shown once', () {
+      expect(
+        localizedBookCategoryName(
+          (id: 528, name: 'Psychology - Psychology - theory, history & research'),
+          const Locale('zh'),
+        ),
+        '心理学：理论、历史与研究',
+      );
+      expect(
+        localizedBookCategoryName(
+          (id: 387, name: 'Linguistics - Linguistics'),
+          const Locale('zh'),
+        ),
+        '语言学',
+      );
+      expect(
+        localizedBookCategoryName(
+          (id: 528, name: 'Psychology - Psychology - theory, history & research'),
+          const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+          ),
+        ),
+        '心理學：理論、歷史與研究',
+      );
+      expect(
+        localizedBookCategoryName(
+          (id: 999999, name: 'Psychology - Psychology - theory, history & research'),
+          const Locale('en'),
+        ),
+        'Psychology - theory, history & research',
+      );
+    });
+
     test('other locales and unknown ids fall back to the English name', () {
       expect(
         localizedBookCategoryName(worldHistory, const Locale('en')),
