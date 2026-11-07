@@ -33,9 +33,14 @@ class BooklistFileUtils {
       allowedExtensions: ['json'],
     );
     if (files.isEmpty) return null;
-    if (files.first.size > BooklistShareCodec.maxFileBytes) return null;
+    final selectedFile = files.first;
+    final selectedPath = selectedFile.path;
+    if (selectedPath != null) {
+      final fileSize = await File(selectedPath).length();
+      if (fileSize > BooklistShareCodec.maxFileBytes) return null;
+    }
 
-    final bytes = await files.first.readAsBytes();
+    final bytes = await selectedFile.readAsBytes();
     if (bytes.length > BooklistShareCodec.maxFileBytes) return null;
     final content = utf8.decode(bytes);
     return BooklistShareCodec.tryDecode(content);

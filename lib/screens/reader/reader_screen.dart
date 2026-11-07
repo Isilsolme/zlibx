@@ -162,6 +162,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _shareProbeLog() async {
+    final localizations = AppLocalizations.of(context);
+    final entryCount = _probeLog.length;
     try {
       final dir = await getApplicationDocumentsDirectory();
       final ts = DateTime.now().millisecondsSinceEpoch;
@@ -177,9 +179,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ShareParams(
           files: [XFile(file.path)],
           subject: 'Litera Probe Log (${_probeLog.length} entries)',
-          text: AppLocalizations.of(context)
+          text: localizations
               .get('reader_resource_log_count')
-              .replaceAll('{count}', '${_probeLog.length}'),
+              .replaceAll('{count}', '$entryCount'),
         ),
       );
     } catch (e) {

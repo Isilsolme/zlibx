@@ -93,7 +93,7 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    AppLocalizations.of(context).get('current_version_label').replaceAll('{version}', '${version}'),
+                    AppLocalizations.of(context).get('current_version_label').replaceAll('{version}', '$version'),
                   );
                 },
               ),

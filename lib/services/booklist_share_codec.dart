@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:io' show gzip;
+import 'dart:typed_data' show BytesBuilder;
 
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
