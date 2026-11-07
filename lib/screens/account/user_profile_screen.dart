@@ -168,12 +168,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       });
       return;
     }
+    // `html` is a mutable local captured by the setState closure
+    // below, so its null-check promotion does not survive into the
+    // closure — pin it to a final first.
+    final pageHtml = html;
     // The solve earned wall-clearance cookies — hand them to Dio so
     // the next HTML load skips the solver.
     await bridgeWallCookies(api, url);
     setState(() {
       _booklists = parseUserProfileBooklists(
-        html,
+        pageHtml,
         baseUrl: Uri.parse(url).origin,
       );
       _booklistsLoading = false;
