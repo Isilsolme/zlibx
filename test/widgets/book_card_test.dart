@@ -48,8 +48,12 @@ void main() {
               ),
             );
             expect(tester.takeException(), isNull);
-            expect(find.text(book.title), findsNothing);
-            expect(find.text(book.author!), findsNothing);
+            // Compact cards overlay the title + author on the cover when
+            // there is no cover image (fallback book info), so both render
+            // as visible Text; only score/tag stay hidden, and the title
+            // remains available as a semantics label.
+            expect(find.text(book.title), findsOneWidget);
+            expect(find.text(book.author!), findsOneWidget);
             expect(find.text(book.score!), findsNothing);
             expect(
               find.bySemanticsLabel(RegExp(RegExp.escape(book.title))),
@@ -86,7 +90,8 @@ void main() {
         ),
       ),
     );
-    expect(find.text(sparseBook.title), findsNothing);
+    // Same fallback overlay as above: a coverless card still shows the title.
+    expect(find.text(sparseBook.title), findsOneWidget);
     expect(find.byIcon(Icons.auto_stories_rounded), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

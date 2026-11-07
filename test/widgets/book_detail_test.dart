@@ -24,7 +24,12 @@ Widget app(Widget body, {Brightness brightness = Brightness.light,
     ],
     theme: ThemeData(brightness: brightness),
     builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+      // The 3D cover floats forever (AnimationController.repeat), so tests
+      // must run with animations disabled or pumpAndSettle can never finish.
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(scale),
+        disableAnimations: true,
+      ),
       child: child!,
     ),
     home: Scaffold(body: body, bottomNavigationBar: actionBar),
