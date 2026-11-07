@@ -33,12 +33,6 @@ class Booklist {
   /// Absolute URL of the list page on the mirror.
   final String url;
 
-  /// Key for the get-books endpoint: the second-to-last segment of the
-  /// list href (`/booklist/{id}/{hash}/{slug}.html` -> `{hash}`).
-  /// The numeric [id] does NOT work there — the server answers
-  /// "Requested page not found" (verified on device 2026-11-07).
-  final String booksKey;
-
   const Booklist({
     required this.id,
     required this.name,
@@ -48,7 +42,6 @@ class Booklist {
     this.views = '',
     this.coverUrl = '',
     required this.url,
-    this.booksKey = '',
   });
 
   /// Build from one `<z-booklist>` element of a `/booklists` (or
@@ -73,11 +66,6 @@ class Booklist {
         ? idAttr
         : _idFromHref(href);
     if (id == null) return null;
-    // The get-books endpoint is keyed by the href's second-to-last
-    // segment (the hash), not the numeric id — see [Booklist.booksKey].
-    final hrefSegments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
-    final booksKey =
-        hrefSegments.length >= 3 ? hrefSegments[hrefSegments.length - 2] : '';
     var coverUrl = '';
     for (final img in el.querySelectorAll('img')) {
       final src = img.attributes['data-src']?.trim() ?? '';
@@ -95,7 +83,6 @@ class Booklist {
       views: el.attributes['views']?.trim() ?? '',
       coverUrl: coverUrl,
       url: _resolveUrl(href, baseUrl),
-      booksKey: booksKey,
     );
   }
 
@@ -157,4 +144,82 @@ BooklistsPage parseBooklistsPage(String html, {required String baseUrl}) {
   final match = RegExp(r'pagesTotal:\s*(\d+)').firstMatch(html);
   if (match != null) totalPages = int.tryParse(match.group(1)!) ?? 0;
   return BooklistsPage(lists: lists, totalPages: totalPages);
+}
+
+/// Books on the FIRST page of a booklist detail page, from the
+/// server-rendered `<z-bookcard>` elements (`.readlist-view`).
+///
+/// Page 1 is never served by the JSON endpoint (see
+/// `getBooklistBooks` in the API layer) — it lives in the detail document.
+/// Shape confirmed from the live `/booklist/4088695/62a0c2/001.html`
+/// document 2026-11-07: each card carries the book in its attributes
+/// (`id`, `href`, `publisher`, `language`, `year`, `extension`,
+/// `filesize`, `rating`, `read`), the cover in a child `<img
+/// data-src>`, and the title/author in `<div slot="title">` /
+/// `<div slot="author">`. The book hash is the first segment of the
+/// href (`/book/{hash}/{slug}.html`). The `user_token` attribute (a
+/// JWT carrying the signed-in user's identity) is deliberately NOT
+/// read. Cards marked `deleted="1"` are skipped. An empty list means
+/// the page had no cards (or was not a detail page at all).
+List<Book> parseBooklistDetailBooks(String html, {String? baseUrl}) {
+  final doc = html_parser.parse(html);
+  final books = <Book>[];
+  for (final card in doc.querySelectorAll('z-bookcard')) {
+    final id = int.tryParse(card.attributes['id']?.trim() ?? '');
+    if (id == null) continue;
+    if (card.attributes['deleted']?.trim() == '1') continue;
+    final href = card.attributes['href']?.trim() ?? '';
+    final img = card.querySelector('img');
+    final coverRaw = img?.attributes['data-src']?.trim() ??
+        img?.attributes['src']?.trim() ??
+        '';
+    final title =
+        card.querySelector('div[slot="title"]')?.text.trim() ?? '';
+    final author =
+        card.querySelector('div[slot="author"]')?.text.trim() ?? '';
+    books.add(
+      Book(
+        id: id,
+        title: title,
+        hash: _hashFromBookHref(href),
+        author: author.isEmpty ? null : author,
+        cover: coverRaw.isEmpty
+            ? null
+            : (baseUrl == null ? coverRaw : _resolveCardUrl(coverRaw, baseUrl)),
+        publisher: _cardAttr(card, 'publisher'),
+        year: int.tryParse(card.attributes['year']?.trim() ?? ''),
+        language: _cardAttr(card, 'language'),
+        extension: _cardAttr(card, 'extension'),
+        filesizeString: _cardAttr(card, 'filesize'),
+        interestScore: _cardAttr(card, 'rating'),
+        readOnlineUrl: _cardAttr(card, 'read'),
+      ),
+    );
+  }
+  return books;
+}
+
+String? _cardAttr(dom.Element el, String name) {
+  final value = el.attributes[name]?.trim();
+  return value == null || value.isEmpty ? null : value;
+}
+
+/// Book hash from a `/book/{hash}/{slug}.html` href, or null when the
+/// href does not have that shape.
+String? _hashFromBookHref(String href) {
+  final segments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
+  if (segments.length >= 2 && segments[0] == 'book') {
+    final hash = segments[1];
+    return hash.isEmpty ? null : hash;
+  }
+  return null;
+}
+
+String _resolveCardUrl(String raw, String baseUrl) {
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw;
+  }
+  if (raw.startsWith('//')) return 'https:$raw';
+  if (raw.startsWith('/')) return '$baseUrl$raw';
+  return raw;
 }

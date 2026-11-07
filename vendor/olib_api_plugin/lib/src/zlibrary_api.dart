@@ -1103,22 +1103,74 @@ class ZLibraryApi {
     return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
   }
 
-  /// Books inside one booklist. The site's own JSON API:
-  /// `GET /papi/booklist/{key}/get-books/{page}` answers
+  /// Books on the FIRST page of one booklist, parsed from the detail
+  /// page's own HTML (`/booklist/{id}/{hash}/{slug}.html`, via
+  /// [parseBooklistDetailBooks]).
+  ///
+  /// Page 1 is never served by the JSON endpoint (see
+  /// [getBooklistBooks]) — it is server-rendered into the detail
+  /// document as `<z-bookcard>` elements. The detail page is an HTML
+  /// route, so like the list pages it can answer with the browser-check
+  /// wall: a challenge page is reported as `HTTP 503: browser check
+  /// page` (via [_looksLikeChallengePage]) so the caller can fall back
+  /// to the WebView solver, exactly like the booklists screen does.
+  /// The request stays on the current mirror (only the path of
+  /// [Booklist.url] is used) and carries the session Cookie.
+  Future<ApiResponse<List<Book>>> getBooklistDetailBooks(
+    Booklist list,
+  ) async {
+    final path = Uri.tryParse(list.url)?.path ?? '';
+    if (path.isEmpty) {
+      return ApiResponse.fail('booklist has no page url');
+    }
+    // Call [_get] directly (not [_getHtml]) so a failure can report
+    // its real cause, like [_searchBooklists] does.
+    final raw = await _get(
+      path,
+      extraHeaders: const {'Accept': 'text/html'},
+    );
+    final status = raw.status;
+    if (status == null || status < 200 || status >= 300) {
+      return ApiResponse.fail(
+        raw.error ?? 'booklist failed (HTTP $status)',
+        statusCode: status,
+      );
+    }
+    final html = raw.body;
+    if (html == null || html.isEmpty) {
+      return ApiResponse.fail(
+        raw.error ?? 'booklist failed',
+        statusCode: status,
+      );
+    }
+    if (_looksLikeChallengePage(html)) {
+      return ApiResponse.fail(
+        'HTTP $status: browser check page',
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(parseBooklistDetailBooks(html, baseUrl: _base));
+  }
+
+  /// Books on page 2 and up of one booklist. The site's own JSON API:
+  /// `GET /papi/booklist/{id}/get-books/{page}` answers
   /// `{books: [{book: {...}}], pagination: {total_pages}}`; each inner
-  /// `book` maps through [Book.fromJson] (no `hash` — the detail page
-  /// renders from the list data, like any hash-less Book). Page is
-  /// 1-based. The `{key}` is the second-to-last segment of the list
-  /// href (`/booklist/{id}/{hash}/{slug}.html` -> `{hash}`), NOT the
-  /// numeric id — requesting with the numeric id answers "Requested
-  /// page not found" (verified on device 2026-11-07). Pass
-  /// [Booklist.booksKey]. Same verification status as
-  /// [searchPublicBooklists].
+  /// `book` maps through [Book.fromJson] (its `href` supplies the
+  /// `hash`, which the JSON itself does not carry). The `{id}` is the
+  /// NUMERIC list id — the site's own `loadMoreBooks`
+  /// (z-booklists-browser.js, captured 2026-11-07) calls exactly this
+  /// URL. Pages start at 2: the site's counter starts at 1 and is
+  /// incremented before the fetch, so page 1 is never requested — it
+  /// is server-rendered into the detail document (see
+  /// [getBooklistDetailBooks]), and asking the endpoint for page 1
+  /// answers "Requested page not found" (verified on device
+  /// 2026-11-07 for both the numeric id and the href hash — the
+  /// hash-key theory was wrong). Pass the list's numeric [Booklist.id].
   Future<ApiResponse<BooklistBooksPage>> getBooklistBooks(
-    String booksKey, {
-    int page = 1,
+    String id, {
+    int page = 2,
   }) async {
-    final raw = await _get('/papi/booklist/$booksKey/get-books/$page');
+    final raw = await _get('/papi/booklist/$id/get-books/$page');
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'booklist failed',
           statusCode: raw.status);
@@ -1228,7 +1280,6 @@ class ZLibraryApi {
       if (candidate is! Map<String, dynamic>) continue;
       final id = candidate['id']?.toString() ?? '';
       if (!RegExp(r'^\d+$').hasMatch(id)) continue;
-      final hash = candidate['hash']?.toString() ?? '';
       final name = candidate['title']?.toString() ??
           candidate['topic']?.toString() ??
           title;
@@ -1238,7 +1289,6 @@ class ZLibraryApi {
         description: candidate['description']?.toString() ?? '',
         count: 0,
         url: '$_base/booklist/$id',
-        booksKey: hash,
       );
     }
     return null;

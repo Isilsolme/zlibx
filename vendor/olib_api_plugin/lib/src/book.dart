@@ -49,10 +49,15 @@ class Book {
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
+    // The get-books JSON carries no `hash`, but its `href` does:
+    // `/book/{hash}/{slug}.html`. The detail screen needs the hash
+    // (`GET /eapi/book/{id}/{hash}`), so derive it when absent.
+    final href = _asString(json['href']);
     return Book(
       id: _asInt(json['id']) ?? 0,
       title: _asString(json['title']) ?? '',
-      hash: _asString(json['hash'] ?? json['hashId']),
+      hash: _asString(json['hash'] ?? json['hashId']) ??
+          _hashFromBookHref(href),
       author: _joinAuthor(json['author']),
       cover: _asString(json['cover']),
       description: _asString(json['description']),
@@ -65,12 +70,26 @@ class Book {
       filesize: _asInt(json['filesize']),
       filesizeString: _filesizeString(json),
       interestScore: _asString(
-        json['interestScore'] ?? json['interest_score'],
+        json['interestScore'] ??
+            json['interest_score'] ??
+            json['qualityScore'],
       ),
       readOnlineUrl: _asString(
         json['readOnlineUrl'] ?? json['read_online_url'],
       ),
     );
+  }
+
+  /// Book hash from a `/book/{hash}/{slug}.html` href, or null when the
+  /// href does not have that shape.
+  static String? _hashFromBookHref(String? href) {
+    if (href == null || href.isEmpty) return null;
+    final segments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
+    if (segments.length >= 2 && segments[0] == 'book') {
+      final hash = segments[1];
+      return hash.isEmpty ? null : hash;
+    }
+    return null;
   }
 
   Map<String, dynamic> toJson() => {
