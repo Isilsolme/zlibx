@@ -10,10 +10,12 @@ import '../../../l10n/app_localizations.dart';
 import '../../../services/media_store.dart';
 import '../../../services/update_service.dart';
 import '../../../routes/app_routes.dart';
+import '../../../utils/app_snack.dart';
 import '../../../widgets/update_dialog.dart';
 import '../../reader/reader_screen.dart';
 import 'download_quota_dialog.dart';
 
+import '../../../l10n/s_keys.dart';
 class BookActionBar extends ConsumerWidget {
   final Book book;
   final DownloadTask? downloadTask;
@@ -79,13 +81,13 @@ class BookActionBar extends ConsumerWidget {
 
     if (isCompleted) {
       icon = Icons.folder_open_rounded;
-      label = l10n.get('open_file');
+      label = l10n.get(S.openFile);
     } else if (isDownloading) {
       icon = Icons.downloading_rounded;
       label = '${(downloadTask!.progress * 100).toStringAsFixed(0)}%';
     } else {
       icon = Icons.download_rounded;
-      label = l10n.get('download');
+      label = l10n.get(S.download);
     }
 
     if (isPrimary) {
@@ -137,7 +139,7 @@ class BookActionBar extends ConsumerWidget {
         onPressed: () => _handleRead(context, ref),
         icon: const Icon(Icons.menu_book_rounded, size: 20),
         label: Text(
-          l10n.get('preview'),
+          l10n.get(S.preview),
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
         style: ElevatedButton.styleFrom(
@@ -219,16 +221,16 @@ class BookActionBar extends ConsumerWidget {
           context: context,
           dialogType: DialogType.info,
           animType: AnimType.bottomSlide,
-          title: AppLocalizations.of(context).get('file_exists_title'),
-          desc: AppLocalizations.of(context).get('file_exists_desc'),
-          btnCancelText: AppLocalizations.of(context).get('open_file'),
+          title: AppLocalizations.of(context).get(S.fileExistsTitle),
+          desc: AppLocalizations.of(context).get(S.fileExistsDesc),
+          btnCancelText: AppLocalizations.of(context).get(S.openFile),
           btnCancelColor: Theme.of(context).colorScheme.primary,
           btnCancelOnPress: () async {
             // The dialog outlives this bar: re-check before using context.
             if (!context.mounted) return;
             await _openDownloadedFile(context, existingPath);
           },
-          btnOkText: AppLocalizations.of(context).get('download_again'),
+          btnOkText: AppLocalizations.of(context).get(S.downloadAgain),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             if (!context.mounted) return;
@@ -245,7 +247,7 @@ class BookActionBar extends ConsumerWidget {
 
   /// 真正触发下载的统一入口：只走用户自己的 z站 账号。
   Future<void> _kickoffDownload(BuildContext context, WidgetRef ref) async {
-    final downloadingMsg = AppLocalizations.of(context).get('downloading');
+    final downloadingMsg = AppLocalizations.of(context).get(S.downloading);
     final notifier = ref.read(downloadProvider.notifier);
 
     if (await _ownQuotaExhausted(ref)) {
@@ -286,7 +288,7 @@ class BookActionBar extends ConsumerWidget {
         if (!opened && context.mounted) {
           _toast(
             context,
-            AppLocalizations.of(context).get('open_file_failed'),
+            AppLocalizations.of(context).get(S.openFileFailed),
           );
         }
         return;
@@ -295,7 +297,7 @@ class BookActionBar extends ConsumerWidget {
       if (result.type != ResultType.done && context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get('open_file_failed'),
+          AppLocalizations.of(context).get(S.openFileFailed),
         );
       }
     } catch (error) {
@@ -303,19 +305,13 @@ class BookActionBar extends ConsumerWidget {
       if (context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get('open_file_failed'),
+          AppLocalizations.of(context).get(S.openFileFailed),
         );
       }
     }
   }
 
   void _toast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    showAppSnack(context, message);
   }
 }

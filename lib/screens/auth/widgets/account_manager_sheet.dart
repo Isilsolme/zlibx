@@ -5,6 +5,8 @@ import '../../../l10n/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../widgets/loading_widget.dart';
 
+import '../../../utils/app_snack.dart';
+import '../../../l10n/s_keys.dart';
 enum AccountManagerResult { switched, addAccount }
 
 Future<AccountManagerResult?> showAccountManagerSheet(
@@ -69,13 +71,9 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
     }
 
     setState(() => _switchingUserId = null);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          AppLocalizations.of(context).get('switch_account_failed'),
-        ),
-      ),
-    );
+    showAppSnack(context,
+          AppLocalizations.of(context).get(S.switchAccountFailed),
+        );
   }
 
   Future<void> _confirmRemove(Map<String, dynamic> account) async {
@@ -83,17 +81,17 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get('remove_account_title')),
-        content: Text(l10n.get('remove_account_message')),
+        title: Text(l10n.get(S.removeAccountTitle)),
+        content: Text(l10n.get(S.removeAccountMessage)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.get('cancel')),
+            child: Text(l10n.get(S.cancel)),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            child: Text(l10n.get('remove')),
+            child: Text(l10n.get(S.remove)),
           ),
         ],
       ),
@@ -107,9 +105,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
     await _loadAccounts();
 
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.get('account_removed'))));
+    showAppSnack(context, l10n.get(S.accountRemoved));
   }
 
   @override
@@ -144,7 +140,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      l10n.get('account_management'),
+                      l10n.get(S.accountManagement),
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -152,7 +148,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: l10n.get('close'),
+                    tooltip: l10n.get(S.close),
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
@@ -168,7 +164,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                     context,
                   ).pop(AccountManagerResult.addAccount),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: Text(l10n.get('add_account')),
+                  label: Text(l10n.get(S.addAccount)),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -205,12 +201,12 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              l10n.get('no_saved_accounts'),
+              l10n.get(S.noSavedAccounts),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              l10n.get('no_saved_accounts_message'),
+              l10n.get(S.noSavedAccountsMessage),
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
@@ -261,7 +257,7 @@ class _AccountTile extends StatelessWidget {
     final name = account['name']?.toString().trim();
     final email = account['email']?.toString().trim();
     final displayName = name == null || name.isEmpty
-        ? l10n.get('unknown')
+        ? l10n.get(S.unknown)
         : name;
     final displayEmail = email == null || email.isEmpty ? '-' : email;
 
@@ -288,11 +284,11 @@ class _AccountTile extends StatelessWidget {
           ? const LoadingWidget.inline()
           : isCurrent
           ? Tooltip(
-              message: l10n.get('current_account'),
+              message: l10n.get(S.currentAccount),
               child: Icon(Icons.check_circle_rounded, color: cs.primary),
             )
           : PopupMenuButton<String>(
-              tooltip: l10n.get('account_actions'),
+              tooltip: l10n.get(S.accountActions),
               onSelected: (_) => onRemove(),
               itemBuilder: (_) => [
                 PopupMenuItem(
@@ -304,7 +300,7 @@ class _AccountTile extends StatelessWidget {
                         color: cs.error,
                       ),
                       const SizedBox(width: 12),
-                      Text(l10n.get('remove_account')),
+                      Text(l10n.get(S.removeAccount)),
                     ],
                   ),
                 ),

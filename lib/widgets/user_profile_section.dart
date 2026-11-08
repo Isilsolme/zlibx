@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../l10n/app_localizations.dart';
 
+import '../l10n/s_keys.dart';
 /// Horizontal hero card showing the signed-in user.
 /// Avatar on the left, name + email on the right, downloads-left chip below.
 class UserProfileSection extends StatelessWidget {
@@ -73,7 +74,7 @@ class UserProfileSection extends StatelessWidget {
           if (user.downloadsLeft != null)
             _DownloadsChip(
               count: user.downloadsLeft!,
-              label: AppLocalizations.of(context).get('downloads_left_today'),
+              label: AppLocalizations.of(context).get(S.downloadsLeftToday),
             ),
           const SizedBox(height: 8),
           SizedBox(
@@ -81,7 +82,7 @@ class UserProfileSection extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onManageAccounts,
               icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-              label: Text(AppLocalizations.of(context).get('switch_account')),
+              label: Text(AppLocalizations.of(context).get(S.switchAccount)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(

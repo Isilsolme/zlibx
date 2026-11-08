@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
+import '../../../l10n/s_keys.dart';
 class AboutSection extends StatelessWidget {
   const AboutSection({super.key});
 
@@ -16,14 +17,14 @@ class AboutSection extends StatelessWidget {
       children: [
         SectionHeader(
           icon: Icons.info_outline_rounded,
-          title: AppLocalizations.of(context).get('about'),
+          title: AppLocalizations.of(context).get(S.about),
         ),
         SettingsCard(
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.info_outline),
-                title: Text(AppLocalizations.of(context).get('version')),
+                title: Text(AppLocalizations.of(context).get(S.version)),
                 trailing: FutureBuilder<PackageInfo>(
                   future: PackageInfo.fromPlatform(),
                   builder: (context, snapshot) {
@@ -36,14 +37,14 @@ class AboutSection extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.book_outlined),
                 title: Text(
-                    AppLocalizations.of(context).get('about_zlibrary')),
+                    AppLocalizations.of(context).get(S.aboutZlibrary)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _showAboutApp(context),
               ),
               const SettingsDivider(),
               ListTile(
                 leading: const Icon(Icons.code),
-                title: Text(AppLocalizations.of(context).get('github_open_source')),
+                title: Text(AppLocalizations.of(context).get(S.githubOpenSource)),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
                     _launchUrl('https://github.com/minglaiyo/zlibx'),
@@ -100,7 +101,7 @@ class AboutSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context).get('about_ai_built_title'),
+                AppLocalizations.of(context).get(S.aboutAiBuiltTitle),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -109,7 +110,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context).get('about_body'),
+                AppLocalizations.of(context).get(S.aboutBody),
                 style: TextStyle(
                   fontSize: 14,
                   color: cs.onSurfaceVariant,
@@ -118,7 +119,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                AppLocalizations.of(context).get('about_credits'),
+                AppLocalizations.of(context).get(S.aboutCredits),
                 style: TextStyle(
                   fontSize: 13,
                   color: cs.onSurfaceVariant,
@@ -133,7 +134,7 @@ class AboutSection extends StatelessWidget {
                       onPressed: () => _launchUrl(
                           'https://github.com/shiyi-0x7f/olib-mobile'),
                       icon: const Icon(Icons.code, size: 16),
-                      label: Text(AppLocalizations.of(context).get('original')),
+                      label: Text(AppLocalizations.of(context).get(S.original)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -161,7 +162,7 @@ class AboutSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get('about_quote'),
+                        AppLocalizations.of(context).get(S.aboutQuote),
                         style: TextStyle(
                           fontStyle: FontStyle.italic,
                           color: cs.onSurface,
@@ -177,7 +178,7 @@ class AboutSection extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).get('close')),
+            child: Text(AppLocalizations.of(context).get(S.close)),
           ),
         ],
       ),

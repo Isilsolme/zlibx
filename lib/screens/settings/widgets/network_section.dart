@@ -9,6 +9,7 @@ import '../mirrors_page.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
+import '../../../l10n/s_keys.dart';
 /// Network line picker — same chevron-tile shape as the other settings.
 /// Shows "Line N · 234ms" (latency from the latest speed test) and only
 /// ever displays the line index, never the underlying domain.
@@ -25,7 +26,7 @@ class NetworkSection extends ConsumerWidget {
     final idx = domains.indexOf(currentDomain);
     final lineLabel = idx >= 0
         ? 'Line ${idx + 1}'
-        : (AppLocalizations.of(context).get('custom_line'));
+        : (AppLocalizations.of(context).get(S.customLine));
 
     // Look up the latency for the current line.
     int? latency;
@@ -39,11 +40,11 @@ class NetworkSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(icon: Icons.dns_rounded, title: t.get('network')),
+        SectionHeader(icon: Icons.dns_rounded, title: t.get(S.network)),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.public_rounded),
-            title: Text(t.get('network_line')),
+            title: Text(t.get(S.networkLine)),
             subtitle: _LineStatus(
               label: lineLabel,
               latency: latency,
@@ -62,8 +63,8 @@ class NetworkSection extends ConsumerWidget {
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.dns_outlined),
-            title: Text(t.get('mirrors')),
-            subtitle: Text(t.get('mirrors_subtitle')),
+            title: Text(t.get(S.mirrors)),
+            subtitle: Text(t.get(S.mirrorsSubtitle)),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MirrorsPage()),
@@ -135,12 +136,12 @@ class _LineStatus extends StatelessWidget {
     final status = domainLatencyStatus(latency);
     if (status == DomainLatencyStatus.untested) {
       return (
-        testing ? (AppLocalizations.of(context).get('speed_testing')) : (AppLocalizations.of(context).get('speed_untested')),
+        testing ? (AppLocalizations.of(context).get(S.speedTesting)) : (AppLocalizations.of(context).get(S.speedUntested)),
         cs.onSurfaceVariant,
       );
     }
     if (status == DomainLatencyStatus.unavailable) {
-      return (AppLocalizations.of(context).get('line_status_unavailable'), cs.error);
+      return (AppLocalizations.of(context).get(S.lineStatusUnavailable), cs.error);
     }
     if (status == DomainLatencyStatus.normal) {
       return ('${latency!}ms', AppColors.success);

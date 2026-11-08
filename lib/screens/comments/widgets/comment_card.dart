@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import '../../../utils/date_text.dart';
 import 'comment_avatar.dart';
 import 'comment_metric_chip.dart';
 
@@ -86,9 +87,7 @@ class _Body extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final date = comment.dateRelative.isNotEmpty
-        ? comment.dateRelative
-        : comment.date;
+    final date = commentDateText(comment.dateRelative, comment.date);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -8,6 +8,8 @@ import 'section_header.dart';
 import 'settings_card.dart';
 import '../../../l10n/app_localizations.dart';
 
+import '../../../utils/app_snack.dart';
+import '../../../l10n/s_keys.dart';
 class DownloadPathSection extends ConsumerWidget {
   const DownloadPathSection({super.key});
 
@@ -20,12 +22,12 @@ class DownloadPathSection extends ConsumerWidget {
         const SizedBox(height: 20),
         SectionHeader(
           icon: Icons.download_rounded,
-          title: AppLocalizations.of(context).get('downloads'),
+          title: AppLocalizations.of(context).get(S.downloads),
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.folder_outlined),
-            title: Text(AppLocalizations.of(context).get('download_directory')),
+            title: Text(AppLocalizations.of(context).get(S.downloadDirectory)),
             subtitle: _buildSubtitle(context, ref),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showDownloadPathDialog(context, ref),
@@ -38,7 +40,7 @@ class DownloadPathSection extends ConsumerWidget {
   Widget _buildSubtitle(BuildContext context, WidgetRef ref) {
     if (Platform.isAndroid) {
       return Text(
-        AppLocalizations.of(context).get('system_downloads_mediastore'),
+        AppLocalizations.of(context).get(S.systemDownloadsMediastore),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
@@ -46,7 +48,7 @@ class DownloadPathSection extends ConsumerWidget {
     final path = ref.watch(downloadPathProvider);
     final displayPath = (path != null && path.isNotEmpty)
         ? path
-        : (AppLocalizations.of(context).get('default_app_documents'));
+        : (AppLocalizations.of(context).get(S.defaultAppDocuments));
     return Text(
       displayPath,
       maxLines: 1,
@@ -84,9 +86,9 @@ class DownloadPathSection extends ConsumerWidget {
                       leading: Icon(
                           Icons.download, color: Theme.of(context).colorScheme.primary),
                       title: Text(
-                          AppLocalizations.of(context).get('system_downloads_folder')),
+                          AppLocalizations.of(context).get(S.systemDownloadsFolder)),
                       subtitle: Text(
-                        AppLocalizations.of(context).get('mediastore_desc'),
+                        AppLocalizations.of(context).get(S.mediastoreDesc),
                       ),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(
@@ -99,7 +101,7 @@ class DownloadPathSection extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          AppLocalizations.of(context).get('recommended'),
+                          AppLocalizations.of(context).get(S.recommended),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.primary,
                             fontSize: 12,
@@ -124,7 +126,7 @@ class DownloadPathSection extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                AppLocalizations.of(context).get('downloads_saved_hint'),
+                                AppLocalizations.of(context).get(S.downloadsSavedHint),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.blue[700],
@@ -145,15 +147,17 @@ class DownloadPathSection extends ConsumerWidget {
                               onPressed: () async {
                                 final success = await openDownloadFolder();
                                 if (!success && context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(AppLocalizations.of(context).get('cannot_open_folder'))),
+                                  showAppSnack(
+                                    context,
+                                    AppLocalizations.of(context)
+                                        .get(S.cannotOpenFolder),
                                   );
                                 } else if (context.mounted) {
                                   Navigator.pop(context);
                                 }
                               },
                               icon: const Icon(Icons.folder_open),
-                              label: Text(AppLocalizations.of(context).get('open_download_folder')),
+                              label: Text(AppLocalizations.of(context).get(S.openDownloadFolder)),
                             ),
                           ),
                         ],
@@ -165,8 +169,8 @@ class DownloadPathSection extends ConsumerWidget {
                       ListTile(
                         leading: Icon(
                             Icons.folder_open, color: Theme.of(context).colorScheme.primary),
-                        title: Text(AppLocalizations.of(context).get('select_folder')),
-                        subtitle: Text(AppLocalizations.of(context).get('choose_custom_download_dir')),
+                        title: Text(AppLocalizations.of(context).get(S.selectFolder)),
+                        subtitle: Text(AppLocalizations.of(context).get(S.chooseCustomDownloadDir)),
                         onTap: () async {
                           Navigator.pop(context);
                           final result = await FilePicker
@@ -176,10 +180,16 @@ class DownloadPathSection extends ConsumerWidget {
                                 .read(downloadPathProvider.notifier)
                                 .setDownloadPath(result);
                             if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              // 成功提示保留绿色背景的既有视觉，只统一入口。
+                              showAppSnackRaw(
+                                context,
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context).get('download_dir_updated')),
+                                  content: Text(
+                                    AppLocalizations.of(context)
+                                        .get(S.downloadDirUpdated),
+                                  ),
                                   backgroundColor: Colors.green,
+                                  behavior: SnackBarBehavior.floating,
                                 ),
                               );
                             }
@@ -190,17 +200,17 @@ class DownloadPathSection extends ConsumerWidget {
                         leading: Icon(
                             Icons.restore,
                             color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        title: Text(AppLocalizations.of(context).get('reset_to_default')),
-                        subtitle: Text(AppLocalizations.of(context).get('use_default_documents_dir')),
+                        title: Text(AppLocalizations.of(context).get(S.resetToDefault)),
+                        subtitle: Text(AppLocalizations.of(context).get(S.useDefaultDocumentsDir)),
                         onTap: () {
                           Navigator.pop(context);
                           ref
                               .read(downloadPathProvider.notifier)
                               .clearDownloadPath();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(AppLocalizations.of(context).get('reset_to_default_dir_done')),
-                            ),
+                          showAppSnack(
+                            context,
+                            AppLocalizations.of(context)
+                                .get(S.resetToDefaultDirDone),
                           );
                         },
                       ),
@@ -208,7 +218,7 @@ class DownloadPathSection extends ConsumerWidget {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: Text(AppLocalizations.of(context).get('close')),
+                    child: Text(AppLocalizations.of(context).get(S.close)),
                   ),
                 ],
               ),

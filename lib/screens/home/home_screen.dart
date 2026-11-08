@@ -12,6 +12,7 @@ import '../../services/booklist_warmup.dart';
 import '../../services/update_service.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/keep_alive_page.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/domain_selector.dart';
 import '../../widgets/update_dialog.dart';
@@ -22,6 +23,8 @@ import '../account/account_screen.dart';
 import '../downloads/local_downloads_screen.dart';
 import '../settings/settings_screen.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -103,9 +106,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // The builder only runs for the visible page and the
             // adjacent pages PageView prebuilds, so tabs the user has
             // not visited yet are not constructed at first frame.
-            // Once built, each page stays alive via _KeepAlivePage.
+            // Once built, each page stays alive via KeepAlivePage.
             if (index == 0) {
-              return _KeepAlivePage(
+              return KeepAlivePage(
                 // No extra bottom padding here: the home grid already
                 // reserves 96 below its last row for the floating nav.
                 child: _HomeTab(key: _homeTabKey),
@@ -117,12 +120,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // pill (and show through the blur) instead of stopping
             // at a fixed blank band above it.
             if (index == 1) {
-              return const _KeepAlivePage(child: LocalDownloadsScreen());
+              return const KeepAlivePage(child: LocalDownloadsScreen());
             }
             if (index == 2) {
-              return const _KeepAlivePage(child: AccountScreen());
+              return const KeepAlivePage(child: AccountScreen());
             }
-            return const _KeepAlivePage(child: SettingsScreen());
+            return const KeepAlivePage(child: SettingsScreen());
           },
           ),
         ),
@@ -350,46 +353,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// Keeps a [PageView] page alive across tab switches so its scroll
-/// position survives. The mixin must live on the widget directly under
-/// the [PageView] — the pages themselves are not modified for this.
-class _KeepAlivePage extends StatefulWidget {
-  final Widget child;
-
-  const _KeepAlivePage({required this.child});
-
-  @override
-  State<_KeepAlivePage> createState() => _KeepAlivePageState();
-}
-
-class _KeepAlivePageState extends State<_KeepAlivePage>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
-
-  @override
-  Widget build(BuildContext context) {
-    super.build(context);
-    return widget.child;
-  }
-}
-
 /// Get time-based greeting message
 String _getGreeting(BuildContext context) {
   final hour = DateTime.now().hour;
 
   if (hour < 6) {
-    return AppLocalizations.of(context).get('greeting_late_night');
+    return AppLocalizations.of(context).get(S.greetingLateNight);
   } else if (hour < 12) {
-    return AppLocalizations.of(context).get('good_morning');
+    return AppLocalizations.of(context).get(S.goodMorning);
   } else if (hour < 14) {
-    return AppLocalizations.of(context).get('greeting_noon');
+    return AppLocalizations.of(context).get(S.greetingNoon);
   } else if (hour < 18) {
-    return AppLocalizations.of(context).get('greeting_afternoon');
+    return AppLocalizations.of(context).get(S.greetingAfternoon);
   } else if (hour < 22) {
-    return AppLocalizations.of(context).get('greeting_evening');
+    return AppLocalizations.of(context).get(S.greetingEvening);
   } else {
-    return AppLocalizations.of(context).get('greeting_late_night');
+    return AppLocalizations.of(context).get(S.greetingLateNight);
   }
 }
 
@@ -495,11 +474,9 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       // silently leaving the old list in place (a failed first refresh
       // otherwise looks exactly like a refresh that never fired).
       if (mounted && (!res.success || books == null)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(AppLocalizations.of(context).get('refresh_failed')),
-          ),
+        showAppSnack(
+          context,
+          AppLocalizations.of(context).get(S.refreshFailed),
         );
       }
       return;
@@ -521,7 +498,10 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       showUpdateDialog(context);
     } else if (!UpdateService.isVersionDismissed()) {
       // Normal update - show snackbar (non-intrusive)
-      ScaffoldMessenger.of(context).showSnackBar(
+      // 品牌视觉（图标行 + primary 背景 + 自定义 margin/shape）保留
+      // 原生 SnackBar，只统一入口。
+      showAppSnackRaw(
+        context,
         SnackBar(
           content: Row(
             children: [
@@ -529,20 +509,27 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  AppLocalizations.of(context).get('new_version_found').replaceAll('{version}', '${UpdateService.latestVersion}'),
+                  AppLocalizations.of(context)
+                      .get(S.newVersionFound)
+                      .replaceAll(
+                        '{version}',
+                        '${UpdateService.latestVersion}',
+                      ),
                 ),
               ),
             ],
           ),
           action: SnackBarAction(
-            label: AppLocalizations.of(context).get('update'),
+            label: AppLocalizations.of(context).get(S.update),
             textColor: Colors.white,
             onPressed: () => showUpdateDialog(context),
           ),
           backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           duration: const Duration(seconds: 6),
           dismissDirection: DismissDirection.horizontal,
         ),
@@ -621,7 +608,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get('search_for_books'),
+                        AppLocalizations.of(context).get(S.searchForBooks),
                         style: TextStyle(
                           color:
                               cs.onSurfaceVariant.withValues(alpha: 0.7),
@@ -651,7 +638,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.name ?? (AppLocalizations.of(context).get('reader')),
+                  user?.name ?? (AppLocalizations.of(context).get(S.reader)),
                   style: theme.textTheme.displaySmall?.copyWith(
                     color: cs.onSurface,
                     fontWeight: FontWeight.bold,
@@ -726,7 +713,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppLocalizations.of(context).get('line_unavailable_current'),
+                        AppLocalizations.of(context).get(S.lineUnavailableCurrent),
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontWeight: FontWeight.w600,
@@ -734,7 +721,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                         ),
                       ),
                       Text(
-                        AppLocalizations.of(context).get('line_cached_login_hint'),
+                        AppLocalizations.of(context).get(S.lineCachedLoginHint),
                         style: TextStyle(
                           color: Colors.orange.shade800,
                           fontSize: 11,
@@ -824,7 +811,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       loading: () => Padding(
         padding: EdgeInsets.only(top: topPadding + 40, bottom: 40),
         child: LoadingWidget(
-          message: AppLocalizations.of(context).get('loading_trending_books'),
+          message: AppLocalizations.of(context).get(S.loadingTrendingBooks),
         ),
       ),
       error: (error, stack) => Padding(

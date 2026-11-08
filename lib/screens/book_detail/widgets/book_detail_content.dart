@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/display_book.dart';
 
+import '../../../l10n/s_keys.dart';
 class BookDetailHeading extends StatelessWidget {
   final DisplayBook book;
   final String? subtitle;
@@ -140,7 +141,7 @@ class _BookDetailDescriptionState extends State<BookDetailDescription> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n.get('description'),
+              l10n.get(S.description),
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -195,7 +196,7 @@ class BookPublicationInfo extends StatelessWidget {
         Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
         const SizedBox(height: 20),
         Text(
-          AppLocalizations.of(context).get('publication_info'),
+          AppLocalizations.of(context).get(S.publicationInfo),
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,

@@ -10,6 +10,7 @@ import '../../similar/similar_books_screen.dart';
 import '../../comments/book_comments_screen.dart';
 import 'book_detail_content.dart';
 
+import '../../../l10n/s_keys.dart';
 class BookInfoSection extends StatelessWidget {
   final Book book;
 
@@ -46,11 +47,11 @@ class BookInfoSection extends StatelessWidget {
     ];
     final fields = <String, String>{
       if (book.publisher?.isNotEmpty ?? false)
-        l10n.get('publisher'): book.publisher!,
+        l10n.get(S.publisher): book.publisher!,
       if (book.pages != null && book.pages != 0)
-        l10n.get('pages'): '${book.pages}',
+        l10n.get(S.pages): '${book.pages}',
       if (book.language?.isNotEmpty ?? false)
-        l10n.get('language'): book.language!,
+        l10n.get(S.language): book.language!,
     };
     // A missing description must stay absent rather than rendering as
     // the literal word "null".
@@ -102,7 +103,7 @@ class BookInfoSection extends StatelessWidget {
                   size: 22,
                 ),
                 title: Text(
-                  l10n.get('similar_books'),
+                  l10n.get(S.similarBooks),
                   style: const TextStyle(fontSize: 15),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 20),
@@ -130,7 +131,7 @@ class BookInfoSection extends StatelessWidget {
                 size: 22,
               ),
               title: Text(
-                l10n.get('comments'),
+                l10n.get(S.comments),
                 style: const TextStyle(fontSize: 15),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),

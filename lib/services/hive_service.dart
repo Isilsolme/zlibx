@@ -7,9 +7,13 @@ class HiveService {
 
   static Future<void> init() async {
     await Hive.initFlutter();
-    await Hive.openBox(settingsBoxName);
-    await Hive.openBox(authBoxName);
-    await Hive.openBox(booklistHtmlBoxName);
+    // 三个 box 互不依赖，并行打开（此前串行，启动链路多等两轮
+    // 磁盘 IO）。
+    await Future.wait([
+      Hive.openBox(settingsBoxName),
+      Hive.openBox(authBoxName),
+      Hive.openBox(booklistHtmlBoxName),
+    ]);
   }
 
   static Box get settingsBox => Hive.box(settingsBoxName);

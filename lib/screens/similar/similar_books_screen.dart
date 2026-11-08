@@ -11,6 +11,7 @@ import '../../widgets/gradient_app_bar.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
 
+import '../../l10n/s_keys.dart';
 /// Arguments for SimilarBooksScreen
 class SimilarBooksArgs {
   final int bookId;
@@ -49,12 +50,12 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
   Future<void> _loadSimilarBooks() async {
     final args = ModalRoute.of(context)!.settings.arguments as SimilarBooksArgs;
     final api = ref.read(zlibraryApiProvider);
-    
+
     setState(() {
       _isLoading = true;
       _hasError = false;
     });
-    
+
     try {
       final response = await api.similar(args.bookId.toString(), args.hashId);
 
@@ -85,10 +86,10 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments as SimilarBooksArgs;
     final l10n = AppLocalizations.of(context);
-    
+
     return Scaffold(
       appBar: GradientAppBar(
-        title: l10n.get('similar_books'),
+        title: l10n.get(S.similarBooks),
       ),
       body: Column(
         children: [
@@ -123,22 +124,22 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
               ],
             ),
           ),
-          
+
           // Results
           Expanded(
             child: _isLoading
-                ? LoadingWidget(message: l10n.get('loading_similar_books'))
+                ? LoadingWidget(message: l10n.get(S.loadingSimilarBooks))
                 : _hasError
                     ? EmptyState(
                         icon: Icons.error_outline,
-                        title: l10n.get('error'),
+                        title: l10n.get(S.error),
                         message: _errorMessage,
                       )
                     : _books.isEmpty
                         ? EmptyState(
                             icon: Icons.search_off,
-                            title: l10n.get('no_similar_books'),
-                            message: l10n.get('no_similar_books_message'),
+                            title: l10n.get(S.noSimilarBooks),
+                            message: l10n.get(S.noSimilarBooksMessage),
                           )
                         : Column(
                             children: [
@@ -149,7 +150,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${_books.length} ${l10n.get('books_found')}',
+                                      '${_books.length} ${l10n.get(S.booksFound)}',
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         fontSize: 13,
@@ -162,7 +163,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                         color: Theme.of(context).colorScheme.primary,
                                         size: 22,
                                       ),
-                                      tooltip: _isListView ? l10n.get('grid_view') : l10n.get('list_view'),
+                                      tooltip: _isListView ? l10n.get(S.gridView) : l10n.get(S.listView),
                                       onPressed: () {
                                         setState(() {
                                           _isListView = !_isListView;
@@ -206,6 +207,9 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                           final book = _books[index];
                                           return BookCard(
                                             book: book.toDisplay(),
+                                            // 相似书列表同屏同 id 重复
+                                            // 几乎不可能，可安全开 Hero。
+                                            heroEnabled: true,
                                             onTap: () {
                                               Navigator.of(context).pushNamed(
                                                 AppRoutes.bookDetail,

@@ -77,6 +77,20 @@ class AppTheme {
   static ColorScheme? _lastDarkScheme;
   static ThemeData? _lastDarkTheme;
 
+  /// 页面转场基线：Android 用 Material 3 的 Zoom（对预测性返回手势
+  /// 友好），Apple 平台保持 Cupertino 滑动手感，桌面统一 Zoom。
+  /// 此前未配置，三端各走各自默认，体验不一致。
+  static const PageTransitionsTheme _pageTransitionsTheme =
+      PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+      TargetPlatform.ios: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+      TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+    },
+  );
+
   /// Light theme for a dynamic [scheme]; null falls back to [lightTheme].
   static ThemeData lightThemeFromScheme(ColorScheme? scheme) {
     if (scheme == null) return lightTheme;
@@ -111,6 +125,7 @@ class AppTheme {
       primaryColor: cs.primary,
       scaffoldBackgroundColor: background,
       colorScheme: cs,
+      pageTransitionsTheme: _pageTransitionsTheme,
 
       cardTheme: CardThemeData(
         color: cs.surface,
@@ -199,6 +214,7 @@ class AppTheme {
       primaryColor: cs.primary,
       scaffoldBackgroundColor: cs.surfaceContainerLowest,
       colorScheme: cs,
+      pageTransitionsTheme: _pageTransitionsTheme,
 
       // Make all default text colors honor onSurface/onSurfaceVariant so
       // widgets that don't explicitly read colorScheme still pick up the

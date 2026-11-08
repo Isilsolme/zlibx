@@ -13,6 +13,8 @@ import 'widgets/book_context_header.dart';
 import 'widgets/comment_composer.dart';
 import 'widgets/comment_list.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 /// Arguments for BookCommentsScreen
 class BookCommentsArgs {
   final int bookId;
@@ -81,8 +83,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    showAppSnack(context, message);
   }
 
   bool get _signedIn => ref.read(authProvider).user != null;
@@ -94,7 +95,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     if (text.isEmpty || _c.isPosting) return;
     // 服务端会拒绝过短评论；明显的 1–2 字符直接在前端拦掉。
     if (text.length < 3) {
-      _showSnack(AppLocalizations.of(context).get('comment_too_short'));
+      _showSnack(AppLocalizations.of(context).get(S.commentTooShort));
       return;
     }
     final wasReply = _c.replyTo != null;
@@ -133,7 +134,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
         ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('comments')),
+      appBar: GradientAppBar(title: l10n.get(S.comments)),
       body: ListenableBuilder(
         listenable: _c,
         builder: (context, _) {
@@ -152,12 +153,12 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                 CommentComposer(
                   controller: _composerController,
                   focusNode: _composerFocus,
-                  hintText: l10n.get('write_comment'),
+                  hintText: l10n.get(S.writeComment),
                   replyBannerText: c.replyTo == null
                       ? null
-                      : '${l10n.get('reply_to')} ${c.replyTo!.userName}',
-                  cancelTooltip: l10n.get('cancel'),
-                  sendTooltip: l10n.get('send_comment'),
+                      : '${l10n.get(S.replyTo)} ${c.replyTo!.userName}',
+                  cancelTooltip: l10n.get(S.cancel),
+                  sendTooltip: l10n.get(S.sendComment),
                   isPosting: c.isPosting,
                   onCancelReply: c.cancelReply,
                   onSubmit: _submit,
@@ -171,38 +172,38 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
   /// 状态视图分发：加载 / 未登录 / 出错 / 关闭 / 空 / 列表。
   Widget _buildBody(BookCommentsController c, AppLocalizations l10n) {
-    if (c.isLoading) return LoadingWidget(message: l10n.get('loading'));
+    if (c.isLoading) return LoadingWidget(message: l10n.get(S.loading));
     if (!c.loggedIn) {
       return EmptyState(
         icon: Icons.login_rounded,
-        title: l10n.get('login_to_view_comments'),
+        title: l10n.get(S.loginToViewComments),
         action: FilledButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
-          child: Text(l10n.get('login')),
+          child: Text(l10n.get(S.login)),
         ),
       );
     }
     if (c.hasError) {
       return EmptyState(
         icon: Icons.error_outline,
-        title: l10n.get('error'),
+        title: l10n.get(S.error),
         message: c.errorMessage,
         action: FilledButton(
           onPressed: _reload,
-          child: Text(l10n.get('retry')),
+          child: Text(l10n.get(S.retry)),
         ),
       );
     }
     if (c.disabled) {
       return EmptyState(
         icon: Icons.comments_disabled_outlined,
-        title: l10n.get('comments_disabled'),
+        title: l10n.get(S.commentsDisabled),
       );
     }
     if (c.comments.isEmpty) {
       return EmptyState(
         icon: Icons.comment_outlined,
-        title: l10n.get('no_comments'),
+        title: l10n.get(S.noComments),
       );
     }
     return CommentList(
@@ -210,7 +211,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       scrollController: _scrollController,
       onRefresh: _reload,
       visibleCount: c.visibleCount,
-      noMoreText: l10n.get('no_more_comments'),
+      noMoreText: l10n.get(S.noMoreComments),
       onReply: (comment) {
         _c.beginReply(comment);
         _composerFocus.requestFocus();

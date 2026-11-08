@@ -11,6 +11,8 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/loading_widget.dart';
 import 'widgets/create_booklist_dialog.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 /// Booklists: the signed-in user's own booklists and public booklists to
 /// discover, with search on both. Tapping a list opens its books. The
 /// "my booklists" tab can create a new list (`createBooklist`); adding
@@ -71,22 +73,16 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         .createBooklist(title: result.title, description: result.description);
     if (!mounted) return;
     if (response.success) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.get('booklist_created'))),
-      );
+      showAppSnackOn(messenger, l10n.get(S.booklistCreated));
       if (ref.read(booklistsControllerProvider).tab == BooklistTab.mine) {
         await controller.loadFirst();
       }
     } else {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
+      showAppSnackOn(messenger,
             l10n
-                .get('booklist_create_failed')
+                .get(S.booklistCreateFailed)
                 .replaceAll('{error}', response.error ?? ''),
-          ),
-        ),
-      );
+          );
     }
   }
 
@@ -103,7 +99,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           ? FloatingActionButton.extended(
               onPressed: _createBooklist,
               icon: const Icon(Icons.add_rounded),
-              label: Text(l10n.get('create_booklist')),
+              label: Text(l10n.get(S.createBooklist)),
             )
           : null,
       body: RefreshIndicator(
@@ -112,7 +108,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverAppBar.large(title: Text(l10n.get('booklists'))),
+            SliverAppBar.large(title: Text(l10n.get(S.booklists))),
             SliverToBoxAdapter(child: _header(l10n, state, controller)),
             ..._body(l10n, state, controller),
           ],
@@ -140,12 +136,12 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 ButtonSegment(
                   value: BooklistTab.mine,
                   icon: const Icon(Icons.person_outline_rounded),
-                  label: Text(l10n.get('my_booklists')),
+                  label: Text(l10n.get(S.myBooklists)),
                 ),
                 ButtonSegment(
                   value: BooklistTab.discover,
                   icon: const Icon(Icons.explore_outlined),
-                  label: Text(l10n.get('discover_booklists')),
+                  label: Text(l10n.get(S.discoverBooklists)),
                 ),
               ],
               selected: {state.tab},
@@ -179,12 +175,12 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           textInputAction: TextInputAction.search,
           onSubmitted: controller.search,
           decoration: InputDecoration(
-            hintText: l10n.get('search_booklists'),
+            hintText: l10n.get(S.searchBooklists),
             prefixIcon: const Icon(Icons.search_rounded),
             suffixIcon: value.text.isEmpty
                 ? null
                 : IconButton(
-                    tooltip: l10n.get('clear'),
+                    tooltip: l10n.get(S.clear),
                     icon: const Icon(Icons.close_rounded),
                     onPressed: _clearSearch,
                   ),
@@ -212,11 +208,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.login_rounded,
-              title: l10n.get('login_to_view_booklists'),
+              title: l10n.get(S.loginToViewBooklists),
               action: FilledButton(
                 onPressed: () =>
                     Navigator.of(context).pushNamed(AppRoutes.login),
-                child: Text(l10n.get('login')),
+                child: Text(l10n.get(S.login)),
               ),
             ),
           ),
@@ -227,11 +223,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.error_outline,
-              title: l10n.get('error'),
+              title: l10n.get(S.error),
               message: state.error,
               action: FilledButton(
                 onPressed: controller.loadFirst,
-                child: Text(l10n.get('retry')),
+                child: Text(l10n.get(S.retry)),
               ),
             ),
           ),
@@ -243,7 +239,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
               hasScrollBody: false,
               child: EmptyState(
                 icon: Icons.collections_bookmark_outlined,
-                title: l10n.get('no_booklists'),
+                title: l10n.get(S.noBooklists),
               ),
             ),
           ];

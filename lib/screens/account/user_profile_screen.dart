@@ -10,8 +10,6 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../screens/book_detail/book_detail_args.dart';
-import '../../screens/comments/widgets/comment_avatar.dart';
-import '../../screens/comments/widgets/comment_metric_chip.dart';
 import '../../services/challenge_html_cache.dart';
 import '../../services/booklist_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
@@ -19,11 +17,16 @@ import '../../services/webview_challenge_solver.dart';
 import '../../widgets/booklist_row.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
+import '../../widgets/state_transition_switch.dart';
 import '../../widgets/loading_widget.dart';
 import '../comments/book_comments_screen.dart';
 import 'booklist_detail_screen.dart';
-import 'comment_book_ref.dart';
+import 'comment_book_ref_controller.dart';
+import 'widgets/profile_widgets.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
+import '../../widgets/entrance.dart';
 /// Another user's profile page, reached by tapping an avatar in a
 /// comment row. Header (avatar + name from the tapped comment),
 /// then that user's booklists (from the profile document's
@@ -55,18 +58,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   bool _booklistsLoading = false;
   String? _booklistsError;
 
-  /// bookId → 标题搜索反查结果（hash + 封面）。评论加载后逐本后台
-  /// 串行预取，每解析完一本就刷新对应书名行的封面；跳详情优先用
-  /// 缓存里的 hash。
-  final Map<int, CommentBookRef> _bookRefs = {};
-
-  /// 正在解析书 hash 并准备跳详情的 bookId：书名行尾转圈，防重复点击。
-  final Set<int> _openingBookIds = {};
-
-  /// 预取上限：评论一次可拉回很多条，逐本搜索会放大请求量，只预取
-  /// 前 [_kMaxBookPrefetch] 本（足够铺满几屏）；未预取到的行显示
-  /// 占位图，点按时仍会解析并跳转。
-  static const int _kMaxBookPrefetch = 10;
+  /// 评论书名行的封面预取 + 跳详情（与我的评论页共用，见
+  /// [CommentBookRefController]）。
+  late final CommentBookRefController _bookRefController;
 
   UserProfileArgs get _args =>
       ModalRoute.of(context)!.settings.arguments as UserProfileArgs;
@@ -74,10 +68,23 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _bookRefController = CommentBookRefController(
+      api: ref.read(zlibraryApiProvider),
+    )..addListener(_onBookRefsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _load();
       _loadBooklistsCachedFirst();
     });
+  }
+
+  void _onBookRefsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _bookRefController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -99,93 +106,36 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           : const [];
       _isLoading = false;
     });
-    unawaited(_prefetchBookRefs());
+    unawaited(
+      _bookRefController.prefetch(
+        _entries
+            .map((e) => (bookId: e.bookId, title: e.bookTitle))
+            .toList(),
+      ),
+    );
   }
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    showAppSnack(context, message);
   }
 
-  /// 逐本预取书名行的 hash + 封面（串行，避免并发风暴）。同一
-  /// bookId 只搜一次；已解析过的跳过；页面销毁即停；单本失败不
-  /// 阻塞其余（保持占位图，点按时再试）。
-  Future<void> _prefetchBookRefs() async {
-    final api = ref.read(zlibraryApiProvider);
-    final seen = <int>{};
-    var attempts = 0;
-    for (final entry in _entries) {
-      if (!mounted || attempts >= _kMaxBookPrefetch) return;
-      final id = entry.bookId;
-      if (id <= 0 || !seen.add(id)) continue;
-      if (_bookRefs[id]?.hasHash ?? false) continue;
-      attempts++;
-      try {
-        final info =
-            await resolveCommentBookRef(api, id, entry.bookTitle);
-        if (!mounted || info == null) continue;
-        setState(() => _bookRefs[id] = info);
-      } catch (error) {
-        // 单本失败保持占位图，点按时重试。
-        debugPrint('[user_profile] prefetch ignored ${error.runtimeType}');
-      }
-    }
-  }
-
-  /// 书名行 → 书籍详情。评论接口只给 bookId + 书名，没有书 hash；
-  /// 详情页靠 hash 拉全量数据，所以先用标题搜索反查同 id 书目的
-  /// eapi hash（[resolveCommentBookRef]，顺带取回封面），再带最小
-  /// [Book] 进详情页，由 `bookDetailsProvider` 拉取完整信息。
-  /// 预取缓存里有 hash 就不再搜索。
-  ///
-  /// 解析中该书名行尾转圈；失败提示且不跳转（不进残缺详情页）。
+  /// 书名行 → 书籍详情：hash 反查、防重点与失败提示都在
+  /// [CommentBookRefController]（与我的评论页共用），屏侧只负责导航。
   Future<void> _openBookDetail(UserCommentEntry entry) async {
-    if (entry.bookId <= 0 || _openingBookIds.contains(entry.bookId)) {
-      return;
-    }
-    setState(() => _openingBookIds.add(entry.bookId));
-    try {
-      var hash = _bookRefs[entry.bookId]?.hash ?? '';
-      if (hash.isEmpty) {
-        final api = ref.read(zlibraryApiProvider);
-        final info = await resolveCommentBookRef(
-          api,
-          entry.bookId,
-          entry.bookTitle,
-        );
+    await _bookRefController.openBookDetail(
+      bookId: entry.bookId,
+      title: entry.bookTitle,
+      onReady: (book) {
         if (!mounted) return;
-        if (info != null) {
-          setState(() => _bookRefs[entry.bookId] = info);
-          hash = info.hash;
-        }
-      }
-      if (!mounted) return;
-      if (hash.isEmpty) {
-        _showSnack(AppLocalizations.of(context).get('open_book_failed'));
-        return;
-      }
-      Navigator.of(context).pushNamed(
-        AppRoutes.bookDetail,
-        arguments: BookDetailArgs(
-          book: Book(
-            id: entry.bookId,
-            title: entry.bookTitle,
-            hash: hash,
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      debugPrint('[user_profile] open detail ignored ${error.runtimeType}');
-      _showSnack(AppLocalizations.of(context).get('open_book_failed'));
-    } finally {
-      if (mounted) {
-        setState(() => _openingBookIds.remove(entry.bookId));
-      } else {
-        _openingBookIds.remove(entry.bookId);
-      }
-    }
+        Navigator.of(context).pushNamed(
+          AppRoutes.bookDetail,
+          arguments: BookDetailArgs(book: book),
+        );
+      },
+      onFail: () =>
+          _showSnack(AppLocalizations.of(context).get(S.openBookFailed)),
+    );
   }
 
   /// Pull-to-refresh reloads both sections. The booklists load is
@@ -392,38 +342,46 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
     return Scaffold(
       appBar: GradientAppBar(title: args.userName),
-      body: _isLoading
-          ? LoadingWidget(message: l10n.get('loading'))
+      // loading → 登录态 → 内容：统一淡入淡出（此前硬切）。
+      body: StateTransitionSwitch(
+        child: _isLoading
+          ? LoadingWidget(
+              key: const ValueKey('loading'),
+              message: l10n.get(S.loading),
+            )
           : !_loggedIn
               ? EmptyState(
+                  key: const ValueKey('login'),
                   icon: Icons.login_rounded,
-                  title: l10n.get('login_to_view_comments'),
+                  title: l10n.get(S.loginToViewComments),
                   action: FilledButton(
                     onPressed: () => Navigator.of(
                       context,
                     ).pushNamed(AppRoutes.login),
-                    child: Text(l10n.get('login')),
+                    child: Text(l10n.get(S.login)),
                   ),
                 )
               : RefreshIndicator(
+                  key: const ValueKey('content'),
                   onRefresh: _refresh,
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(0, 8, 0, 24),
                     children: [
-                      _ProfileHeader(
+                      ProfileHeader(
                         args: args,
                         commentCount: _entries.length,
                         booklistCount: _booklistCount,
                       ),
                       ..._booklistsSection(),
                       _sectionHeader(
-                        l10n.get('comments'),
+                        l10n.get(S.comments),
                         _entries.length,
                       ),
                       ..._commentCards(),
                     ],
                   ),
                 ),
+              ),
     );
   }
 
@@ -459,7 +417,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     if (hash == null || hash.isEmpty) return const [];
     final children = <Widget>[
       _sectionHeader(
-        l10n.get('booklists'),
+        l10n.get(S.booklists),
         _booklistsLoading || _booklistsError != null
             ? null
             : _booklists.length,
@@ -474,7 +432,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
           child: Text(
-            l10n.get('no_booklists'),
+            l10n.get(S.noBooklists),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -523,7 +481,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _booklistsError ?? l10n.get('error'),
+              _booklistsError ?? l10n.get(S.error),
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
@@ -533,7 +491,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
           TextButton(
             onPressed: _loadBooklists,
-            child: Text(l10n.get('retry')),
+            child: Text(l10n.get(S.retry)),
           ),
         ],
       ),
@@ -550,7 +508,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
           child: Text(
-            l10n.get('no_comments'),
+            l10n.get(S.noComments),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -564,233 +522,25 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       final entry = _entries[i];
       if (i > 0) cards.add(const SizedBox(height: 12));
       cards.add(
-        _ProfileCommentCard(
-          entry: entry,
-          userName: args.userName,
-          coverUrl: _bookRefs[entry.bookId]?.cover ?? '',
-          isOpeningBook: _openingBookIds.contains(entry.bookId),
-          onCardTap: () => Navigator.of(context).pushNamed(
-            AppRoutes.bookComments,
-            arguments: BookCommentsArgs(
-              bookId: entry.bookId,
-              bookTitle: entry.bookTitle,
+        EntranceSlideFade(
+          index: i,
+          child: ProfileCommentCard(
+            entry: entry,
+            userName: args.userName,
+            coverUrl: _bookRefController.refFor(entry.bookId)?.cover ?? '',
+            isOpeningBook: _bookRefController.isOpening(entry.bookId),
+            onCardTap: () => Navigator.of(context).pushNamed(
+              AppRoutes.bookComments,
+              arguments: BookCommentsArgs(
+                bookId: entry.bookId,
+                bookTitle: entry.bookTitle,
+              ),
             ),
+            onBookTap: () => _openBookDetail(entry),
           ),
-          onBookTap: () => _openBookDetail(entry),
         ),
       );
     }
     return cards;
-  }
-}
-
-/// 主页头部卡片：头像 + 昵称 + 统计药丸（评论数 / 书单数）。评论数
-/// 来自评论接口，书单数来自书单区（加载中或无书单区时省略）。
-/// 头像与昵称就是点进来的那条评论所见，无需再取。
-class _ProfileHeader extends StatelessWidget {
-  final UserProfileArgs args;
-  final int commentCount;
-  final int? booklistCount;
-
-  const _ProfileHeader({
-    required this.args,
-    required this.commentCount,
-    required this.booklistCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-      child: Material(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CommentAvatar(avatarUrl: args.userAvatar, radius: 32),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      args.userName,
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _StatPill(
-                    icon: Icons.comment_outlined,
-                    count: commentCount,
-                  ),
-                  if (booklistCount != null) ...[
-                    const SizedBox(width: 8),
-                    _StatPill(
-                      icon: Icons.collections_bookmark_outlined,
-                      count: booklistCount!,
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 头部统计药丸：图标 + 数字（等宽数字，数字变化不跳动）。
-class _StatPill extends StatelessWidget {
-  final IconData icon;
-  final int count;
-
-  const _StatPill({required this.icon, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: cs.secondaryContainer,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: cs.onSecondaryContainer),
-          const SizedBox(width: 5),
-          Text(
-            count.toString(),
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.onSecondaryContainer,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 卡片化的一条主页评论，与“我的评论”页同一套视觉语言：
-/// 书名行（封面缩略图 + 书名，点击 → 书籍详情）+ 头像/昵称/正文/
-/// 日期与获赞数。点卡片其余区域进入该书的评论区；头像不可点——
-/// 当前页就是这位用户的主页。
-class _ProfileCommentCard extends StatelessWidget {
-  final UserCommentEntry entry;
-  final String userName;
-
-  /// 书名行的封面 URL；空串显示占位图（hash/封面未解析到）。
-  final String coverUrl;
-
-  /// 书 hash 解析中：书名行尾显示转圈并禁止再次点击。
-  final bool isOpeningBook;
-  final VoidCallback onCardTap;
-  final VoidCallback onBookTap;
-
-  const _ProfileCommentCard({
-    required this.entry,
-    required this.userName,
-    required this.coverUrl,
-    required this.isOpeningBook,
-    required this.onCardTap,
-    required this.onBookTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final comment = entry.comment;
-    final date = comment.dateRelative.isNotEmpty
-        ? comment.dateRelative
-        : comment.date;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Material(
-        color: cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onCardTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 书名行 → 书籍详情（内层命中优先于卡片）。
-                CommentBookTile(
-                  title: entry.bookTitle,
-                  coverUrl: coverUrl,
-                  busy: isOpeningBook,
-                  onTap: onBookTap,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CommentAvatar(avatarUrl: comment.userAvatar),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            userName,
-                            style: tt.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (comment.text.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            SelectableText(
-                              comment.text,
-                              style: tt.bodyMedium?.copyWith(height: 1.45),
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Text(
-                                date,
-                                style: tt.bodySmall?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              CommentMetricChip(
-                                // 描边图标与评论区一致；纯展示获赞数，
-                                // 不支持点赞切换。
-                                icon: Icons.thumb_up_outlined,
-                                count: comment.likeCount,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
 import '../services/update_service.dart';
+import '../utils/app_snack.dart';
 import 'loading_widget.dart';
 
+import '../l10n/s_keys.dart';
 /// 更新对话框：Release 清单里的下载渠道（网盘等）+ 官网 + GitHub，用户自选。
 ///
 /// 强制更新时不可关闭（返回键 / 点遮罩均无效）。
@@ -26,7 +28,7 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
         children: [
           const LoadingWidget.inline(),
           const SizedBox(width: 20),
-          Text(AppLocalizations.of(context).get('checking_updates')),
+          Text(AppLocalizations.of(context).get(S.checkingUpdates)),
         ],
       ),
     ),
@@ -43,12 +45,12 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(AppLocalizations.of(context).get('up_to_date_title')),
-      content: Text(AppLocalizations.of(context).get('up_to_date_desc')),
+      title: Text(AppLocalizations.of(context).get(S.upToDateTitle)),
+      content: Text(AppLocalizations.of(context).get(S.upToDateDesc)),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(AppLocalizations.of(context).get('got_it')),
+          child: Text(AppLocalizations.of(context).get(S.gotIt)),
         ),
       ],
     ),
@@ -79,7 +81,7 @@ class _UpdateDialog extends StatelessWidget {
         _Channel(l.name, l.url, Icons.cloud_download_outlined),
       if (UpdateService.downloadUrl != null)
         _Channel(
-          AppLocalizations.of(context).get('website_download'),
+          AppLocalizations.of(context).get(S.websiteDownload),
           UpdateService.downloadUrl!,
           Icons.language,
         ),
@@ -91,8 +93,8 @@ class _UpdateDialog extends StatelessWidget {
       icon: Icon(Icons.system_update, color: cs.primary, size: 32),
       title: Text(
         forced
-            ? (AppLocalizations.of(context).get('update_required'))
-            : (AppLocalizations.of(context).get('update_found_title').replaceAll('{version}', '${UpdateService.latestVersion}')),
+            ? (AppLocalizations.of(context).get(S.updateRequired))
+            : (AppLocalizations.of(context).get(S.updateFoundTitle).replaceAll('{version}', '${UpdateService.latestVersion}')),
         textAlign: TextAlign.center,
       ),
       content: SizedBox(
@@ -103,7 +105,7 @@ class _UpdateDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context).get('update_current_latest').replaceAll('{current}', '${UpdateService.currentVersion}').replaceAll('{latest}', '${UpdateService.latestVersion}'),
+                AppLocalizations.of(context).get(S.updateCurrentLatest).replaceAll('{current}', '${UpdateService.currentVersion}').replaceAll('{latest}', '${UpdateService.latestVersion}'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: cs.onSurfaceVariant,
@@ -112,7 +114,7 @@ class _UpdateDialog extends StatelessWidget {
               if (forced) ...[
                 const SizedBox(height: 12),
                 Text(
-                  AppLocalizations.of(context).get('update_unsupported'),
+                  AppLocalizations.of(context).get(S.updateUnsupported),
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -138,7 +140,7 @@ class _UpdateDialog extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context).get('choose_download_source'),
+                AppLocalizations.of(context).get(S.chooseDownloadSource),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: cs.onSurfaceVariant,
                 ),
@@ -159,7 +161,7 @@ class _UpdateDialog extends StatelessWidget {
               UpdateService.dismissUpdate();
               Navigator.of(context).pop();
             },
-            child: Text(AppLocalizations.of(context).get('later')),
+            child: Text(AppLocalizations.of(context).get(S.later)),
           ),
       ],
     );
@@ -184,9 +186,14 @@ class _ChannelButton extends StatelessWidget {
     }
     // 打不开时把链接显示出来，方便用户手动复制
     if (!ok && context.mounted) {
-      ScaffoldMessenger.of(
+      // SelectableText 让链接可长按复制，保留原生内容。
+      showAppSnackRaw(
         context,
-      ).showSnackBar(SnackBar(content: SelectableText(channel.url)));
+        SnackBar(
+          content: SelectableText(channel.url),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 

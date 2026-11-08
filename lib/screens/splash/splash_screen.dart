@@ -11,6 +11,7 @@ import '../../widgets/domain_selector.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
+import '../../l10n/s_keys.dart';
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -150,7 +151,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Step 2: Wait for auth state
     if (!mounted) return;
     setState(
-      () => _statusText = AppLocalizations.of(context).get('loading'),
+      () => _statusText = AppLocalizations.of(context).get(S.loading),
     );
     await _waitForAuth();
   }
@@ -161,22 +162,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context).get('line_unavailable')),
+        title: Text(AppLocalizations.of(context).get(S.lineUnavailable)),
         content: Text(
-          AppLocalizations.of(context).get('splash_line_unreachable'),
+          AppLocalizations.of(context).get(S.splashLineUnreachable),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.skip),
-            child: Text(AppLocalizations.of(context).get('skip')),
+            child: Text(AppLocalizations.of(context).get(S.skip)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.proceed),
-            child: Text(AppLocalizations.of(context).get('continue_anyway')),
+            child: Text(AppLocalizations.of(context).get(S.continueAnyway)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.retry),
-            child: Text(AppLocalizations.of(context).get('search_retry')),
+            child: Text(AppLocalizations.of(context).get(S.searchRetry)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -190,7 +191,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               backgroundColor: cs.primary,
               foregroundColor: Colors.white,
             ),
-            child: Text(AppLocalizations.of(context).get('switch_line')),
+            child: Text(AppLocalizations.of(context).get(S.switchLine)),
           ),
         ],
       ),

@@ -12,11 +12,16 @@ import '../../screens/comments/book_comments_screen.dart';
 import '../../screens/comments/widgets/comment_avatar.dart';
 import '../../screens/comments/widgets/comment_metric_chip.dart';
 import '../../screens/book_detail/book_detail_args.dart';
+import '../../utils/app_snack.dart';
+import '../../utils/date_text.dart';
+import '../../l10n/s_keys.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/state_transition_switch.dart';
 import 'comment_book_ref.dart';
-
+import 'comment_book_ref_controller.dart';
 /// One comment the signed-in user posted, as shown on the website's
 /// profile "Comments" tab: which book it was on, the text, when, and
 /// how many likes it has.
@@ -49,7 +54,7 @@ class MyComment {
 /// comments page; tapping the book-title row (cover thumbnail + title)
 /// opens the book's detail page (the user-comments API carries no book
 /// hash, so it is resolved by a title search first — see
-/// [_MyCommentsScreenState._openBookDetail]).
+/// [CommentBookRefController.openBookDetail]).
 /// Deleting is not implemented (delete endpoint unknown).
 class MyCommentsScreen extends ConsumerStatefulWidget {
   const MyCommentsScreen({super.key});
@@ -63,22 +68,27 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
   bool _isLoading = true;
   bool _loggedIn = true;
 
-  /// 正在解析书 hash 并准备跳详情的 bookId：书名行尾转圈，防重复点击。
-  final Set<int> _openingBookIds = {};
-
-  /// bookId → 标题搜索反查结果（hash + 封面）。加载后逐本后台串行
-  /// 预取，每解析完一本就刷新对应书名行的封面；跳详情优先用缓存。
-  final Map<int, CommentBookRef> _bookRefs = {};
-
-  /// 预取上限：评论一次最多拉 500 条，逐本搜索会放大请求量，只预取
-  /// 前 [_kMaxBookPrefetch] 本（足够铺满几屏）；未预取到的行显示
-  /// 占位图，点按时仍会解析并跳转。
-  static const int _kMaxBookPrefetch = 10;
+  /// 书名行的封面预取 + 跳详情（与用户主页共用，见
+  /// [CommentBookRefController]）。
+  late final CommentBookRefController _bookRefController;
 
   @override
   void initState() {
     super.initState();
+    _bookRefController = CommentBookRefController(
+      api: ref.read(zlibraryApiProvider),
+    )..addListener(_onBookRefsChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  void _onBookRefsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _bookRefController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -100,9 +110,10 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                   bookId: e.bookId,
                   bookTitle: e.bookTitle,
                   text: e.comment.text,
-                  date: e.comment.dateRelative.isNotEmpty
-                      ? e.comment.dateRelative
-                      : e.comment.date,
+                  date: commentDateText(
+                    e.comment.dateRelative,
+                    e.comment.date,
+                  ),
                   likeCount: e.comment.likeCount,
                   userId: e.comment.userId,
                   userAvatar: e.comment.userAvatar,
@@ -119,38 +130,18 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       _comments = comments;
       _isLoading = false;
     });
-    unawaited(_prefetchBookRefs());
-  }
-
-  /// 逐本预取书名行的 hash + 封面（串行，避免并发风暴）。同一
-  /// bookId 只搜一次；已解析过的跳过；页面销毁即停；单本失败不
-  /// 阻塞其余（保持占位图，点按时再试）。
-  Future<void> _prefetchBookRefs() async {
-    final api = ref.read(zlibraryApiProvider);
-    final seen = <int>{};
-    var attempts = 0;
-    for (final comment in _comments) {
-      if (!mounted || attempts >= _kMaxBookPrefetch) return;
-      final id = comment.bookId;
-      if (id <= 0 || !seen.add(id)) continue;
-      if (_bookRefs[id]?.hasHash ?? false) continue;
-      attempts++;
-      try {
-        final info =
-            await resolveCommentBookRef(api, id, comment.bookTitle);
-        if (!mounted || info == null) continue;
-        setState(() => _bookRefs[id] = info);
-      } catch (error) {
-        // 单本失败保持占位图，点按时重试。
-        debugPrint('[my_comments] prefetch ignored ${error.runtimeType}');
-      }
-    }
+    unawaited(
+      _bookRefController.prefetch(
+        _comments
+            .map((c) => (bookId: c.bookId, title: c.bookTitle))
+            .toList(),
+      ),
+    );
   }
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    showAppSnack(context, message);
   }
 
   // --------------------------------------------------------------- 导航
@@ -178,59 +169,22 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     );
   }
 
-  /// 书名行 → 书籍详情。用户评论接口只给 bookId + 书名，没有书 hash；
-  /// 详情页靠 hash 拉全量数据，所以先用标题搜索反查同 id 书目的
-  /// eapi hash（[resolveCommentBookRef]，顺带取回封面），再带最小
-  /// [Book] 进详情页，由 `bookDetailsProvider` 拉取完整信息。
-  /// 预取缓存里有 hash 就不再搜索。
-  ///
-  /// 解析中该书名行尾转圈；失败提示且不跳转（不进残缺详情页）。
+  /// 书名行 → 书籍详情：hash 反查、防重点与失败提示都在
+  /// [CommentBookRefController]（与用户主页共用），屏侧只负责导航。
   Future<void> _openBookDetail(MyComment comment) async {
-    if (comment.bookId <= 0 || _openingBookIds.contains(comment.bookId)) {
-      return;
-    }
-    setState(() => _openingBookIds.add(comment.bookId));
-    try {
-      var hash = _bookRefs[comment.bookId]?.hash ?? '';
-      if (hash.isEmpty) {
-        final api = ref.read(zlibraryApiProvider);
-        final info = await resolveCommentBookRef(
-          api,
-          comment.bookId,
-          comment.bookTitle,
-        );
+    await _bookRefController.openBookDetail(
+      bookId: comment.bookId,
+      title: comment.bookTitle,
+      onReady: (book) {
         if (!mounted) return;
-        if (info != null) {
-          setState(() => _bookRefs[comment.bookId] = info);
-          hash = info.hash;
-        }
-      }
-      if (!mounted) return;
-      if (hash.isEmpty) {
-        _showSnack(AppLocalizations.of(context).get('open_book_failed'));
-        return;
-      }
-      Navigator.of(context).pushNamed(
-        AppRoutes.bookDetail,
-        arguments: BookDetailArgs(
-          book: Book(
-            id: comment.bookId,
-            title: comment.bookTitle,
-            hash: hash,
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      debugPrint('[my_comments] open detail ignored ${error.runtimeType}');
-      _showSnack(AppLocalizations.of(context).get('open_book_failed'));
-    } finally {
-      if (mounted) {
-        setState(() => _openingBookIds.remove(comment.bookId));
-      } else {
-        _openingBookIds.remove(comment.bookId);
-      }
-    }
+        Navigator.of(context).pushNamed(
+          AppRoutes.bookDetail,
+          arguments: BookDetailArgs(book: book),
+        );
+      },
+      onFail: () =>
+          _showSnack(AppLocalizations.of(context).get(S.openBookFailed)),
+    );
   }
 
   // --------------------------------------------------------------- 构建
@@ -241,23 +195,29 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
 
     Widget body;
     if (_isLoading) {
-      body = LoadingWidget(message: l10n.get('loading'));
+      body = LoadingWidget(
+        key: const ValueKey('loading'),
+        message: l10n.get(S.loading),
+      );
     } else if (!_loggedIn) {
       body = EmptyState(
+        key: const ValueKey('login'),
         icon: Icons.login_rounded,
-        title: l10n.get('login_to_view_comments'),
+        title: l10n.get(S.loginToViewComments),
         action: FilledButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
-          child: Text(l10n.get('login')),
+          child: Text(l10n.get(S.login)),
         ),
       );
     } else if (_comments.isEmpty) {
       body = EmptyState(
+        key: const ValueKey('empty'),
         icon: Icons.comment_outlined,
-        title: l10n.get('no_comments'),
+        title: l10n.get(S.noComments),
       );
     } else {
       body = RefreshIndicator(
+        key: const ValueKey('list'),
         onRefresh: _load,
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(0, 12, 0, 12),
@@ -266,14 +226,19 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
           itemBuilder: (context, index) {
             final comment = _comments[index];
             final userName = ref.read(authProvider).user?.name ?? '';
-            return _MyCommentCard(
-              comment: comment,
-              userName: userName,
-              coverUrl: _bookRefs[comment.bookId]?.cover ?? '',
-              isOpeningBook: _openingBookIds.contains(comment.bookId),
-              onCardTap: () => _openComments(comment),
-              onBookTap: () => _openBookDetail(comment),
-              onAvatarTap: () => _openProfile(comment),
+            return EntranceSlideFade(
+              index: index,
+              child: _MyCommentCard(
+                comment: comment,
+                userName: userName,
+                coverUrl:
+                    _bookRefController.refFor(comment.bookId)?.cover ?? '',
+                isOpeningBook:
+                    _bookRefController.isOpening(comment.bookId),
+                onCardTap: () => _openComments(comment),
+                onBookTap: () => _openBookDetail(comment),
+                onAvatarTap: () => _openProfile(comment),
+              ),
             );
           },
         ),
@@ -281,8 +246,9 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     }
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('my_comments')),
-      body: body,
+      appBar: GradientAppBar(title: l10n.get(S.myComments)),
+      // loading → 登录态 → 空态 → 列表：统一淡入淡出（此前硬切）。
+      body: StateTransitionSwitch(child: body),
     );
   }
 }

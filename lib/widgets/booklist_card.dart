@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../l10n/app_localizations.dart';
-
+import '../l10n/s_keys.dart';
+import '../utils/cover_cache.dart';
 /// Rounded booklist cover with a soft shadow and a themed placeholder.
 class BooklistCover extends StatelessWidget {
   final String url;
@@ -51,6 +52,8 @@ class BooklistCover extends StatelessWidget {
               : CachedNetworkImage(
                   imageUrl: url,
                   fit: BoxFit.cover,
+                  // 封面按显示尺寸解码，避免整图占内存。
+                  memCacheWidth: coverCacheWidth(width, context),
                   placeholder: (_, __) => placeholder,
                   errorWidget: (_, __, ___) => placeholder,
                 ),
@@ -114,7 +117,7 @@ class BooklistMetaPills extends StatelessWidget {
         if (count != null)
           BooklistMetaPill(
             icon: Icons.menu_book_rounded,
-            text: l10n.get('booklist_book_count').replaceAll('{count}', '$count'),
+            text: l10n.get(S.booklistBookCount).replaceAll('{count}', '$count'),
           ),
         if (list.views.isNotEmpty)
           BooklistMetaPill(

@@ -1,13 +1,12 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
-import '../../widgets/cover_placeholder.dart';
+import 'widgets/trending_section.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -21,6 +20,8 @@ import '../../services/open_library.dart';
 import '../../services/update_service.dart';
 import '../../services/hive_service.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 const _recentSearchesKey = 'recent_search_keywords';
 const _recentSearchesLimit = 12;
 
@@ -146,13 +147,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     } catch (error) {
       debugPrint('Failed to save recent searches: ${error.runtimeType}');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).get('search_history_save_failed'),
-            ),
-          ),
-        );
+        showAppSnack(context,
+              AppLocalizations.of(context).get(S.searchHistorySaveFailed),
+            );
       }
     }
   }
@@ -278,13 +275,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     section(
-                      l10n.get('language'),
+                      l10n.get(S.language),
                       languageNames,
                       _selectedLanguage,
                       (v) => _selectedLanguage = v,
                     ),
                     section(
-                      l10n.get('sort'),
+                      l10n.get(S.sort),
                       orderNames,
                       _selectedOrder,
                       (v) => _selectedOrder = v,
@@ -307,12 +304,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             _applyFilterChange();
                           },
                           icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                          label: Text(l10n.get('search_history_clear')),
+                          label: Text(l10n.get(S.searchHistoryClear)),
                         ),
                         const Spacer(),
                         FilledButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: Text(l10n.get('close')),
+                          child: Text(l10n.get(S.close)),
                         ),
                       ],
                     ),
@@ -418,7 +415,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         textInputAction: TextInputAction.search,
         onSubmitted: (_) => _performSearch(),
         decoration: InputDecoration(
-          hintText: l10n.get('search_for_books'),
+          hintText: l10n.get(S.searchForBooks),
           hintStyle: TextStyle(color: cs.onSurfaceVariant),
           prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
           suffixIcon: Row(
@@ -487,9 +484,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       BookSource.libgen: Icons.menu_book_rounded,
     };
     final labels = <BookSource, String>{
-      BookSource.zlibrary: l10n.get('source_zlibrary'),
-      BookSource.annasArchive: l10n.get('source_annas_archive'),
-      BookSource.libgen: l10n.get('source_libgen'),
+      BookSource.zlibrary: l10n.get(S.sourceZlibrary),
+      BookSource.annasArchive: l10n.get(S.sourceAnnasArchive),
+      BookSource.libgen: l10n.get(S.sourceLibgen),
     };
 
     return Padding(
@@ -547,7 +544,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     if (_selectedLanguage != 'all') {
       addChip(
-        '${l10n.get('language')}: ${languageNames[_selectedLanguage]}',
+        '${l10n.get(S.language)}: ${languageNames[_selectedLanguage]}',
         () {
           _selectedLanguage = 'all';
           _applyFilterChange();
@@ -556,7 +553,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
     if (_selectedOrder != 'default') {
       addChip(
-        '${l10n.get('sort')}: ${orderNames[_selectedOrder]}',
+        '${l10n.get(S.sort)}: ${orderNames[_selectedOrder]}',
         () {
           _selectedOrder = 'default';
           _applyFilterChange();
@@ -620,8 +617,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }
       return EmptyState(
         icon: Icons.search_rounded,
-        title: l10n.get('start_searching'),
-        message: l10n.get('enter_search_hint'),
+        title: l10n.get(S.startSearching),
+        message: l10n.get(S.enterSearchHint),
       );
     }
     return ListView(
@@ -630,7 +627,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         if (_recentSearches.isNotEmpty) _buildRecentSearchesSection(l10n),
         if (trendingBooks.isNotEmpty) ...[
           if (_recentSearches.isNotEmpty) const SizedBox(height: 28),
-          _buildTrendingSection(l10n, trendingBooks),
+          SearchTrendingSection(
+            l10n: l10n,
+            books: trendingBooks,
+            onSearch: _searchAgain,
+          ),
         ],
       ],
     );
@@ -643,11 +644,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       children: [
         _buildSectionHeader(
           icon: Icons.history_rounded,
-          title: l10n.get('search_history_title'),
+          title: l10n.get(S.searchHistoryTitle),
           trailing: TextButton.icon(
             onPressed: () => unawaited(_saveRecentSearches([])),
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            label: Text(l10n.get('search_history_clear')),
+            label: Text(l10n.get(S.searchHistoryClear)),
           ),
         ),
         const SizedBox(height: 12),
@@ -667,99 +668,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     _recentSearches.where((item) => item != keyword).toList(),
                   ),
                 ),
-                deleteButtonTooltipMessage: l10n.get('search_history_remove'),
+                deleteButtonTooltipMessage: l10n.get(S.searchHistoryRemove),
                 backgroundColor: cs.surfaceContainerLow,
                 side: BorderSide(color: cs.outlineVariant),
               ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrendingSection(
-    AppLocalizations l10n,
-    List<TrendingBookData> books,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          icon: Icons.local_fire_department_outlined,
-          title: l10n.get('trending_on_open_library'),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              final title = book.title!.trim();
-              return Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: InkWell(
-                  onTap: () => _searchAgain(title),
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 105,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: book.thumbnail ?? '',
-                                height: 145,
-                                width: 105,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    const CoverPlaceholder.static(),
-                                errorWidget: (context, url, error) =>
-                                    const CoverPlaceholder.static(),
-                              ),
-                            ),
-                            Positioned(
-                              top: 6,
-                              left: 6,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.55),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${index + 1}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -774,8 +687,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_suggestions.isEmpty) {
       return EmptyState(
         icon: Icons.search_rounded,
-        title: l10n.get('start_searching'),
-        message: l10n.get('enter_search_hint'),
+        title: l10n.get(S.startSearching),
+        message: l10n.get(S.enterSearchHint),
       );
     }
     final query = _searchController.text.trim();
@@ -951,7 +864,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         : '${searchState.totalPages}';
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('search_books')),
+      appBar: GradientAppBar(title: l10n.get(S.searchBooks)),
       body: Column(
         children: [
           _buildSearchBar(l10n, isExternal),
@@ -966,26 +879,26 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 : !hasSearched
                 ? EmptyState(
                     icon: Icons.search_rounded,
-                    title: l10n.get('start_searching'),
-                    message: l10n.get('enter_search_hint'),
+                    title: l10n.get(S.startSearching),
+                    message: l10n.get(S.enterSearchHint),
                   )
                 : isLoading
                 ? _buildSkeletonGrid()
                 : error != null && resultCount == 0
                 ? EmptyState(
                     icon: Icons.error_outline_rounded,
-                    title: l10n.get('search_failed'),
+                    title: l10n.get(S.searchFailed),
                     message: error,
                     action: FilledButton(
                       onPressed: _performSearch,
-                      child: Text(l10n.get('search_retry')),
+                      child: Text(l10n.get(S.searchRetry)),
                     ),
                   )
                 : resultCount == 0
                 ? EmptyState(
                     icon: Icons.search_off_rounded,
-                    title: l10n.get('no_results'),
-                    message: l10n.get('search_no_results_switch'),
+                    title: l10n.get(S.noResults),
+                    message: l10n.get(S.searchNoResultsSwitch),
                   )
                 : Column(
                     children: [
@@ -1009,7 +922,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               ),
                               child: Text(
                                 l10n
-                                    .get('search_results_count')
+                                    .get(S.searchResultsCount)
                                     .replaceAll('{count}', '$resultCount'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1028,7 +941,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             Expanded(
                               child: Text(
                                 l10n
-                                    .get('search_page_progress')
+                                    .get(S.searchPageProgress)
                                     .replaceAll('{current}', '$currentPage')
                                     .replaceAll('{total}', totalPagesText),
                                 maxLines: 1,
@@ -1052,8 +965,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 size: 22,
                               ),
                               tooltip: _isListView
-                                  ? l10n.get('grid_view')
-                                  : l10n.get('list_view'),
+                                  ? l10n.get(S.gridView)
+                                  : l10n.get(S.listView),
                               onPressed: () {
                                 setState(() => _isListView = !_isListView);
                               },
@@ -1067,7 +980,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           child: Row(
                             children: [
                               Expanded(
-                                child: Text(l10n.get('search_more_failed')),
+                                child: Text(l10n.get(S.searchMoreFailed)),
                               ),
                               TextButton(
                                 onPressed: () {
@@ -1081,7 +994,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                         .loadMore();
                                   }
                                 },
-                                child: Text(l10n.get('search_retry')),
+                                child: Text(l10n.get(S.searchRetry)),
                               ),
                             ],
                           ),
@@ -1135,6 +1048,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                   return BookCard(
                                     book: book,
                                     searchResult: true,
+                                    // 搜索结果同屏同 id 重复极罕见
+                                    // （不同 edition id 不同），
+                                    // 可安全开 Hero。
+                                    heroEnabled: true,
                                     onTap: () => _openBook(book),
                                   );
                                 },

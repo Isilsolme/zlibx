@@ -14,6 +14,7 @@ import 'widgets/network_section.dart';
 import 'widgets/section_header.dart';
 import 'widgets/settings_card.dart';
 
+import '../../l10n/s_keys.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -52,8 +53,8 @@ class SettingsScreen extends ConsumerWidget {
             SettingsCard(
               child: ListTile(
                 leading: const Icon(Icons.login),
-                title: Text(t.get('login')),
-                subtitle: Text(t.get('login_to_continue')),
+                title: Text(t.get(S.login)),
+                subtitle: Text(t.get(S.loginToContinue)),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push<bool>(
                   MaterialPageRoute(
@@ -82,18 +83,18 @@ class SettingsScreen extends ConsumerWidget {
           // ── Update ───────────────────────────────────────────────
           SectionHeader(
             icon: Icons.system_update_rounded,
-            title: AppLocalizations.of(context).get('update'),
+            title: AppLocalizations.of(context).get(S.update),
           ),
           SettingsCard(
             child: ListTile(
               leading: const Icon(Icons.system_update),
-              title: Text(AppLocalizations.of(context).get('check_for_updates')),
+              title: Text(AppLocalizations.of(context).get(S.checkForUpdates)),
               subtitle: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    AppLocalizations.of(context).get('current_version_label').replaceAll('{version}', version),
+                    AppLocalizations.of(context).get(S.currentVersionLabel).replaceAll('{version}', version),
                   );
                 },
               ),

@@ -13,6 +13,11 @@ class BookCard extends StatefulWidget {
   final bool showSourceBadge;
   final bool searchResult;
 
+  /// 是否启用封面共享元素转场（Hero，tag `cover-<book.id>`，与
+  /// 详情页 [BookHeroSection] 配对）。默认关闭——同一屏可能同屏
+  /// 重复 id 的调用方（如首页多个分区）不要开，避免 Hero 冲突。
+  final bool heroEnabled;
+
   const BookCard({
     super.key,
     required this.book,
@@ -21,6 +26,7 @@ class BookCard extends StatefulWidget {
     this.compact = false,
     this.showSourceBadge = false,
     this.searchResult = false,
+    this.heroEnabled = false,
   });
 
   /// 首页纯封面卡片的高度。
@@ -55,7 +61,7 @@ class _BookCardState extends State<BookCard> {
     final borderRadius = BorderRadius.circular(
       widget.compact ? 4 : (widget.searchResult ? 12 : 20),
     );
-    
+
     // Soft Card UI with press-scale feedback
     return AnimatedScale(
       scale: _scale,
@@ -102,7 +108,7 @@ class _BookCardState extends State<BookCard> {
                           children: [
                             // Level 2: Category/Tag (Orange, Small) - ABOVE Title
                             _buildMetaRow(),
-                            
+
                             const SizedBox(height: 4),
 
                             // Level 1: Title (Black, Bold, Large)
@@ -117,7 +123,7 @@ class _BookCardState extends State<BookCard> {
                                 ),
                               ),
                             ),
-                            
+
                             // Level 3: Author (Grey, Secondary)
                             if (widget.book.author != null && widget.book.author!.isNotEmpty)
                               Text(
@@ -128,7 +134,7 @@ class _BookCardState extends State<BookCard> {
                                   fontSize: 11,
                                 ),
                               ),
-                              
+
                             const SizedBox(height: 8),
 
                             // Level 3: Bottom row (Stars/Size)
@@ -146,7 +152,7 @@ class _BookCardState extends State<BookCard> {
       ),
     );
   }
-  
+
   Widget _buildCoverBackdrop() {
     final sourceLabel = widget.showSourceBadge
         ? AppLocalizations.of(context).get(
@@ -196,13 +202,19 @@ class _BookCardState extends State<BookCard> {
       fadeOutDuration: const Duration(milliseconds: 100),
       httpHeaders: const {'Connection': 'keep-alive'},
       imageBuilder: (context, imageProvider) {
-        return content(image: imageProvider);
+        return _maybeHero(content(image: imageProvider));
       },
       placeholder: (context, url) => content(loading: true),
       errorWidget: (context, url, error) {
         return content();
       },
     );
+  }
+
+  /// 有封面且调用方启用时包 Hero（无封面的占位图不参与转场）。
+  Widget _maybeHero(Widget cover) {
+    if (!widget.heroEnabled) return cover;
+    return Hero(tag: 'cover-${widget.book.id}', child: cover);
   }
 
   Widget _buildFullCover() {
@@ -226,7 +238,9 @@ class _BookCardState extends State<BookCard> {
                 fadeOutDuration: const Duration(milliseconds: 100),
                 httpHeaders: const {'Connection': 'keep-alive'},
                 imageBuilder: (context, imageProvider) {
-                  return Image(image: imageProvider, fit: BoxFit.cover);
+                  return _maybeHero(
+                    Image(image: imageProvider, fit: BoxFit.cover),
+                  );
                 },
                 errorWidget: (context, url, error) {
                   return _buildPlaceholder();

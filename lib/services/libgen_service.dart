@@ -155,6 +155,10 @@ class LibgenService {
   /// Fetches only the cover URL for a libgen book (by md5), trying the
   /// enabled mirrors. Null when no mirror answers or none carries a
   /// cover. Used to lazily fill result-list thumbnails.
+  ///
+  /// 每个候选请求带 5s 接收超时：结果列表会逐本调这个方法，慢
+  /// 镜像吃满全局 30s receiveTimeout 会拖住整列缩略图（镜像回退
+  /// 顺序仍按优先级串行，见 [_candidateUrls]）。
   Future<String?> fetchCover(String url) async {
     final mirrors = await _instanceManager.enabledUrls(MirrorService.libgen);
     for (final candidate in _candidateUrls(url, mirrors)) {
@@ -162,7 +166,10 @@ class LibgenService {
         final origin = Uri.parse(candidate).origin;
         final response = await _dio.get(
           candidate,
-          options: Options(headers: {'Referer': '$origin/index.php'}),
+          options: Options(
+            headers: {'Referer': '$origin/index.php'},
+            receiveTimeout: const Duration(seconds: 5),
+          ),
         );
         if (response.statusCode != 200) continue;
         final cover =

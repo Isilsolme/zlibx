@@ -11,6 +11,8 @@ import 'package:zlibx/utils/host_utils.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 class ReaderScreen extends StatefulWidget {
   final String url;
   final String title;
@@ -121,13 +123,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (!mounted) return;
       if (!names.contains('remix_userid') ||
           !names.contains('remix_userkey')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppLocalizations.of(context).get('reader_session_write_failed'),
-            ),
-          ),
-        );
+        showAppSnack(context,
+              AppLocalizations.of(context).get(S.readerSessionWriteFailed),
+            );
       }
     } catch (error) {
       debugPrint('[reader_screen] ignored ${error.runtimeType}');
@@ -187,21 +185,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
           files: [XFile(file.path)],
           subject: 'Litera Probe Log (${_probeLog.length} entries)',
           text: localizations
-              .get('reader_resource_log_count')
+              .get(S.readerResourceLogCount)
               .replaceAll('{count}', '$entryCount'),
         ),
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
+        showAppSnack(context,
               AppLocalizations.of(context)
-                  .get('reader_log_export_failed')
+                  .get(S.readerLogExportFailed)
                   .replaceAll('{error}', '$e'),
-            ),
-          ),
-        );
+            );
       }
     }
   }
@@ -274,7 +268,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             ),
             IconButton(
               tooltip: AppLocalizations.of(context)
-                .get('reader_export_resource_log'),
+                .get(S.readerExportResourceLog),
               icon: const Icon(Icons.ios_share),
               onPressed: _probeLog.isEmpty ? null : _shareProbeLog,
             ),

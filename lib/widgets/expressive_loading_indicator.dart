@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 
+import '../l10n/s_keys.dart';
 /// Lightweight M3 Expressive-inspired morphing indicator for unknown durations.
 /// Determinate transfers continue to use progress indicators with real values.
 /// (Ported from the c001apk fork.)
@@ -69,7 +70,7 @@ class _ExpressiveLoadingIndicatorState extends State<ExpressiveLoadingIndicator>
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: AppLocalizations.of(context).get('loading'),
+        label: AppLocalizations.of(context).get(S.loading),
         child: RepaintBoundary(
           child: SizedBox.square(
             dimension: widget.size,

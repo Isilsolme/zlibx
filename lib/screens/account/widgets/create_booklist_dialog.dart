@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 
+import '../../../l10n/s_keys.dart';
 /// Name + optional description form for a new booklist. Pops a record
 /// `(title, description)`, or null when cancelled.
 class CreateBooklistDialog extends StatefulWidget {
@@ -35,7 +36,7 @@ class CreateBooklistDialogState extends State<CreateBooklistDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(l10n.get('create_booklist')),
+      title: Text(l10n.get(S.createBooklist)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -44,7 +45,7 @@ class CreateBooklistDialogState extends State<CreateBooklistDialog> {
             autofocus: true,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              labelText: l10n.get('booklist_title'),
+              labelText: l10n.get(S.booklistTitle),
             ),
             onChanged: (_) => setState(() {}),
           ),
@@ -54,7 +55,7 @@ class CreateBooklistDialogState extends State<CreateBooklistDialog> {
             maxLines: 3,
             minLines: 1,
             decoration: InputDecoration(
-              labelText: l10n.get('booklist_description_optional'),
+              labelText: l10n.get(S.booklistDescriptionOptional),
             ),
           ),
         ],
@@ -62,11 +63,11 @@ class CreateBooklistDialogState extends State<CreateBooklistDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.get('cancel')),
+          child: Text(l10n.get(S.cancel)),
         ),
         FilledButton(
           onPressed: _titleController.text.trim().isEmpty ? null : _submit,
-          child: Text(l10n.get('create')),
+          child: Text(l10n.get(S.create)),
         ),
       ],
     );

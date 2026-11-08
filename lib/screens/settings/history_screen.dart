@@ -10,6 +10,8 @@ import '../../widgets/empty_state.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/app_localizations.dart';
 
+import '../../l10n/s_keys.dart';
+import '../../utils/cover_cache.dart';
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
@@ -20,14 +22,14 @@ class HistoryScreen extends ConsumerWidget {
     final downloadedBooksAsync = ref.watch(downloadedBooksProvider);
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get('download_history')),
+      appBar: GradientAppBar(title: l10n.get(S.downloadHistory)),
       body: downloadedBooksAsync.when(
         data: (books) {
           if (books.isEmpty) {
             return EmptyState(
               icon: Icons.history,
-              title: l10n.get('no_history'),
-              message: l10n.get('history_empty_message'),
+              title: l10n.get(S.noHistory),
+              message: l10n.get(S.historyEmptyMessage),
             );
           }
 
@@ -70,10 +72,10 @@ class HistoryScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => LoadingWidget(message: l10n.get('loading_downloads')),
+        loading: () => LoadingWidget(message: l10n.get(S.loadingDownloads)),
         error: (error, stack) => EmptyState(
           icon: Icons.error_outline,
-          title: l10n.get('error'),
+          title: l10n.get(S.error),
           message: error.toString(),
         ),
       ),
@@ -105,7 +107,7 @@ class _HistoryCoverThumb extends ConsumerWidget {
         width: 50,
         height: 70,
         fit: BoxFit.cover,
-        memCacheWidth: (50 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+        memCacheWidth: coverCacheWidth(50, context),
         placeholder: (context, url) => const CoverPlaceholder.static(),
         errorWidget: (context, url, error) {
           if (resolved == null) {

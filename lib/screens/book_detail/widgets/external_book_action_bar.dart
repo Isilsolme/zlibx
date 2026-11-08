@@ -21,7 +21,9 @@ import '../../../providers/download_provider.dart';
 import '../../../services/annas_archieve.dart';
 import '../../../services/external_download.dart';
 import '../../../services/media_store.dart';
+import '../../../utils/app_snack.dart';
 
+import '../../../l10n/s_keys.dart';
 class ExternalBookActionBar extends ConsumerStatefulWidget {
   final DisplayBook displayBook;
   final BookInfoData info;
@@ -66,16 +68,16 @@ class _ExternalBookActionBarState
     final String label;
     if (isCompleted) {
       icon = Icons.folder_open_rounded;
-      label = l10n.get('open_file');
+      label = l10n.get(S.openFile);
     } else if (isDownloading) {
       icon = Icons.downloading_rounded;
       label = '${(downloadTask!.progress * 100).toStringAsFixed(0)}%';
     } else if (_resolving) {
       icon = Icons.download_rounded;
-      label = l10n.get('resolving_download_link');
+      label = l10n.get(S.resolvingDownloadLink);
     } else {
       icon = Icons.download_rounded;
-      label = l10n.get('download');
+      label = l10n.get(S.download);
     }
 
     final busy = _resolving || isDownloading;
@@ -156,16 +158,16 @@ class _ExternalBookActionBarState
         context: context,
         dialogType: DialogType.info,
         animType: AnimType.bottomSlide,
-        title: AppLocalizations.of(context).get('file_exists_title'),
-        desc: AppLocalizations.of(context).get('file_exists_desc'),
-        btnCancelText: AppLocalizations.of(context).get('open_file'),
+        title: AppLocalizations.of(context).get(S.fileExistsTitle),
+        desc: AppLocalizations.of(context).get(S.fileExistsDesc),
+        btnCancelText: AppLocalizations.of(context).get(S.openFile),
         btnCancelColor: Theme.of(context).colorScheme.primary,
         btnCancelOnPress: () async {
           // The dialog outlives this bar: re-check before using context.
           if (!context.mounted) return;
           await _openDownloadedFile(context, existingPath);
         },
-        btnOkText: AppLocalizations.of(context).get('download_again'),
+        btnOkText: AppLocalizations.of(context).get(S.downloadAgain),
         btnOkColor: Theme.of(context).colorScheme.primary,
         btnOkOnPress: () {
           if (!context.mounted) return;
@@ -194,7 +196,7 @@ class _ExternalBookActionBarState
       setState(() => _resolving = false);
       if (!target.hasUrl) {
         if (context.mounted) {
-          _toast(context, AppLocalizations.of(context).get('download_failed'));
+          _toast(context, AppLocalizations.of(context).get(S.downloadFailed));
         }
         return;
       }
@@ -202,14 +204,14 @@ class _ExternalBookActionBarState
           .read(downloadProvider.notifier)
           .startDownload(book, presetUrl: target.url!);
       if (context.mounted) {
-        _toast(context, AppLocalizations.of(context).get('downloading'));
+        _toast(context, AppLocalizations.of(context).get(S.downloading));
       }
     } catch (error) {
       debugPrint('[external_book_action_bar] ignored ${error.runtimeType}');
       if (!mounted) return;
       setState(() => _resolving = false);
       if (context.mounted) {
-        _toast(context, AppLocalizations.of(context).get('download_failed'));
+        _toast(context, AppLocalizations.of(context).get(S.downloadFailed));
       }
     }
   }
@@ -225,7 +227,7 @@ class _ExternalBookActionBarState
         if (!opened && context.mounted) {
           _toast(
             context,
-            AppLocalizations.of(context).get('open_file_failed'),
+            AppLocalizations.of(context).get(S.openFileFailed),
           );
         }
         return;
@@ -234,7 +236,7 @@ class _ExternalBookActionBarState
       if (result.type != ResultType.done && context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get('open_file_failed'),
+          AppLocalizations.of(context).get(S.openFileFailed),
         );
       }
     } catch (error) {
@@ -242,19 +244,13 @@ class _ExternalBookActionBarState
       if (context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get('open_file_failed'),
+          AppLocalizations.of(context).get(S.openFileFailed),
         );
       }
     }
   }
 
   void _toast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    showAppSnack(context, message);
   }
 }

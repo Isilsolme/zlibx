@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../services/update_service.dart';
+import '../../utils/app_snack.dart';
 import '../../widgets/domain_selector.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/update_dialog.dart';
@@ -12,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 import 'widgets/account_manager_sheet.dart';
 import 'login_failure.dart';
 
+import '../../l10n/s_keys.dart';
 class LoginScreen extends ConsumerStatefulWidget {
   final bool addAccountMode;
 
@@ -59,13 +61,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       showUpdateDialog(context);
     } else {
       // Normal update - just show info snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
+      // 品牌视觉（primary 背景 + action）保留原生 SnackBar，只统一入口。
+      showAppSnackRaw(
+        context,
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).get('new_version_found').replaceAll('{version}', '${UpdateService.latestVersion}'),
+            AppLocalizations.of(context)
+                .get(S.newVersionFound)
+                .replaceAll(
+                  '{version}',
+                  '${UpdateService.latestVersion}',
+                ),
           ),
           action: SnackBarAction(
-            label: AppLocalizations.of(context).get('update'),
+            label: AppLocalizations.of(context).get(S.update),
             onPressed: () => showUpdateDialog(context),
           ),
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -131,12 +140,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.warning,
           animType: AnimType.bottomSlide,
-          title: AppLocalizations.of(context).get('line_unavailable'),
+          title: AppLocalizations.of(context).get(S.lineUnavailable),
           desc: AppLocalizations.of(context).get(
               cf ? 'login_line_blocked_cf' : 'login_line_connect_failed'),
-          btnCancelText: AppLocalizations.of(context).get('close'),
+          btnCancelText: AppLocalizations.of(context).get(S.close),
           btnCancelOnPress: () {},
-          btnOkText: AppLocalizations.of(context).get('switch_line'),
+          btnOkText: AppLocalizations.of(context).get(S.switchLine),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             showDialog(
@@ -150,11 +159,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.error,
           animType: AnimType.bottomSlide,
-          title: AppLocalizations.of(context).get('login_failed'),
+          title: AppLocalizations.of(context).get(S.loginFailed),
           desc: failureKind == LoginFailureKind.credentials
-              ? (AppLocalizations.of(context).get('login_bad_credentials'))
-              : (AppLocalizations.of(context).get('login_unknown_failure').replaceAll('{line}', lineName).replaceAll('{time}', occurredAt).replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
-          btnOkText: AppLocalizations.of(context).get('confirm_ok'),
+              ? (AppLocalizations.of(context).get(S.loginBadCredentials))
+              : (AppLocalizations.of(context).get(S.loginUnknownFailure).replaceAll('{line}', lineName).replaceAll('{time}', occurredAt).replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
+          btnOkText: AppLocalizations.of(context).get(S.confirmOk),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
         ).show();
@@ -295,7 +304,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     AppLocalizations.of(
                                       context,
-                                    ).get('use_another_account'),
+                                    ).get(S.useAnotherAccount),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
@@ -316,7 +325,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(
                                 context,
-                              ).get('email'),
+                              ).get(S.email),
                               prefixIcon: const Icon(Icons.email_outlined),
                             ),
                             validator: (value) {
@@ -338,7 +347,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(
                                 context,
-                              ).get('password'),
+                              ).get(S.password),
                               prefixIcon: const Icon(Icons.lock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -382,7 +391,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       color: Colors.white,
                                     )
                                   : Text(
-                                      AppLocalizations.of(context).get('login'),
+                                      AppLocalizations.of(context).get(S.login),
                                     ),
                             ),
                           ),
@@ -394,7 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: Text(
                                 AppLocalizations.of(
                                   context,
-                                ).get('manage_accounts'),
+                                ).get(S.manageAccounts),
                               ),
                             ),
                           ],
@@ -428,7 +437,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final name = account['name']?.toString().trim();
     final email = account['email']?.toString().trim();
     final displayName = name == null || name.isEmpty
-        ? l10n.get('unknown')
+        ? l10n.get(S.unknown)
         : name;
 
     return Material(
@@ -452,7 +461,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.get('recent_account'),
+                      l10n.get(S.recentAccount),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
@@ -507,7 +516,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  AppLocalizations.of(context).get('login_use_zsite_account'),
+                  AppLocalizations.of(context).get(S.loginUseZsiteAccount),
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -519,7 +528,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).get('login_no_account_hint'),
+            AppLocalizations.of(context).get(S.loginNoAccountHint),
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -538,7 +547,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       },
       child: Text(
-        AppLocalizations.of(context).get('login_skip_explore'),
+        AppLocalizations.of(context).get(S.loginSkipExplore),
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.7),
           fontSize: 13,
@@ -556,17 +565,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       children: [
         _buildBadge(
           icon: Icons.code,
-          text: AppLocalizations.of(context).get('badge_open_source'),
+          text: AppLocalizations.of(context).get(S.badgeOpenSource),
           color: Colors.green,
         ),
         _buildBadge(
           icon: Icons.money_off,
-          text: AppLocalizations.of(context).get('search_free'),
+          text: AppLocalizations.of(context).get(S.searchFree),
           color: Colors.blue,
         ),
         _buildBadge(
           icon: Icons.smart_toy_outlined,
-          text: AppLocalizations.of(context).get('badge_ai_built'),
+          text: AppLocalizations.of(context).get(S.badgeAiBuilt),
           color: Colors.purple,
         ),
       ],

@@ -11,6 +11,7 @@ import '../../../services/external_download.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
+import '../../../l10n/s_keys.dart';
 class DonationKeySection extends ConsumerStatefulWidget {
   const DonationKeySection({super.key});
 
@@ -44,14 +45,14 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
         const SizedBox(height: 20),
         SectionHeader(
           icon: Icons.key_rounded,
-          title: t.get('source_annas_archive'),
+          title: t.get(S.sourceAnnasArchive),
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.key_outlined),
-            title: Text(t.get('annas_donation_key')),
+            title: Text(t.get(S.annasDonationKey)),
             subtitle: Text(
-              key.isEmpty ? t.get('annas_donation_key_hint') : '••••••••',
+              key.isEmpty ? t.get(S.annasDonationKeyHint) : '••••••••',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -101,12 +102,12 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context);
     return AlertDialog(
-      title: Text(t.get('annas_donation_key')),
+      title: Text(t.get(S.annasDonationKey)),
       content: TextField(
         controller: _controller,
         obscureText: _obscured,
         decoration: InputDecoration(
-          hintText: t.get('annas_donation_key_hint'),
+          hintText: t.get(S.annasDonationKeyHint),
           suffixIcon: IconButton(
             icon: Icon(
               _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -118,14 +119,14 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.get('cancel')),
+          child: Text(t.get(S.cancel)),
         ),
         TextButton(
           onPressed: () async {
             await saveAnnasDonationKey(_controller.text);
             if (context.mounted) Navigator.of(context).pop();
           },
-          child: Text(t.get('save')),
+          child: Text(t.get(S.save)),
         ),
       ],
     );

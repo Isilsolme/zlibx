@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../../models/unified_shelf_item.dart';
 import '../../../widgets/cover_placeholder.dart';
 
+import '../../../l10n/s_keys.dart';
 /// 封面 + 书名/作者的网格卡片，与首页、搜索页的卡片语言保持一致。
 class ShelfGridItem extends StatelessWidget {
   const ShelfGridItem({
@@ -55,6 +56,7 @@ class ShelfGridItem extends StatelessWidget {
                   key: ValueKey(item.categoryKey),
                   cover: book.cover,
                   selected: selected,
+                  heroTag: 'cover-${book.id}',
                 ),
                 if (categoryName != null)
                   Positioned(
@@ -174,7 +176,7 @@ class ShelfListItem extends StatelessWidget {
       if (isDownloaded)
         (
           icon: Icons.download_done_rounded,
-          text: l.get('shelf_downloaded'),
+          text: l.get(S.shelfDownloaded),
           highlighted: true,
         ),
     ];
@@ -207,6 +209,7 @@ class ShelfListItem extends StatelessWidget {
                   selected: false,
                   radius: 8,
                   compact: true,
+                  heroTag: 'cover-${book.id}',
                 ),
               ),
               const SizedBox(width: 13),
@@ -274,6 +277,8 @@ class ShelfListItem extends StatelessWidget {
 }
 
 /// 圆角封面：带柔和阴影，无封面时用共享静态占位（同首页卡片）。
+/// [heroTag] 非空且有封面时包 Hero（tag `cover-<id>`，与详情页
+/// BookHeroSection 配对）；无封面的占位图不参与转场。
 class _ShelfCover extends StatelessWidget {
   const _ShelfCover({
     super.key,
@@ -281,12 +286,14 @@ class _ShelfCover extends StatelessWidget {
     required this.selected,
     this.radius = 10,
     this.compact = false,
+    this.heroTag,
   });
 
   final String? cover;
   final bool selected;
   final double radius;
   final bool compact;
+  final String? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -315,19 +322,24 @@ class _ShelfCover extends StatelessWidget {
           child: ClipRRect(
             borderRadius: borderRadius,
             child: cover?.isNotEmpty == true
-                ? CachedNetworkImage(
-                    imageUrl: cover!,
-                    fit: BoxFit.cover,
-                    memCacheWidth: cacheWidth > 0 ? cacheWidth : null,
-                    fadeInDuration: const Duration(milliseconds: 250),
-                    placeholder: (_, __) => const CoverPlaceholder.static(),
-                    errorWidget: (_, __, ___) =>
-                        const CoverPlaceholder.static(),
-                  )
+                ? (heroTag == null
+                      ? _coverImage()
+                      : Hero(tag: heroTag!, child: _coverImage()))
                 : const CoverPlaceholder.static(),
           ),
         );
       },
+    );
+  }
+
+  Widget _coverImage() {
+    return CachedNetworkImage(
+      imageUrl: cover!,
+      fit: BoxFit.cover,
+      memCacheWidth: cacheWidth > 0 ? cacheWidth : null,
+      fadeInDuration: const Duration(milliseconds: 250),
+      placeholder: (_, __) => const CoverPlaceholder.static(),
+      errorWidget: (_, __, ___) => const CoverPlaceholder.static(),
     );
   }
 }

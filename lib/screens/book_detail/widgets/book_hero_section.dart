@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/display_book.dart';
 import '../../../providers/books_provider.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../../utils/app_snack.dart';
 import '../../../widgets/loading_widget.dart';
 import 'book_3d_cover.dart';
 
@@ -40,18 +41,14 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
       if (!mounted) return;
       if (success) ref.invalidate(isBookFavoritedProvider(bookId));
       final l10n = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            l10n.get(
-              !success
-                  ? 'favorite_failed'
-                  : wasFavorited
-                  ? 'favorite_removed'
-                  : 'like',
-            ),
-          ),
-          behavior: SnackBarBehavior.floating,
+      showAppSnack(
+        context,
+        l10n.get(
+          !success
+              ? 'favorite_failed'
+              : wasFavorited
+              ? 'favorite_removed'
+              : 'like',
         ),
       );
     } finally {
@@ -188,17 +185,25 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
               bottom: 16,
             ),
             child: Center(
-              child: Book3DCover(
-                cover: image,
-                title: widget.book.title,
-                loading: loading,
-                animate: animate && !MediaQuery.of(context).disableAnimations,
-                height:
-                    (height -
-                            MediaQuery.paddingOf(context).top -
-                            kToolbarHeight -
-                            58)
-                        .clamp(170.0, 295.0),
+              // 共享元素转场：来源卡片的封面（同 tag `cover-<id>`，
+              // 见 BookCard.heroEnabled / ShelfGridItem）飞入这里。
+              // 无封面的 3D 文字书也参与 Hero——来源侧无封面时不包
+              // Hero，匹配不上就退化为普通转场，无害。
+              child: Hero(
+                tag: 'cover-${widget.book.id}',
+                child: Book3DCover(
+                  cover: image,
+                  title: widget.book.title,
+                  loading: loading,
+                  animate:
+                      animate && !MediaQuery.of(context).disableAnimations,
+                  height:
+                      (height -
+                              MediaQuery.paddingOf(context).top -
+                              kToolbarHeight -
+                              58)
+                          .clamp(170.0, 295.0),
+                ),
               ),
             ),
           ),

@@ -165,10 +165,12 @@ final searchProvider =
 
 // ── Book Details ────────────────────────────────────────────────────
 
-final bookDetailsProvider = FutureProvider.family<Book, BookIdentifier>((
-  ref,
-  identifier,
-) async {
+/// autoDispose：详情页关掉后无人 watch 即释放缓存。此前常驻内存，
+/// 长会话逐本累积（每本详情是全量 [Book]）；相似书链路中每一页
+/// 详情始终 watch 自己的 identifier，不会产生重复请求。
+final bookDetailsProvider =
+    FutureProvider.autoDispose.family<Book, BookIdentifier>(
+  (ref, identifier) async {
   final api = ref.watch(zlibraryApiProvider);
   final response = await api.getBookInfo(
     identifier.bookId,
@@ -183,7 +185,8 @@ final bookDetailsProvider = FutureProvider.family<Book, BookIdentifier>((
     throw StateError('Book details response did not contain a book');
   }
   return book;
-});
+  },
+);
 
 // ── External Search (Anna's Archive + LibGen) ────────────────────────
 //

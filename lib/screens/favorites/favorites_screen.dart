@@ -17,6 +17,8 @@ import 'widgets/shelf_book_item.dart';
 import 'widgets/shelf_chip.dart';
 import '../../widgets/loading_widget.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 enum _ShelfSort { defaultOrder, title, author }
 
 class _CategoryCommand {
@@ -82,7 +84,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
     return Scaffold(
       body: shelf is AsyncLoading && allItems.isEmpty
-          ? LoadingWidget.page(message: l.get('loading_favorites'))
+          ? LoadingWidget.page(message: l.get(S.loadingFavorites))
           : RefreshIndicator(
               onRefresh: () async {
                 await ref
@@ -171,11 +173,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       return SliverAppBar(
         pinned: true,
         leading: IconButton(
-          tooltip: l.get('cancel'),
+          tooltip: l.get(S.cancel),
           icon: const Icon(Icons.close),
           onPressed: _exitSelectMode,
         ),
-        title: Text('${_selectedBookIds.length} ${l.get('shelf_selected')}'),
+        title: Text('${_selectedBookIds.length} ${l.get(S.shelfSelected)}'),
         actions: [
           TextButton(
             onPressed: () => setState(() {
@@ -186,7 +188,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 _selectedBookIds.addAll(visibleIds);
               }
             }),
-            child: Text(l.get('select_all')),
+            child: Text(l.get(S.selectAll)),
           ),
         ],
       );
@@ -194,17 +196,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return SliverAppBar(
       pinned: true,
       floating: true,
-      title: Text(l.get('shelf_title')),
+      title: Text(l.get(S.shelfTitle)),
       actions: [
         IconButton(
-          tooltip: l.get('shelf_manage_categories'),
+          tooltip: l.get(S.shelfManageCategories),
           icon: const Icon(Icons.label_outline_rounded),
           onPressed: _manageCategories,
         ),
         IconButton(
           tooltip: _isListView
-              ? l.get('shelf_view')
-              : l.get('list_view'),
+              ? l.get(S.shelfView)
+              : l.get(S.listView),
           onPressed: () => setState(() => _isListView = !_isListView),
           icon: Icon(
             _isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,
@@ -239,12 +241,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           setState(() {});
         },
         decoration: InputDecoration(
-          hintText: l.get('shelf_search_hint'),
+          hintText: l.get(S.shelfSearchHint),
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _searchController.text.isEmpty
               ? null
               : IconButton(
-                  tooltip: l.get('clear'),
+                  tooltip: l.get(S.clear),
                   icon: const Icon(Icons.close_rounded),
                   onPressed: () {
                     _searchController.clear();
@@ -272,9 +274,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.zero,
         children: [
-          _categoryChip(l.get('shelf_all_categories'), null, scoped.length),
+          _categoryChip(l.get(S.shelfAllCategories), null, scoped.length),
           _categoryChip(
-            l.get('shelf_uncategorized'),
+            l.get(S.shelfUncategorized),
             _uncategorized,
             scoped.where((item) => state.categoryFor(item) == null).length,
           ),
@@ -285,7 +287,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               state.countFor(category.id, scoped),
             ),
           IconButton(
-            tooltip: l.get('shelf_new_category'),
+            tooltip: l.get(S.shelfNewCategory),
             visualDensity: VisualDensity.compact,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
             onPressed: _createCategory,
@@ -317,7 +319,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       children: [
         Expanded(
           child: Text(
-            '${l.get('shelf_count').replaceAll('{count}', '$count')} · ${l.get('shelf_long_press_hint')}',
+            '${l.get(S.shelfCount).replaceAll('{count}', '$count')} · ${l.get(S.shelfLongPressHint)}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -326,20 +328,20 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           ),
         ),
         PopupMenuButton<_ShelfSort>(
-          tooltip: l.get('shelf_sort'),
+          tooltip: l.get(S.shelfSort),
           onSelected: (value) => setState(() => _sort = value),
           itemBuilder: (_) => [
             PopupMenuItem(
               value: _ShelfSort.defaultOrder,
-              child: Text(l.get('shelf_sort_default')),
+              child: Text(l.get(S.shelfSortDefault)),
             ),
             PopupMenuItem(
               value: _ShelfSort.title,
-              child: Text(l.get('shelf_sort_title')),
+              child: Text(l.get(S.shelfSortTitle)),
             ),
             PopupMenuItem(
               value: _ShelfSort.author,
-              child: Text(l.get('shelf_sort_author')),
+              child: Text(l.get(S.shelfSortAuthor)),
             ),
           ],
           child: Padding(
@@ -353,7 +355,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 ),
                 const SizedBox(width: 3),
                 Text(
-                  l.get('shelf_sort'),
+                  l.get(S.shelfSort),
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: Theme.of(context).colorScheme.primary,
                   ),
@@ -371,12 +373,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     child: Card(
       child: ListTile(
         leading: const Icon(Icons.wifi_off_rounded),
-        title: Text(l.get('shelf_source_load_failed')),
+        title: Text(l.get(S.shelfSourceLoadFailed)),
         trailing: TextButton(
           onPressed: () {
             ref.read(savedBooksProvider.notifier).loadSavedBooks();
           },
-          child: Text(l.get('retry')),
+          child: Text(l.get(S.retry)),
         ),
       ),
     ),
@@ -499,15 +501,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final searched = _searchController.text.trim().isNotEmpty;
     final filtered = searched || _selectedCategoryId != null;
     final title = hasSourceError
-        ? l.get('shelf_source_load_failed')
+        ? l.get(S.shelfSourceLoadFailed)
         : filtered
-        ? l.get('shelf_no_matches')
-        : l.get('shelf_empty');
+        ? l.get(S.shelfNoMatches)
+        : l.get(S.shelfEmpty);
     final message = hasSourceError
-        ? l.get('shelf_retry_hint')
+        ? l.get(S.shelfRetryHint)
         : filtered
-        ? l.get('shelf_try_other_filter')
-        : l.get('shelf_empty_message');
+        ? l.get(S.shelfTryOtherFilter)
+        : l.get(S.shelfEmptyMessage);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -543,10 +545,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     ),
               child: Text(
                 hasSourceError
-                    ? l.get('retry')
+                    ? l.get(S.retry)
                     : filtered
-                    ? l.get('shelf_clear_filters')
-                    : l.get('shelf_find_books'),
+                    ? l.get(S.shelfClearFilters)
+                    : l.get(S.shelfFindBooks),
               ),
             ),
           ],
@@ -575,7 +577,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               children: [
                 _selectionAction(
                   icon: Icons.label_outline_rounded,
-                  label: l.get('shelf_add_to_category'),
+                  label: l.get(S.shelfAddToCategory),
                   onPressed: () => _showCategoryPicker(
                     visible
                         .where(
@@ -590,7 +592,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 ),
                 _selectionAction(
                   icon: Icons.delete_outline_rounded,
-                  label: l.get('batch_remove'),
+                  label: l.get(S.batchRemove),
                   onPressed: () => _confirmBatchRemove(l),
                 ),
               ],
@@ -652,7 +654,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         if (!await MediaStoreFiles.exists(local!.filePath!)) {
           ref.read(downloadProvider.notifier).markMissingFile(local.id);
           if (mounted) {
-            _message(AppLocalizations.of(context).get('download_file_missing'));
+            _message(AppLocalizations.of(context).get(S.downloadFileMissing));
           }
           return;
         }
@@ -661,7 +663,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         if (MediaStoreFiles.isContentUri(local.filePath!)) {
           final opened = await MediaStoreFiles.open(local.filePath!);
           if (!opened && mounted) {
-            _message(AppLocalizations.of(context).get('open_file_failed'));
+            _message(AppLocalizations.of(context).get(S.openFileFailed));
           }
           return;
         }
@@ -703,19 +705,19 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 leading: const Icon(Icons.menu_book_rounded),
                 title: Text(
                   local != null
-                      ? l.get('open_file')
-                      : l.get('shelf_view_details'),
+                      ? l.get(S.openFile)
+                      : l.get(S.shelfViewDetails),
                 ),
                 onTap: () => Navigator.pop(sheetContext, 'quick'),
               ),
               ListTile(
                 leading: const Icon(Icons.label_outline_rounded),
-                title: Text(l.get('shelf_add_to_category')),
+                title: Text(l.get(S.shelfAddToCategory)),
                 onTap: () => Navigator.pop(sheetContext, 'category'),
               ),
               ListTile(
                 leading: const Icon(Icons.info_outline_rounded),
-                title: Text(l.get('shelf_view_details')),
+                title: Text(l.get(S.shelfViewDetails)),
                 onTap: () => Navigator.pop(sheetContext, 'detail'),
               ),
             ],
@@ -740,14 +742,14 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l.get('confirm_remove_title')),
+        title: Text(l.get(S.confirmRemoveTitle)),
         content: Text(
-          l.get('confirm_remove_msg').replaceAll('%d', '${ids.length}'),
+          l.get(S.confirmRemoveMsg).replaceAll('%d', '${ids.length}'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l.get('cancel')),
+            child: Text(l.get(S.cancel)),
           ),
           FilledButton(
             onPressed: () {
@@ -755,7 +757,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               _batchRemove(ids);
             },
             style: FilledButton.styleFrom(backgroundColor: Colors.red[400]),
-            child: Text(l.get('remove')),
+            child: Text(l.get(S.remove)),
           ),
         ],
       ),
@@ -798,26 +800,26 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       builder: (dialogContext) => AlertDialog(
         title: Text(
           initial == null
-              ? l.get('shelf_new_category')
-              : l.get('shelf_rename_category'),
+              ? l.get(S.shelfNewCategory)
+              : l.get(S.shelfRenameCategory),
         ),
         content: TextFormField(
           initialValue: initial,
           autofocus: true,
           maxLength: 24,
           textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: l.get('shelf_category_name')),
+          decoration: InputDecoration(hintText: l.get(S.shelfCategoryName)),
           onChanged: (value) => name = value,
           onFieldSubmitted: (value) => Navigator.pop(dialogContext, value),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l.get('cancel')),
+            child: Text(l.get(S.cancel)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, name),
-            child: Text(l.get('save')),
+            child: Text(l.get(S.save)),
           ),
         ],
       ),
@@ -836,7 +838,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       return created.id;
     } catch (error) {
       if (mounted) {
-        _message(AppLocalizations.of(context).get('shelf_category_invalid'));
+        _message(AppLocalizations.of(context).get(S.shelfCategoryInvalid));
       }
       return null;
     }
@@ -859,10 +861,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           child: ListView(
             shrinkWrap: true,
             children: [
-              ListTile(title: Text(l.get('shelf_add_to_category'))),
+              ListTile(title: Text(l.get(S.shelfAddToCategory))),
               ListTile(
                 leading: const Icon(Icons.remove_circle_outline_rounded),
-                title: Text(l.get('shelf_uncategorized')),
+                title: Text(l.get(S.shelfUncategorized)),
                 trailing: current == null ? const Icon(Icons.check) : null,
                 onTap: () => Navigator.pop(sheetContext, _uncategorized),
               ),
@@ -877,7 +879,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 ),
               ListTile(
                 leading: const Icon(Icons.add_rounded),
-                title: Text(l.get('shelf_new_category')),
+                title: Text(l.get(S.shelfNewCategory)),
                 onTap: () => Navigator.pop(sheetContext, '__new__'),
               ),
             ],
@@ -893,9 +895,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       await ref
           .read(shelfCategoriesProvider.notifier)
           .assign(items, id == _uncategorized ? null : id);
-      if (mounted) _message(l.get('shelf_category_saved'));
+      if (mounted) _message(l.get(S.shelfCategorySaved));
     } catch (error) {
-      if (mounted) _message(l.get('shelf_category_save_failed'));
+      if (mounted) _message(l.get(S.shelfCategorySaveFailed));
     }
   }
 
@@ -912,13 +914,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           child: ListView(
             shrinkWrap: true,
             children: [
-              ListTile(title: Text(l.get('shelf_manage_categories'))),
+              ListTile(title: Text(l.get(S.shelfManageCategories))),
               for (final category in categories)
                 ListTile(
                   leading: const Icon(Icons.label_outline_rounded),
                   title: Text(category.name),
                   trailing: PopupMenuButton<String>(
-                    tooltip: l.get('more'),
+                    tooltip: l.get(S.more),
                     onSelected: (value) {
                       Navigator.pop(
                         sheetContext,
@@ -928,18 +930,18 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     itemBuilder: (_) => [
                       PopupMenuItem(
                         value: 'rename',
-                        child: Text(l.get('shelf_rename_category')),
+                        child: Text(l.get(S.shelfRenameCategory)),
                       ),
                       PopupMenuItem(
                         value: 'delete',
-                        child: Text(l.get('delete')),
+                        child: Text(l.get(S.delete)),
                       ),
                     ],
                   ),
                 ),
               ListTile(
                 leading: const Icon(Icons.add_rounded),
-                title: Text(l.get('shelf_new_category')),
+                title: Text(l.get(S.shelfNewCategory)),
                 onTap: () => Navigator.pop(
                   sheetContext,
                   const _CategoryCommand('create'),
@@ -970,7 +972,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           .rename(category.id, name);
     } catch (error) {
       if (mounted) {
-        _message(AppLocalizations.of(context).get('shelf_category_invalid'));
+        _message(AppLocalizations.of(context).get(S.shelfCategoryInvalid));
       }
     }
   }
@@ -982,16 +984,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       context: context,
       themes: InheritedTheme.capture(from: context, to: navigator.context),
       builder: (dialogContext) => AlertDialog(
-        title: Text(l.get('shelf_delete_category')),
-        content: Text(l.get('shelf_delete_category_hint')),
+        title: Text(l.get(S.shelfDeleteCategory)),
+        content: Text(l.get(S.shelfDeleteCategoryHint)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.get('cancel')),
+            child: Text(l.get(S.cancel)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.get('delete')),
+            child: Text(l.get(S.delete)),
           ),
         ],
       ),
@@ -1005,11 +1007,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         setState(() => _selectedCategoryId = null);
       }
     } catch (error) {
-      if (mounted) _message(l.get('shelf_category_save_failed'));
+      if (mounted) _message(l.get(S.shelfCategorySaveFailed));
     }
   }
 
-  void _message(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  void _message(String message) => showAppSnack(context, message);
 }

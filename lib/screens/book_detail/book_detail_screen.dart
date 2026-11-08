@@ -14,6 +14,7 @@ import 'widgets/download_quota_dialog.dart';
 import 'widgets/external_book_action_bar.dart';
 import '../../l10n/app_localizations.dart';
 
+import '../../l10n/s_keys.dart';
 class BookDetailScreen extends ConsumerWidget {
   const BookDetailScreen({super.key});
 
@@ -102,14 +103,14 @@ class BookDetailScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get('detail_unavailable_preview'),
+                        AppLocalizations.of(context).get(S.detailUnavailablePreview),
                       ),
                     ),
                     TextButton(
                       onPressed: () =>
                           ref.invalidate(bookDetailsProvider(identifier!)),
                       child: Text(
-                        AppLocalizations.of(context).get('search_retry'),
+                        AppLocalizations.of(context).get(S.searchRetry),
                       ),
                     ),
                   ],
@@ -168,12 +169,12 @@ class _ExternalBookDetail extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get('detail_unavailable'),
+                        AppLocalizations.of(context).get(S.detailUnavailable),
                       ),
                     ),
                     TextButton(
                       onPressed: () => ref.invalidate(detailsProvider),
-                      child: Text(AppLocalizations.of(context).get('search_retry')),
+                      child: Text(AppLocalizations.of(context).get(S.searchRetry)),
                     ),
                   ],
                 ),

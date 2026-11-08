@@ -6,6 +6,7 @@ import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
 import 'settings_card.dart';
 
+import '../../../l10n/s_keys.dart';
 class LanguageSection extends ConsumerWidget {
   const LanguageSection({super.key});
 
@@ -25,13 +26,13 @@ class LanguageSection extends ConsumerWidget {
       children: [
         SectionHeader(
           icon: Icons.translate_rounded,
-          title: AppLocalizations.of(context).get('language_setting'),
+          title: AppLocalizations.of(context).get(S.languageSetting),
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.language_rounded),
             title: Text(
-                AppLocalizations.of(context).get('language_setting')),
+                AppLocalizations.of(context).get(S.languageSetting)),
             subtitle: Text(
                 _getLanguageDisplayName(ref.watch(localeProvider))),
             trailing: const Icon(Icons.chevron_right),
@@ -83,7 +84,7 @@ class LanguageSection extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        AppLocalizations.of(context).get('language_setting'),
+                        AppLocalizations.of(context).get(S.languageSetting),
                         style: Theme
                             .of(context)
                             .textTheme

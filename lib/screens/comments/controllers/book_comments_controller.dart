@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../../../l10n/s_keys.dart';
 /// Per-book comments 的状态与业务逻辑，从 widget 里抽离出来，
 /// screen 只负责接 provider 和画 UI。
 ///
@@ -216,13 +217,13 @@ class BookCommentsController extends ChangeNotifier {
       }
       isPosting = false;
       _emit();
-      _notice('${_t('comment_failed')}: ${response.error ?? ''}'.trim());
+      _notice('${_t(S.commentFailed)}: ${response.error ?? ''}'.trim());
       return false;
     } catch (e) {
       if (_disposed) return false;
       isPosting = false;
       _emit();
-      _notice('${_t('comment_failed')}: $e');
+      _notice('${_t(S.commentFailed)}: $e');
       return false;
     }
   }
@@ -255,7 +256,7 @@ class BookCommentsController extends ChangeNotifier {
           );
         } else {
           comments[i] = comment; // 服务端没接受，回滚
-          _notice(_t('like_failed'));
+          _notice(_t(S.likeFailed));
         }
       }
     } catch (_) {
@@ -263,7 +264,7 @@ class BookCommentsController extends ChangeNotifier {
       likingIds.remove(comment.id);
       final i = comments.indexWhere((c) => c.id == comment.id);
       if (i >= 0) comments[i] = comment;
-      _notice(_t('like_failed'));
+      _notice(_t(S.likeFailed));
     }
     _emit();
   }

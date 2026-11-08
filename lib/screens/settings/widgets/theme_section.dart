@@ -5,6 +5,7 @@ import '../../../l10n/app_localizations.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
+import '../../../l10n/s_keys.dart';
 /// Appearance entry — same chevron-tile shape as the other settings.
 /// Tapping it opens the appearance popup (same AlertDialog style as the
 /// network-line picker); the row's subtitle summarises the current
@@ -21,12 +22,12 @@ class ThemeSection extends ConsumerWidget {
 
     final summary = <String>[
       switch (themeMode) {
-        AppThemeMode.system => t.get('system'),
-        AppThemeMode.dark => t.get('dark'),
-        AppThemeMode.light => t.get('light'),
+        AppThemeMode.system => t.get(S.system),
+        AppThemeMode.dark => t.get(S.dark),
+        AppThemeMode.light => t.get(S.light),
       },
-      if (blurEnabled) t.get('blur_effect'),
-      if (floatingNav) t.get('floating_nav'),
+      if (blurEnabled) t.get(S.blurEffect),
+      if (floatingNav) t.get(S.floatingNav),
     ].join(' · ');
 
     return Column(
@@ -34,12 +35,12 @@ class ThemeSection extends ConsumerWidget {
       children: [
         SectionHeader(
           icon: Icons.palette_rounded,
-          title: t.get('appearance'),
+          title: t.get(S.appearance),
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.palette_rounded),
-            title: Text(t.get('appearance')),
+            title: Text(t.get(S.appearance)),
             subtitle: Text(summary),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => showModalBottomSheet(
@@ -92,7 +93,7 @@ class AppearanceSheet extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.all(16),
           child: Text(
-            t.get('appearance'),
+            t.get(S.appearance),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -100,7 +101,7 @@ class AppearanceSheet extends ConsumerWidget {
         ),
         const Divider(height: 1),
         SwitchListTile(
-          title: Text(t.get('system')),
+          title: Text(t.get(S.system)),
           value: followingSystem,
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -111,7 +112,7 @@ class AppearanceSheet extends ConsumerWidget {
           },
         ),
         SwitchListTile(
-          title: Text(t.get('dark_mode')),
+          title: Text(t.get(S.darkMode)),
           value: themeMode == AppThemeMode.dark,
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -124,7 +125,7 @@ class AppearanceSheet extends ConsumerWidget {
                 },
         ),
         SwitchListTile(
-          title: Text(t.get('blur_effect')),
+          title: Text(t.get(S.blurEffect)),
           value: blurEnabled,
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -133,7 +134,7 @@ class AppearanceSheet extends ConsumerWidget {
           },
         ),
         SwitchListTile(
-          title: Text(t.get('floating_nav')),
+          title: Text(t.get(S.floatingNav)),
           value: floatingNav,
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -142,7 +143,7 @@ class AppearanceSheet extends ConsumerWidget {
           },
         ),
         SwitchListTile(
-          title: Text(t.get('hide_nav_on_scroll')),
+          title: Text(t.get(S.hideNavOnScroll)),
           value: hideNavOnScroll,
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),

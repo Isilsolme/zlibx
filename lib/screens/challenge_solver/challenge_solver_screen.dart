@@ -29,6 +29,7 @@ import 'package:zlibx/services/challenge_html_cache.dart';
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/webview_challenge_solver.dart';
 
+import '../../l10n/s_keys.dart';
 class ChallengeSolverScreen extends StatefulWidget {
   const ChallengeSolverScreen({super.key, required this.url});
 
@@ -106,7 +107,7 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.get('verifying_access')),
+        title: Text(l10n.get(S.verifyingAccess)),
       ),
       body: SafeArea(
         child: Column(
@@ -115,7 +116,7 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                l10n.get('verifying_access_hint'),
+                l10n.get(S.verifyingAccessHint),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),

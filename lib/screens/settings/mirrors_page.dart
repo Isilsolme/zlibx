@@ -18,6 +18,8 @@ import '../../services/mirror_speed_test.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
 
+import '../../utils/app_snack.dart';
+import '../../l10n/s_keys.dart';
 /// Settings > Network > Mirrors.
 ///
 /// Every mirror the app can talk to, per service, exactly as
@@ -121,17 +123,19 @@ class _MirrorsPageState extends State<MirrorsPage> {
       if (!mounted) return;
       await _loadAll();
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(l10n.get('mirror_speed_test_done')),
+      showAppSnackOn(
+        messenger,
+        l10n.get(S.mirrorSpeedTestDone),
         duration: const Duration(seconds: 2),
-      ));
+      );
     } catch (error) {
       debugPrint('[mirrors_page] ignored ${error.runtimeType}');
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(l10n.get('mirror_speed_test_failed')),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ));
+      showAppSnack(
+        context,
+        l10n.get(S.mirrorSpeedTestFailed),
+        error: true,
+      );
     } finally {
       if (mounted) setState(() => _probing = false);
     }
@@ -156,26 +160,29 @@ class _MirrorsPageState extends State<MirrorsPage> {
       if (!result.hasMirrorList) {
         // Nothing is known — saying "up to date" would claim the empty
         // list is SLUM's answer.
-        messenger.showSnackBar(SnackBar(
-          content: Text(l10n.get('mirror_list_unreachable')),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ));
+        showAppSnack(
+          context,
+          l10n.get(S.mirrorListUnreachable),
+          error: true,
+        );
         return;
       }
-      messenger.showSnackBar(SnackBar(
-        content: Text(result.changes.isEmpty
-            ? l10n.get('mirror_list_up_to_date')
+      showAppSnackOn(
+        messenger,
+        result.changes.isEmpty
+            ? l10n.get(S.mirrorListUpToDate)
             : l10n
-                .get('mirror_list_updated')
-                .replaceAll('{count}', '${result.changes.length}')),
+                .get(S.mirrorListUpdated)
+                .replaceAll('{count}', '${result.changes.length}'),
         duration: const Duration(seconds: 2),
-      ));
+      );
     } catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text(l10n.get('mirror_refresh_failed')),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ));
+      showAppSnack(
+        context,
+        l10n.get(S.mirrorRefreshFailed),
+        error: true,
+      );
     } finally {
       if (mounted) setState(() => _refreshing = false);
     }
@@ -187,7 +194,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
 
     return Scaffold(
       appBar: GradientAppBar(
-        title: l10n.get('mirrors'),
+        title: l10n.get(S.mirrors),
         actions: [
           if (_probing)
             const Padding(
@@ -197,7 +204,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
           else
             IconButton(
               icon: const Icon(Icons.speed),
-              tooltip: l10n.get('mirror_speed_test'),
+              tooltip: l10n.get(S.mirrorSpeedTest),
               onPressed: _probeSpeed,
             ),
         ],
@@ -213,7 +220,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                   children: [
                     const Icon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
-                    Text(l10n.get('mirrors_load_failed')),
+                    Text(l10n.get(S.mirrorsLoadFailed)),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: () {
@@ -223,7 +230,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                         });
                         _loadAll();
                       },
-                      child: Text(l10n.get('search_retry')),
+                      child: Text(l10n.get(S.searchRetry)),
                     ),
                   ],
                 ),
@@ -242,7 +249,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     child: Text(
-                      l10n.get('mirrors_footer_note'),
+                      l10n.get(S.mirrorsFooterNote),
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
@@ -263,10 +270,10 @@ class _MirrorsPageState extends State<MirrorsPage> {
           setState(() => _autoMode = value);
           await _loadAll();
         },
-        title: Text(l10n.get('mirror_auto_order')),
+        title: Text(l10n.get(S.mirrorAutoOrder)),
         subtitle: Text(_autoMode
-            ? l10n.get('mirror_auto_desc')
-            : l10n.get('mirror_manual_desc')),
+            ? l10n.get(S.mirrorAutoDesc)
+            : l10n.get(S.mirrorManualDesc)),
         secondary:
             Icon(_autoMode ? Icons.auto_awesome : Icons.touch_app),
       ),
@@ -303,8 +310,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
       return ListTile(
         dense: true,
         leading: const Icon(Icons.cloud_off),
-        title: Text(l10n.get('mirrors_no_mirrors')),
-        subtitle: Text(l10n.get('mirrors_no_mirrors_hint')),
+        title: Text(l10n.get(S.mirrorsNoMirrors)),
+        subtitle: Text(l10n.get(S.mirrorsNoMirrorsHint)),
         trailing: IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: _refresh,
@@ -343,9 +350,9 @@ class _MirrorsPageState extends State<MirrorsPage> {
             if (site.latencyMs != null) '${site.latencyMs}ms',
             if (measured != null)
               l10n
-                  .get('mirror_device_ms')
+                  .get(S.mirrorDeviceMs)
                   .replaceAll('{ms}', '$measured'),
-            if (down) l10n.get('mirrors_down_hint'),
+            if (down) l10n.get(S.mirrorsDownHint),
           ].join(' · '),
           style: const TextStyle(fontSize: 12),
         ),
@@ -356,7 +363,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
               IconButton(
                 icon: const Icon(Icons.keyboard_arrow_up),
                 iconSize: 20,
-                tooltip: l10n.get('mirror_move_up'),
+                tooltip: l10n.get(S.mirrorMoveUp),
                 onPressed: index == 0
                     ? null
                     : () async {
@@ -368,7 +375,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
               IconButton(
                 icon: const Icon(Icons.keyboard_arrow_down),
                 iconSize: 20,
-                tooltip: l10n.get('mirror_move_down'),
+                tooltip: l10n.get(S.mirrorMoveDown),
                 onPressed: index == total - 1
                     ? null
                     : () async {

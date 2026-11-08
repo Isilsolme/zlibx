@@ -11,6 +11,7 @@ import '../../widgets/booklist_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_widget.dart';
 
+import '../../l10n/s_keys.dart';
 // Existing callers (main.dart routes, the profile page) import the args
 // class from this screen's library.
 export '../../providers/booklist_detail_provider.dart' show BooklistDetailArgs;
@@ -90,7 +91,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.only(top: 48),
-            child: LoadingWidget(message: l10n.get('loading')),
+            child: LoadingWidget(message: l10n.get(S.loading)),
           ),
         ),
       ];
@@ -101,11 +102,11 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
           hasScrollBody: false,
           child: EmptyState(
             icon: Icons.error_outline,
-            title: l10n.get('error'),
+            title: l10n.get(S.error),
             message: state.error,
             action: FilledButton(
               onPressed: controller.loadFirst,
-              child: Text(l10n.get('retry')),
+              child: Text(l10n.get(S.retry)),
             ),
           ),
         ),
@@ -117,7 +118,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
           hasScrollBody: false,
           child: EmptyState(
             icon: Icons.collections_bookmark_outlined,
-            title: l10n.get('no_booklist_books'),
+            title: l10n.get(S.noBooklistBooks),
           ),
         ),
       ];

@@ -6,6 +6,7 @@ import '../../../models/display_book.dart';
 import '../../../services/annas_archieve.dart';
 import 'book_detail_content.dart';
 
+import '../../../l10n/s_keys.dart';
 /// External detail body (Anna's Archive / LibGen): heading + format tag +
 /// description + publication info. Built from [BookInfoData] (the detail
 /// page's own fetch); the search-result [DisplayBook] supplies
@@ -34,8 +35,8 @@ class AnnaBookInfoSection extends StatelessWidget {
     ];
     final fields = <String, String>{
       if (info.publisher?.isNotEmpty ?? false)
-        l10n.get('publisher'): info.publisher!,
-      l10n.get('source'): l10n.get(
+        l10n.get(S.publisher): info.publisher!,
+      l10n.get(S.source): l10n.get(
         displayBook.isLibGen ? 'source_libgen' : 'source_annas_archive',
       ),
     };
