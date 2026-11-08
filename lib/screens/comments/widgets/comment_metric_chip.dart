@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+
+/// 评论下方的药丸形操作按钮：图标 + 计数。
+/// 激活态（已点赞）带主色底与放大动效；忙碌中忽略点击并降透明度。
+class CommentMetricChip extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+  final bool active;
+  final bool busy;
+
+  const CommentMetricChip({
+    super.key,
+    required this.icon,
+    required this.count,
+    required this.onTap,
+    this.active = false,
+    this.busy = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final color = active ? cs.primary : cs.onSurfaceVariant;
+    return IgnorePointer(
+      ignoring: busy,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 150),
+        opacity: busy ? 0.5 : 1,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(10),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: active
+                    ? cs.primary.withValues(alpha: 0.10)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedScale(
+                    scale: active ? 1.15 : 1,
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(icon, size: 16, color: color),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    count.toString(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: color,
+                          fontWeight:
+                              active ? FontWeight.w600 : FontWeight.w400,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
@@ -8,7 +7,9 @@ import '../../routes/app_routes.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
-import 'widgets/comment_row.dart';
+import 'controllers/book_comments_controller.dart';
+import 'widgets/comment_card.dart';
+import 'widgets/comment_composer.dart';
 
 /// Arguments for BookCommentsScreen
 class BookCommentsArgs {
@@ -23,14 +24,8 @@ class BookCommentsArgs {
 
 /// Book comments — view, post, reply and like.
 ///
-/// Loads the site's own `papi/` comments endpoint (50 per page,
-/// 0-based) until a short page arrives, then shows the newest thread
-/// first: the endpoint has no sort parameter, so every page is pulled
-/// on open, grouped into threads, and reversed; scrolling reveals more
-/// from the loaded list locally. Replies (`parent_id` set) are
-/// indented. Posting and liking use the same `papi/` API the site's
-/// own frontend uses (captured 2026-11-06). Requires a logged-in
-/// session: logged-out users get a login prompt instead of a request.
+/// 逻辑在 [BookCommentsController]；这里只负责接 provider 与构建 UI。
+/// 需要登录会话，未登录显示登录入口。详见 controller 文档。
 class BookCommentsScreen extends ConsumerStatefulWidget {
   const BookCommentsScreen({super.key});
 
@@ -40,47 +35,37 @@ class BookCommentsScreen extends ConsumerStatefulWidget {
 }
 
 class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
-  static const int _pageSize = 50;
-
-  /// Fetch size: the site itself loads a book's comments with
-  /// `limit=500` in one request, so do the same instead of paging
-  /// 50 at a time — one round trip covers nearly every book.
-  static const int _fetchLimit = 500;
-
-  /// Safety cap on comments collected in one open: beyond 1000 the
-  /// oldest comments simply stay unfetched.
-  static const int _maxFetchComments = 1000;
-
-  /// At most 4 fetch pages (4 x 500): the loop also stops early on a
-  /// short page, on a page that adds nothing new, and at the
-  /// [_maxFetchComments] cap, so this is only a backstop.
-  static const int _maxFetchPages = 4;
-
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _composerController = TextEditingController();
   final FocusNode _composerFocus = FocusNode();
-  final List<BookComment> _comments = [];
-  final Set<int> _likingIds = {};
-  final Map<int, int> _replyCounts = {};
-  int _visibleCount = _pageSize;
-  bool _hasMore = true;
-  bool _isLoading = true;
-  bool _hasError = false;
-  String _errorMessage = '';
-  bool _disabled = false;
-  bool _loggedIn = true;
-  BookComment? _replyTo;
-  bool _isPosting = false;
+
+  BookCommentsController? _controller;
+
+  BookCommentsController get _c => _controller!;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_controller != null) return;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    _controller = BookCommentsController(
+      bookId: args.bookId,
+      api: ref.read(zlibraryApiProvider),
+      tr: (key) => AppLocalizations.of(context).get(key),
+      onNotice: _showSnack,
+    );
     _scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadFirst());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _c.loadFirst(
+        signedIn: ref.read(authProvider).user != null,
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _controller?.dispose();
     _scrollController.dispose();
     _composerController.dispose();
     _composerFocus.dispose();
@@ -88,461 +73,208 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   }
 
   void _onScroll() {
-    if (!_hasMore || _isLoading || _hasError) return;
-    if (_scrollController.position.extentAfter < 300) {
-      // Local pagination: the whole list is already loaded, so
-      // scrolling just reveals more of it.
-      setState(() {
-        _visibleCount += _pageSize;
-        if (_visibleCount >= _comments.length) {
-          _visibleCount = _comments.length;
-          _hasMore = false;
-        }
-      });
-    }
+    if (_scrollController.position.extentAfter < 300) _c.showMore();
   }
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _submitComment() async {
+  Future<void> _submit() async {
     final text = _composerController.text.trim();
-    if (text.isEmpty || _isPosting) return;
-    // The site rejects very short comments server-side; catch the
-    // obvious cases up front instead of a round trip. (4-char posts go
-    // through; the exact server minimum is unknown, so only 1–2 chars
-    // are blocked here — anything longer still gets the server's say.)
+    if (text.isEmpty || _c.isPosting) return;
+    // 服务端会拒绝过短评论；明显的 1–2 字符直接在前端拦掉。
     if (text.length < 3) {
       _showSnack(AppLocalizations.of(context).get('comment_too_short'));
       return;
     }
-    final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
-    final api = ref.read(zlibraryApiProvider);
-    final replyTo = _replyTo;
-    setState(() => _isPosting = true);
-    try {
-      final response = await api.postBookComment(
-        args.bookId.toString(),
-        text: text,
-        parentId: replyTo?.id.toString(),
-      );
-      if (!mounted) return;
-      if (response.success && response.data != null) {
-        final posted = response.data!;
-        setState(() {
-          if (replyTo == null) {
-            // New top-level comments sort to the top of the site's list.
-            _comments.insert(0, posted);
-          } else {
-            final parentIndex =
-                _comments.indexWhere((c) => c.id == replyTo.id);
-            if (parentIndex >= 0) {
-              _comments.insert(parentIndex + 1, posted);
-              _replyCounts[replyTo.id] =
-                  (_replyCounts[replyTo.id] ?? 0) + 1;
-            } else {
-              _comments.insert(0, posted);
-            }
-          }
-          if (_comments.length > _visibleCount) _hasMore = true;
-          _composerController.clear();
-          _replyTo = null;
-          _isPosting = false;
-        });
-        _composerFocus.unfocus();
-      } else {
-        setState(() => _isPosting = false);
-        _showSnack(
-          '${AppLocalizations.of(context).get('comment_failed')}: '
-          '${response.error ?? ''}'.trim(),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isPosting = false);
-      _showSnack(
-        '${AppLocalizations.of(context).get('comment_failed')}: $e',
-      );
-    }
-  }
-
-  Future<void> _toggleLike(BookComment comment) async {
-    if (_likingIds.contains(comment.id)) return;
-    final target = !comment.isLiked;
-    final index = _comments.indexWhere((c) => c.id == comment.id);
-    if (index < 0) return;
-    // Optimistic toggle; the server's numbers win when it answers.
-    setState(() {
-      _likingIds.add(comment.id);
-      _comments[index] = comment.copyWith(
-        isLiked: target,
-        likeCount: (comment.likeCount + (target ? 1 : -1)).clamp(0, 1 << 30),
-      );
-    });
-    final api = ref.read(zlibraryApiProvider);
-    try {
-      final response = await api.likeBookComment(comment.id, like: target);
-      if (!mounted) return;
-      setState(() {
-        _likingIds.remove(comment.id);
-        final i = _comments.indexWhere((c) => c.id == comment.id);
-        if (i < 0) return;
-        if (response.success && response.data != null) {
-          final result = response.data!;
-          _comments[i] = _comments[i].copyWith(
-            isLiked: result.liked,
-            likeCount: result.count,
-          );
-        } else {
-          // Revert; the server did not take it.
-          _comments[i] = comment;
-          _showSnack(AppLocalizations.of(context).get('like_failed'));
-        }
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _likingIds.remove(comment.id);
-        final i = _comments.indexWhere((c) => c.id == comment.id);
-        if (i >= 0) _comments[i] = comment;
-      });
-      _showSnack(AppLocalizations.of(context).get('like_failed'));
-    }
-  }
-
-  Future<void> _loadFirst() async {
-    if (ref.read(authProvider).user == null) {
-      setState(() {
-        _loggedIn = false;
-        _isLoading = false;
-      });
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _hasError = false;
-      _comments.clear();
-      _replyCounts.clear();
-      _visibleCount = _pageSize;
-      _hasMore = true;
-      _disabled = false;
-    });
-    await _loadAll();
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  /// Fetch the whole list (oldest first) and show the newest thread
-  /// first. The endpoint has no sort parameter and no total, so the
-  /// list is pulled on open and paged locally afterwards; a later
-  /// page failing just stops the fetch and shows what arrived so far.
-  /// The fetch uses the site's own page size (`limit=500`) instead
-  /// of 50 at a time, and a page that repeats already-seen comments
-  /// ends the scan — that keeps both the wait and the list free of
-  /// repeats.
-  Future<void> _loadAll() async {
-    final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
-    final api = ref.read(zlibraryApiProvider);
-    final collected = <BookComment>[];
-    final seenIds = <int>{};
-    var disabled = false;
-    var error = '';
-    for (var page = 0;
-        page < _maxFetchPages &&
-            collected.length < _maxFetchComments;
-        page++) {
-      try {
-        final response = await api.getBookComments(
-          args.bookId.toString(),
-          page: page,
-          limit: _fetchLimit,
-        );
-        if (!mounted) return;
-        if (!response.success || response.data == null) {
-          if (page == 0) {
-            error = response.error ?? 'Failed to load comments';
-          }
-          break;
-        }
-        final data = response.data!;
-        if (data.disabled) {
-          disabled = true;
-          break;
-        }
-        // Drop repeats: if the server ever answers a later page with
-        // comments already seen, keep only the first copy — and stop,
-        // because a page that adds nothing new means the pages
-        // overlap and scanning on would only repeat them.
-        var newCount = 0;
-        for (final comment in data.comments) {
-          if (seenIds.add(comment.id)) {
-            collected.add(comment);
-            newCount++;
-          }
-        }
-        if (newCount == 0) break;
-        if (data.comments.length < _fetchLimit) break;
-      } catch (e) {
-        if (page == 0) error = e.toString();
-        break;
-      }
-    }
+    final posted = await _c.submit(text);
     if (!mounted) return;
-    setState(() {
-      if (disabled) {
-        _disabled = true;
-        _hasMore = false;
-      } else if (error.isNotEmpty && collected.isEmpty) {
-        _hasError = true;
-        _errorMessage = error;
-      } else {
-        _comments
-          ..clear()
-          ..addAll(orderCommentsNewestFirst(collected));
-        _replyCounts.clear();
-        for (final comment in _comments) {
-          final parentId = comment.parentId;
-          if (parentId != null) {
-            _replyCounts[parentId] = (_replyCounts[parentId] ?? 0) + 1;
-          }
-        }
-        _visibleCount = _pageSize;
-        _hasMore = _comments.length > _visibleCount;
-      }
-    });
+    if (posted) {
+      _composerController.clear();
+      _composerFocus.unfocus();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    final args =
+        ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
     final l10n = AppLocalizations.of(context);
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: GradientAppBar(title: l10n.get('comments')),
-      body: Column(
+      body: ListenableBuilder(
+        listenable: _c,
+        builder: (context, _) {
+          final c = _c;
+          return Column(
+            children: [
+              _BookContextHeader(title: args.bookTitle),
+              Expanded(child: _buildBody(c, l10n)),
+              if (c.loggedIn && !c.disabled && !c.isLoading)
+                CommentComposer(
+                  controller: _composerController,
+                  focusNode: _composerFocus,
+                  hintText: c.replyTo == null
+                      ? l10n.get('write_comment')
+                      : '${l10n.get('reply_to')} ${c.replyTo!.userName}',
+                  replyBannerText: c.replyTo == null
+                      ? null
+                      : '${l10n.get('reply_to')} ${c.replyTo!.userName}',
+                  cancelTooltip: l10n.get('cancel'),
+                  sendTooltip: l10n.get('send_comment'),
+                  isPosting: c.isPosting,
+                  onCancelReply: c.cancelReply,
+                  onSubmit: _submit,
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBody(BookCommentsController c, AppLocalizations l10n) {
+    if (c.isLoading) return LoadingWidget(message: l10n.get('loading'));
+    if (!c.loggedIn) {
+      return EmptyState(
+        icon: Icons.login_rounded,
+        title: l10n.get('login_to_view_comments'),
+        action: FilledButton(
+          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
+          child: Text(l10n.get('login')),
+        ),
+      );
+    }
+    if (c.hasError) {
+      return EmptyState(
+        icon: Icons.error_outline,
+        title: l10n.get('error'),
+        message: c.errorMessage,
+        action: FilledButton(
+          onPressed: () => _c.loadFirst(
+            signedIn: ref.read(authProvider).user != null,
+          ),
+          child: Text(l10n.get('retry')),
+        ),
+      );
+    }
+    if (c.disabled) {
+      return EmptyState(
+        icon: Icons.comments_disabled_outlined,
+        title: l10n.get('comments_disabled'),
+      );
+    }
+    if (c.comments.isEmpty) {
+      return EmptyState(
+        icon: Icons.comment_outlined,
+        title: l10n.get('no_comments'),
+      );
+    }
+    return _buildList(c);
+  }
+
+  Widget _buildList(BookCommentsController c) {
+    final shown =
+        c.visibleCount < c.comments.length ? c.visibleCount : c.comments.length;
+    return RefreshIndicator(
+      onRefresh: () =>
+          _c.loadFirst(signedIn: ref.read(authProvider).user != null),
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        itemCount: shown + (c.hasMore ? 1 : 0),
+        // 视觉上把线程分组：顶层评论之后留白，回复紧贴着父评论。
+        separatorBuilder: (context, index) {
+          final list = c.comments;
+          if (index >= list.length) return const SizedBox.shrink();
+          return SizedBox(height: list[index].parentId == null ? 14 : 2);
+        },
+        itemBuilder: (context, index) {
+          final list = c.comments;
+          if (index >= shown) {
+            // 本地分页的加载尾部
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+            );
+          }
+          final comment = list[index];
+          return CommentCard(
+            comment: comment,
+            replyCount: c.replyCounts[comment.id] ?? 0,
+            likePending: c.likingIds.contains(comment.id),
+            onLike: () => _c.toggleLike(comment),
+            onReply: () {
+              _c.beginReply(comment);
+              _composerFocus.requestFocus();
+            },
+            onAvatarTap: () => Navigator.of(context).pushNamed(
+              AppRoutes.userProfile,
+              arguments: UserProfileArgs(
+                userId: comment.userId,
+                userName: comment.userName,
+                userAvatar: comment.userAvatar,
+                userHash: comment.userHash,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// 顶部书目上下文条：图标 + 书名。
+class _BookContextHeader extends StatelessWidget {
+  final String title;
+
+  const _BookContextHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: Row(
         children: [
-          // Book context header
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.book_outlined, color: cs.primary, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    args.bookTitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            child: Icon(
+              Icons.book_outlined,
+              size: 18,
+              color: cs.onPrimaryContainer,
             ),
           ),
-
-          // Results
+          const SizedBox(width: 10),
           Expanded(
-            child: _isLoading
-                ? LoadingWidget(message: l10n.get('loading'))
-                : !_loggedIn
-                    ? EmptyState(
-                        icon: Icons.login_rounded,
-                        title: l10n.get('login_to_view_comments'),
-                        action: FilledButton(
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pushNamed(AppRoutes.login),
-                          child: Text(l10n.get('login')),
-                        ),
-                      )
-                    : _hasError
-                        ? EmptyState(
-                            icon: Icons.error_outline,
-                            title: l10n.get('error'),
-                            message: _errorMessage,
-                            action: FilledButton(
-                              onPressed: _loadFirst,
-                              child: Text(l10n.get('retry')),
-                            ),
-                          )
-                        : _disabled
-                            ? EmptyState(
-                                icon: Icons.comments_disabled_outlined,
-                                title: l10n.get('comments_disabled'),
-                              )
-                            : _comments.isEmpty
-                                ? EmptyState(
-                                    icon: Icons.comment_outlined,
-                                    title: l10n.get('no_comments'),
-                                  )
-                                : RefreshIndicator(
-                                    onRefresh: _loadFirst,
-                                    child: ListView.separated(
-                                      controller: _scrollController,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                      itemCount: _visibleCount <
-                                              _comments.length
-                                          ? _visibleCount
-                                          : _comments.length,
-                                      separatorBuilder: (context, index) =>
-                                          const Divider(
-                                            height: 1,
-                                            indent: 68,
-                                          ),
-                                      itemBuilder: (context, index) {
-                                        final comment = _comments[index];
-                                        return CommentRow(
-                                          comment: comment,
-                                          replyCount:
-                                              _replyCounts[comment.id] ?? 0,
-                                          likePending: _likingIds.contains(
-                                            comment.id,
-                                          ),
-                                          onLike: () => _toggleLike(comment),
-                                          onReply: () {
-                                            setState(
-                                              () => _replyTo = comment,
-                                            );
-                                            _composerFocus.requestFocus();
-                                          },
-                                          onAvatarTap: () =>
-                                              Navigator.of(context).pushNamed(
-                                            AppRoutes.userProfile,
-                                            arguments: UserProfileArgs(
-                                              userId: comment.userId,
-                                              userName: comment.userName,
-                                              userAvatar: comment.userAvatar,
-                                              userHash: comment.userHash,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-          ),
-
-          // Composer (hidden while logged out or when comments are closed)
-          if (_loggedIn && !_disabled && !_isLoading)
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 4,
-                    offset: const Offset(0, -2),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
-              padding: EdgeInsets.fromLTRB(
-                12,
-                8,
-                12,
-                8 + MediaQuery.of(context).padding.bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (_replyTo != null)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.reply_rounded,
-                          size: 16,
-                          color: cs.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            '${l10n.get('reply_to')} ${_replyTo!.userName}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: cs.primary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                          onPressed: () =>
-                              setState(() => _replyTo = null),
-                          tooltip: l10n.get('cancel'),
-                        ),
-                      ],
-                    ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _composerController,
-                          focusNode: _composerFocus,
-                          decoration: InputDecoration(
-                            hintText: _replyTo == null
-                                ? l10n.get('write_comment')
-                                : '${l10n.get('reply_to')} ${_replyTo!.userName}',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: BorderSide.none,
-                            ),
-                            filled: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                          ),
-                          minLines: 1,
-                          maxLines: 4,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _submitComment(),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ListenableBuilder(
-                        listenable: _composerController,
-                        builder: (context, _) {
-                          final canSend =
-                              _composerController.text.trim().isNotEmpty &&
-                              !_isPosting;
-                          return IconButton.filled(
-                            onPressed: canSend ? _submitComment : null,
-                            icon: _isPosting
-                                ? const LoadingWidget.inline(
-                                    color: Colors.white,
-                                  )
-                                : const Icon(
-                                    Icons.send_rounded,
-                                    size: 20,
-                                  ),
-                            tooltip: l10n.get('send_comment'),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
+          ),
         ],
       ),
     );

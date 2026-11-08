@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -6,6 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../screens/comments/book_comments_screen.dart';
+import '../../screens/comments/widgets/comment_avatar.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
@@ -39,8 +41,7 @@ class MyComment {
 /// collection the website shows on the profile Comments tab
 /// (`GET /papi/comments/user/{userId}/{page}?limit=500`, confirmed by a
 /// packet capture on 2026-11-06). Tapping a comment opens that book's
-/// comments page (view, post, reply, like — already implemented there);
-/// deleting a comment is not implemented (delete endpoint unknown).
+/// comments page; deleting is not implemented (delete endpoint unknown).
 class MyCommentsScreen extends ConsumerStatefulWidget {
   const MyCommentsScreen({super.key});
 
@@ -59,30 +60,6 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  /// The website's profile Comments tab, confirmed by a packet capture
-  /// on 2026-11-06: `GET /papi/comments/user/{userId}/{page}?limit=500`.
-  /// Returns an empty list when the request fails (the screen then shows
-  /// the empty state; pull-to-refresh retries).
-  Future<List<MyComment>> _fetchMyComments() async {
-    final api = ref.read(zlibraryApiProvider);
-    final response = await api.getMyComments();
-    if (!response.success || response.data == null) return const [];
-    return response.data!.entries
-        .map((e) => MyComment(
-              bookId: e.bookId,
-              bookTitle: e.bookTitle,
-              text: e.comment.text,
-              date: e.comment.dateRelative.isNotEmpty
-                  ? e.comment.dateRelative
-                  : e.comment.date,
-              likeCount: e.comment.likeCount,
-              userId: e.comment.userId,
-              userAvatar: e.comment.userAvatar,
-              userHash: e.comment.userHash,
-            ))
-        .toList();
-  }
-
   Future<void> _load() async {
     if (ref.read(authProvider).user == null) {
       setState(() {
@@ -92,7 +69,30 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       return;
     }
     setState(() => _isLoading = true);
-    final comments = await _fetchMyComments();
+    final api = ref.read(zlibraryApiProvider);
+    List<MyComment> comments = const [];
+    try {
+      final response = await api.getMyComments();
+      if (response.success && response.data != null) {
+        comments = response.data!.entries
+            .map((e) => MyComment(
+                  bookId: e.bookId,
+                  bookTitle: e.bookTitle,
+                  text: e.comment.text,
+                  date: e.comment.dateRelative.isNotEmpty
+                      ? e.comment.dateRelative
+                      : e.comment.date,
+                  likeCount: e.comment.likeCount,
+                  userId: e.comment.userId,
+                  userAvatar: e.comment.userAvatar,
+                  userHash: e.comment.userHash,
+                ))
+            .toList();
+      }
+    } catch (error) {
+      // 失败按空列表处理，下拉重试
+      debugPrint('[my_comments] ignored ${error.runtimeType}');
+    }
     if (!mounted) return;
     setState(() {
       _comments = comments;
@@ -104,73 +104,66 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    Widget body;
+    if (_isLoading) {
+      body = LoadingWidget(message: l10n.get('loading'));
+    } else if (!_loggedIn) {
+      body = EmptyState(
+        icon: Icons.login_rounded,
+        title: l10n.get('login_to_view_comments'),
+        action: FilledButton(
+          onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
+          child: Text(l10n.get('login')),
+        ),
+      );
+    } else if (_comments.isEmpty) {
+      body = EmptyState(
+        icon: Icons.comment_outlined,
+        title: l10n.get('no_comments'),
+      );
+    } else {
+      body = RefreshIndicator(
+        onRefresh: _load,
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: _comments.length,
+          itemBuilder: (context, index) {
+            final comment = _comments[index];
+            final userName = ref.read(authProvider).user?.name ?? '';
+            return _MyCommentCard(
+              comment: comment,
+              userName: userName,
+              onTap: () => Navigator.of(context).pushNamed(
+                AppRoutes.bookComments,
+                arguments: BookCommentsArgs(
+                  bookId: comment.bookId,
+                  bookTitle: comment.bookTitle,
+                ),
+              ),
+              onAvatarTap: () => Navigator.of(context).pushNamed(
+                AppRoutes.userProfile,
+                arguments: UserProfileArgs(
+                  userId: comment.userId,
+                  userName: userName,
+                  userAvatar: comment.userAvatar,
+                  userHash: comment.userHash,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: GradientAppBar(title: l10n.get('my_comments')),
-      body: _isLoading
-          ? LoadingWidget(message: l10n.get('loading'))
-          : !_loggedIn
-              ? EmptyState(
-                  icon: Icons.login_rounded,
-                  title: l10n.get('login_to_view_comments'),
-                  action: FilledButton(
-                    onPressed: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.login),
-                    child: Text(l10n.get('login')),
-                  ),
-                )
-              : _comments.isEmpty
-                  ? EmptyState(
-                      icon: Icons.comment_outlined,
-                      title: l10n.get('no_comments'),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: _comments.length,
-                        separatorBuilder: (context, index) => const Divider(
-                          height: 1,
-                          indent: 68,
-                        ),
-                        itemBuilder: (context, index) {
-                          final comment = _comments[index];
-                          return _MyCommentCard(
-                            comment: comment,
-                            userName:
-                                ref.read(authProvider).user?.name ?? '',
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.bookComments,
-                              arguments: BookCommentsArgs(
-                                bookId: comment.bookId,
-                                bookTitle: comment.bookTitle,
-                              ),
-                            ),
-                            onAvatarTap: () =>
-                                Navigator.of(context).pushNamed(
-                              AppRoutes.userProfile,
-                              arguments: UserProfileArgs(
-                                userId: comment.userId,
-                                userName: ref
-                                        .read(authProvider)
-                                        .user
-                                        ?.name ??
-                                    '',
-                                userAvatar: comment.userAvatar,
-                                userHash: comment.userHash,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+      body: body,
     );
   }
 }
 
-/// Same row styling as the per-book comments list
-/// ([book_comments_screen.dart]'s comment row): book header, avatar +
-/// name, text, and a bottom row with the date on the left and a
-/// read-only like count on the right.
+/// 卡片化的一条“我的评论”：书目头 + 头像/内容/时间/点赞数，
+/// 点击卡片进入该书的评论区。
 class _MyCommentCard extends StatelessWidget {
   final MyComment comment;
   final String userName;
@@ -187,96 +180,109 @@ class _MyCommentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.book_outlined, color: cs.primary, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    comment.bookTitle,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
+    final tt = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: onAvatarTap,
-                  customBorder: const CircleBorder(),
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: cs.primaryContainer,
-                    backgroundImage: comment.userAvatar.isNotEmpty
-                        ? NetworkImage(comment.userAvatar)
-                        : null,
-                    child: comment.userAvatar.isEmpty
-                        ? Icon(
-                            Icons.person_rounded,
-                            color: cs.onPrimaryContainer,
-                            size: 22,
-                          )
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userName,
-                        style: Theme.of(context).textTheme.bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: cs.primaryContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.book_outlined,
+                        size: 16,
+                        color: cs.onPrimaryContainer,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        comment.bookTitle,
+                        style: tt.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        comment.text,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: cs.outline,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CommentAvatar(
+                      avatarUrl: comment.userAvatar,
+                      onTap: onAvatarTap,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            comment.date,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: cs.onSurfaceVariant),
+                            userName,
+                            style: tt.bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const Spacer(),
-                          Icon(
-                            Icons.thumb_up_outlined,
-                            size: 16,
-                            color: cs.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            comment.likeCount.toString(),
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: cs.onSurfaceVariant),
+                            comment.text,
+                            style: tt.bodyMedium?.copyWith(height: 1.45),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                comment.date,
+                                style: tt.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.thumb_up_outlined,
+                                size: 16,
+                                color: cs.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                comment.likeCount.toString(),
+                                style: tt.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
