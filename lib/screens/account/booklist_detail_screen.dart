@@ -209,8 +209,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
         final laterPages = _books
             .where((book) => !_firstPageIds.contains(book.id))
             .toList();
-        _books
-          ..clear();
+        _books.clear();
         _bookIds.clear();
         _firstPageIds.clear();
         for (final book in books) {

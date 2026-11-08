@@ -85,7 +85,7 @@ class HistoryScreen extends ConsumerWidget {
 /// first; when it fails, resolves the detail endpoint's cover once
 /// and swaps to it. A row with no listed cover keeps the plain icon.
 class _HistoryCoverThumb extends ConsumerWidget {
-  const _HistoryCoverThumb({super.key, required this.book});
+  const _HistoryCoverThumb({required this.book});
 
   final Book book;
 
