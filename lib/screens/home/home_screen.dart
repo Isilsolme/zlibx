@@ -88,7 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         extendBody: true,
         body: NotificationListener<ScrollNotification>(
           onNotification: _onTabScroll,
-          child: PageView(
+          child: PageView.builder(
           controller: _pageController,
           onPageChanged: (index) {
             // Switching tabs resets the nav to visible: a home tab
@@ -98,21 +98,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             }
             setState(() => _selectedIndex = index);
           },
-          children: [
-            _KeepAlivePage(
-              // No extra bottom padding here: the home grid already
-              // reserves 96 below its last row for the floating nav.
-              child: _HomeTab(key: _homeTabKey),
-            ),
+          itemCount: 4,
+          itemBuilder: (context, index) {
+            // The builder only runs for the visible page and the
+            // adjacent pages PageView prebuilds, so tabs the user has
+            // not visited yet are not constructed at first frame.
+            // Once built, each page stays alive via _KeepAlivePage.
+            if (index == 0) {
+              return _KeepAlivePage(
+                // No extra bottom padding here: the home grid already
+                // reserves 96 below its last row for the floating nav.
+                child: _HomeTab(key: _homeTabKey),
+              );
+            }
             // No outer bottom padding on these tabs: like the home
             // grid, each tab reserves the floating nav's 96dp inside
             // its own scrollable content, so items scroll behind the
             // pill (and show through the blur) instead of stopping
             // at a fixed blank band above it.
-            const _KeepAlivePage(child: LocalDownloadsScreen()),
-            const _KeepAlivePage(child: AccountScreen()),
-            const _KeepAlivePage(child: SettingsScreen()),
-          ],
+            if (index == 1) {
+              return const _KeepAlivePage(child: LocalDownloadsScreen());
+            }
+            if (index == 2) {
+              return const _KeepAlivePage(child: AccountScreen());
+            }
+            return const _KeepAlivePage(child: SettingsScreen());
+          },
           ),
         ),
         bottomNavigationBar: _buildNavBar(
