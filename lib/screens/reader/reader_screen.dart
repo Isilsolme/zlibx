@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -43,6 +44,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   // 临时诊断是否已提示过，只提示一次。
   bool _sessionCheckShown = false;
+
+  // True while the route is popping: the WebView is hidden so the pop
+  // transition animates pure Flutter instead of re-compositing the
+  // hybrid-composition native view every frame.
+  bool _webViewHidden = false;
+  Animation<double>? _routeAnimation;
+  VoidCallback? _routeAnimationListener;
 
   /// 初始阅读页 host：站内导航只允许它及其子域，其余一律外部打开。
   String get _initialHost => Uri.tryParse(widget.url)?.host ?? '';
@@ -199,6 +207,43 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == _routeAnimation) return;
+    if (_routeAnimation != null && _routeAnimationListener != null) {
+      _routeAnimation!.removeListener(_routeAnimationListener!);
+    }
+    _routeAnimation = animation;
+    _routeAnimationListener = _onRouteAnimation;
+    animation?.addListener(_routeAnimationListener!);
+  }
+
+  void _onRouteAnimation() {
+    final animation = _routeAnimation;
+    if (animation == null || !mounted) return;
+    if (animation.status == AnimationStatus.reverse && !_webViewHidden) {
+      setState(() {
+        _webViewHidden = true;
+      });
+    } else if (animation.status == AnimationStatus.completed &&
+        _webViewHidden) {
+      setState(() {
+        _webViewHidden = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_routeAnimation != null && _routeAnimationListener != null) {
+      _routeAnimation!.removeListener(_routeAnimationListener!);
+    }
+    unawaited(_webViewController?.stopLoading());
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -242,125 +287,129 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
       body: Stack(
         children: [
-          InAppWebView(
-            initialSettings: InAppWebViewSettings(
-              javaScriptEnabled: true,
-              domStorageEnabled: true,
-              databaseEnabled: true,
-              allowFileAccess: false,
-              allowContentAccess: false,
-              mixedContentMode: MixedContentMode.MIXED_CONTENT_NEVER_ALLOW,
-              useWideViewPort: true,
-              loadWithOverviewMode: true,
-              supportZoom: true,
-              builtInZoomControls: true,
-              displayZoomControls: false,
-              mediaPlaybackRequiresUserGesture: false,
-              allowsInlineMediaPlayback: true,
-              useOnLoadResource: _probeEnabled,
-              userAgent:
-                  'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-            ),
-            onWebViewCreated: (controller) async {
-              _webViewController = controller;
-              // 先写会话 Cookie，再加载页面，避免首个请求不带鉴权。
-              await _installSessionCookies();
-              await controller.loadUrl(
-                urlRequest: URLRequest(url: WebUri(widget.url)),
-              );
-            },
-            shouldOverrideUrlLoading: (controller, navigationAction) async {
-              final uri = navigationAction.request.url;
-              if (uri == null || uri.host.isEmpty) {
-                return NavigationActionPolicy.CANCEL;
-              }
-              // 只处理 http(s)：intent:// 等其他 scheme 一律拒绝。
-              final scheme = uri.scheme.toLowerCase();
-              if (scheme != 'https' && scheme != 'http') {
-                return NavigationActionPolicy.CANCEL;
-              }
-              if (!_isAllowedHost(uri.host)) {
-                // 站外链接不在 WebView 里打开，避免带会话的页面被带走。
+          Visibility(
+            visible: !_webViewHidden,
+            maintainState: true,
+            child: InAppWebView(
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                databaseEnabled: true,
+                allowFileAccess: false,
+                allowContentAccess: false,
+                mixedContentMode: MixedContentMode.MIXED_CONTENT_NEVER_ALLOW,
+                useWideViewPort: true,
+                loadWithOverviewMode: true,
+                supportZoom: true,
+                builtInZoomControls: true,
+                displayZoomControls: false,
+                mediaPlaybackRequiresUserGesture: false,
+                allowsInlineMediaPlayback: true,
+                useOnLoadResource: _probeEnabled,
+                userAgent:
+                    'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+              ),
+              onWebViewCreated: (controller) async {
+                _webViewController = controller;
+                // 先写会话 Cookie，再加载页面，避免首个请求不带鉴权。
+                await _installSessionCookies();
+                await controller.loadUrl(
+                  urlRequest: URLRequest(url: WebUri(widget.url)),
+                );
+              },
+              shouldOverrideUrlLoading: (controller, navigationAction) async {
+                final uri = navigationAction.request.url;
+                if (uri == null || uri.host.isEmpty) {
+                  return NavigationActionPolicy.CANCEL;
+                }
+                // 只处理 http(s)：intent:// 等其他 scheme 一律拒绝。
+                final scheme = uri.scheme.toLowerCase();
+                if (scheme != 'https' && scheme != 'http') {
+                  return NavigationActionPolicy.CANCEL;
+                }
+                if (!_isAllowedHost(uri.host)) {
+                  // 站外链接不在 WebView 里打开，避免带会话的页面被带走。
+                  if (scheme == 'https') {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                  return NavigationActionPolicy.CANCEL;
+                }
+                // 站内也只放行 https，避免会话页面降级到明文。
+                return scheme == 'https'
+                    ? NavigationActionPolicy.ALLOW
+                    : NavigationActionPolicy.CANCEL;
+              },
+              onCreateWindow: (controller, action) async {
+                // window.open / target=_blank: same-site links stay in
+                // this WebView (e.g. the authorize wall's Log In button);
+                // only truly external hosts go to the system browser.
+                final uri = action.request.url;
+                if (uri == null) return false;
+                final scheme = uri.scheme.toLowerCase();
+                if (scheme != 'https' && scheme != 'http') return false;
+                if (_isAllowedHost(uri.host)) {
+                  await controller.loadUrl(
+                    urlRequest: URLRequest(url: uri),
+                  );
+                  return true;
+                }
                 if (scheme == 'https') {
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 }
-                return NavigationActionPolicy.CANCEL;
-              }
-              // 站内也只放行 https，避免会话页面降级到明文。
-              return scheme == 'https'
-                  ? NavigationActionPolicy.ALLOW
-                  : NavigationActionPolicy.CANCEL;
-            },
-            onCreateWindow: (controller, action) async {
-              // window.open / target=_blank: same-site links stay in
-              // this WebView (e.g. the authorize wall's Log In button);
-              // only truly external hosts go to the system browser.
-              final uri = action.request.url;
-              if (uri == null) return false;
-              final scheme = uri.scheme.toLowerCase();
-              if (scheme != 'https' && scheme != 'http') return false;
-              if (_isAllowedHost(uri.host)) {
-                await controller.loadUrl(
-                  urlRequest: URLRequest(url: uri),
-                );
-                return true;
-              }
-              if (scheme == 'https') {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-              return false;
-            },
-            onLoadStart: (controller, url) {
-              setState(() {
-                _isLoading = true;
-              });
-              if (_probeEnabled) {
-                _addProbe({
-                  'kind': 'load_start',
-                  'url': _probeUrl(url),
+                return false;
+              },
+              onLoadStart: (controller, url) {
+                setState(() {
+                  _isLoading = true;
                 });
-              }
-            },
-            onLoadStop: (controller, url) {
-              setState(() {
-                _isLoading = false;
-              });
-              if (_probeEnabled) {
-                _addProbe({
-                  'kind': 'load_stop',
-                  'url': _probeUrl(url),
+                if (_probeEnabled) {
+                  _addProbe({
+                    'kind': 'load_start',
+                    'url': _probeUrl(url),
+                  });
+                }
+              },
+              onLoadStop: (controller, url) {
+                setState(() {
+                  _isLoading = false;
                 });
-              }
-              if (!_sessionCheckShown &&
-                  widget.remixUserId != null &&
-                  widget.remixUserKey != null) {
-                _sessionCheckShown = true;
-                _checkSessionCookies();
-              }
-            },
-            onProgressChanged: (controller, progress) {
-              setState(() {
-                _progress = progress / 100;
-              });
-            },
-            onLoadResource: _probeEnabled ? (controller, resource) {
-              _addProbe({
-                'kind': 'resource',
-                'url': _probeUrl(resource.url),
-                'initiator': resource.initiatorType,
-                'duration_ms': resource.duration,
-              });
-            } : null,
-            onReceivedError: (controller, request, error) {
-              if (_probeEnabled) {
-                _addProbe({
-                  'kind': 'error',
-                  'url': _probeUrl(request.url),
-                  'type': error.type.toString(),
+                if (_probeEnabled) {
+                  _addProbe({
+                    'kind': 'load_stop',
+                    'url': _probeUrl(url),
+                  });
+                }
+                if (!_sessionCheckShown &&
+                    widget.remixUserId != null &&
+                    widget.remixUserKey != null) {
+                  _sessionCheckShown = true;
+                  _checkSessionCookies();
+                }
+              },
+              onProgressChanged: (controller, progress) {
+                setState(() {
+                  _progress = progress / 100;
                 });
-              }
-              debugPrint('WebView error: ${error.type}');
-            },
+              },
+              onLoadResource: _probeEnabled ? (controller, resource) {
+                _addProbe({
+                  'kind': 'resource',
+                  'url': _probeUrl(resource.url),
+                  'initiator': resource.initiatorType,
+                  'duration_ms': resource.duration,
+                });
+              } : null,
+              onReceivedError: (controller, request, error) {
+                if (_probeEnabled) {
+                  _addProbe({
+                    'kind': 'error',
+                    'url': _probeUrl(request.url),
+                    'type': error.type.toString(),
+                  });
+                }
+                debugPrint('WebView error: ${error.type}');
+              },
+            ),
           ),
 
           // Progress indicator

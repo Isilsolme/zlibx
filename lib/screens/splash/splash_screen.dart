@@ -7,8 +7,9 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../providers/speed_test_provider.dart';
-import '../../routes/app_routes.dart';
 import '../../widgets/domain_selector.dart';
+import '../auth/login_screen.dart';
+import '../home/home_screen.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -229,6 +230,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     }
   }
 
+  /// Splash exits with a fade, not a slide: the splash is full dark-green
+  /// while home/login are full white, so a slide reads as a flash.
+  void _goHome() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const HomeScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    );
+  }
+
+  void _goLogin() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const LoginScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            FadeTransition(opacity: animation, child: child),
+      ),
+    );
+  }
+
   Future<void> _waitForAuth() async {
     // Wait for auth state to finish loading (max 10 seconds)
     int attempts = 0;
@@ -238,9 +267,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         // Auth finished loading
         if (!mounted) return;
         if (authState.isAuthenticated) {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+          _goHome();
         } else {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+          _goLogin();
         }
         return;
       }
@@ -250,7 +279,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
     // Timeout - go to login
     if (mounted) {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+      _goLogin();
     }
   }
 
