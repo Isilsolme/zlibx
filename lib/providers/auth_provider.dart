@@ -5,6 +5,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
 import '../services/challenge_html_cache.dart';
 import '../services/hive_service.dart';
+import 'books_provider.dart';
 import 'domain_provider.dart';
 import 'zlibrary_provider.dart';
 
@@ -194,6 +195,14 @@ class AuthNotifier extends Notifier<AuthState> {
       await InAppWebViewController.clearAllCache();
     } catch (error) { debugPrint('[auth_provider] ignored ${error.runtimeType}'); }
     state = AuthState();
+    // Same account-scoped caches as an account switch: a later login
+    // as a different account must not see the old account's data.
+    ref.invalidate(bookDetailsProvider);
+    ref.invalidate(recommendedBooksProvider);
+    ref.invalidate(mostPopularBooksProvider);
+    ref.invalidate(recentBooksProvider);
+    ref.invalidate(downloadedBooksProvider);
+    ref.invalidate(savedBooksProvider);
   }
 
   /// Mark the current line unavailable without sending any credentials:
@@ -258,6 +267,16 @@ class AuthNotifier extends Notifier<AuthState> {
           email: state.user?.email ?? email,
           name: state.user?.name ?? account['name']?.toString(),
         );
+        // Bust caches for anything that depends on the account, like
+        // the line change does (see domain_provider): otherwise the
+        // library keeps showing the previous account's books until a
+        // manual refresh.
+        ref.invalidate(bookDetailsProvider);
+        ref.invalidate(recommendedBooksProvider);
+        ref.invalidate(mostPopularBooksProvider);
+        ref.invalidate(recentBooksProvider);
+        ref.invalidate(downloadedBooksProvider);
+        ref.invalidate(savedBooksProvider);
       }
       return success;
     }

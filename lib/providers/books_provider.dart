@@ -503,6 +503,43 @@ final downloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
   return response.data ?? [];
 });
 
+/// Resolved detail covers for cloud history rows, keyed by book id.
+///
+/// The downloaded endpoint's cover value never loads, so a row whose
+/// listed cover fails falls back to the detail endpoint's cover — the
+/// same cover the detail page shows once its fetch completes.
+class HistoryCoverNotifier extends Notifier<Map<String, String>> {
+  final Set<String> _attempted = <String>{};
+
+  @override
+  Map<String, String> build() => const <String, String>{};
+
+  Future<void> resolveCover(Book book) async {
+    final id = book.id.toString();
+    if (book.id == 0 || _attempted.contains(id)) return;
+    _attempted.add(id);
+    try {
+      final response = await ref.read(zlibraryApiProvider).getBookInfo(
+            id,
+            book.hash ?? '',
+            title: book.title,
+          );
+      final cover = response.data?.cover;
+      if (response.success && cover != null && cover.isNotEmpty) {
+        state = {...state, id: cover};
+      }
+    } catch (_) {
+      // No usable cover: keep the placeholder. _attempted prevents
+      // retry loops when the row rebuilds.
+    }
+  }
+}
+
+final historyCoverProvider =
+    NotifierProvider<HistoryCoverNotifier, Map<String, String>>(
+      HistoryCoverNotifier.new,
+    );
+
 // ── Favorites Check ─────────────────────────────────────────────────
 
 final isBookFavoritedProvider = FutureProvider.family<bool, String>((

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../providers/books_provider.dart';
 import '../../widgets/cover_placeholder.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -40,24 +41,7 @@ class HistoryScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
-                  leading: book.cover != null && book.cover!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: book.cover!,
-                            width: 50,
-                            height: 70,
-                            fit: BoxFit.cover,
-                            memCacheWidth:
-                                (50 * MediaQuery.devicePixelRatioOf(context))
-                                    .ceil(),
-                            placeholder: (context, url) =>
-                                const CoverPlaceholder.static(),
-                            errorWidget: (context, url, error) =>
-                                const CoverPlaceholder.static(),
-                          ),
-                        )
-                      : const Icon(Icons.book, size: 50),
+                  leading: _HistoryCoverThumb(book: book),
                   title: Text(
                     book.title,
                     maxLines: 2,
@@ -92,6 +76,43 @@ class HistoryScreen extends ConsumerWidget {
           title: l10n.get('error'),
           message: error.toString(),
         ),
+      ),
+    );
+  }
+}
+
+/// Leading cover for one cloud history row. Tries the listed cover
+/// first; when it fails, resolves the detail endpoint's cover once
+/// and swaps to it. A row with no listed cover keeps the plain icon.
+class _HistoryCoverThumb extends ConsumerWidget {
+  const _HistoryCoverThumb({super.key, required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final resolved = ref.watch(
+      historyCoverProvider.select((covers) => covers[book.id.toString()]),
+    );
+    final cover = resolved ?? book.cover;
+    if (cover == null || cover.isEmpty) {
+      return const Icon(Icons.book, size: 50);
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: CachedNetworkImage(
+        imageUrl: cover,
+        width: 50,
+        height: 70,
+        fit: BoxFit.cover,
+        memCacheWidth: (50 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+        placeholder: (context, url) => const CoverPlaceholder.static(),
+        errorWidget: (context, url, error) {
+          if (resolved == null) {
+            ref.read(historyCoverProvider.notifier).resolveCover(book);
+          }
+          return const CoverPlaceholder.static();
+        },
       ),
     );
   }
