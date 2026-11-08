@@ -88,8 +88,12 @@ class DownloadLimitReachedException implements Exception {
 }
 
 class DownloadNotifier extends Notifier<List<DownloadTask>> {
-  late final ZLibraryApi _api;
-  late final StorageService _storage;
+  // Getters, not `late final` fields: ref.invalidate (account switch,
+  // line change, logout) re-runs build() on the SAME notifier instance,
+  // and a second assignment to a late final throws LateInitializationError
+  // — the same trap that blanked the library screen in SavedBooksNotifier.
+  ZLibraryApi get _api => ref.read(zlibraryApiProvider);
+  StorageService get _storage => ref.read(storageServiceProvider);
   final Map<String, CancelToken> _cancelTokens = {};
 
   /// Throttle for progress ticks: Dio can fire dozens of callbacks per
@@ -101,12 +105,12 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
   final Map<String, double> _lastPublishedProgress = {};
   final Map<String, DateTime> _lastPublishedAt = {};
 
-  late final Future<void> ready;
+  // Not final: build() re-assigns it on every invalidate (nothing reads
+  // it today; kept for the startup-history signal).
+  late Future<void> ready;
 
   @override
   List<DownloadTask> build() {
-    _api = ref.read(zlibraryApiProvider);
-    _storage = ref.read(storageServiceProvider);
     // Load persisted download history on initialization
     ready = _loadDownloadHistory();
     return [];
