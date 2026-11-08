@@ -229,18 +229,21 @@ class ExternalSearchState {
 }
 
 class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
+  final AnnasArchieve _annasApi;
   SearchProvider _provider;
   BookSource _source;
   String? _lastQuery;
   int _requestId = 0;
 
-  ExternalSearchNotifier()
-      : _provider = AnnasArchiveProvider(),
+  ExternalSearchNotifier({required AnnasArchieve annasApi})
+      : _annasApi = annasApi,
+        _provider = AnnasArchiveProvider(api: annasApi),
         _source = BookSource.annasArchive,
         super(const ExternalSearchState());
 
-  static SearchProvider _providerFor(BookSource source) =>
-      source == BookSource.libgen ? LibgenProvider() : AnnasArchiveProvider();
+  SearchProvider _providerFor(BookSource source) => source == BookSource.libgen
+      ? LibgenProvider()
+      : AnnasArchiveProvider(api: _annasApi);
 
   /// Maps a provider's BookData with the converter matching the source
   /// that produced it (Anna and LibGen both return BookData).
@@ -323,8 +326,17 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
 
 final externalSearchProvider =
     StateNotifierProvider<ExternalSearchNotifier, ExternalSearchState>((ref) {
-      return ExternalSearchNotifier();
+      return ExternalSearchNotifier(
+        annasApi: ref.watch(annasArchieveProvider),
+      );
     });
+
+/// Shared [AnnasArchieve] instance: its Dio (and connection pool) is
+/// reused across detail and search requests instead of being rebuilt
+/// per call. The service holds no per-request mutable state (its headers
+/// map is only read), so sharing one instance is safe.
+final annasArchieveProvider =
+    Provider<AnnasArchieve>((ref) => AnnasArchieve());
 
 // ── Anna's Archive Book Details ──────────────────────────────────────
 //
@@ -333,7 +345,7 @@ final externalSearchProvider =
 // mirror, parse failure), so the provider surfaces the error as-is.
 final annasBookDetailsProvider =
     FutureProvider.family<BookInfoData, String>((ref, link) async {
-      final archive = AnnasArchieve();
+      final archive = ref.watch(annasArchieveProvider);
       return archive.bookInfo(url: link);
     });
 

@@ -90,7 +90,10 @@ class AnnasArchieve {
   // Optimized retry settings for faster response
   static const int maxRetriesPerInstance =
       1; // Only 1 retry per instance for speed
-  static const int requestTimeoutSeconds = 8; // Shorter timeout per request
+  static const int requestTimeoutSeconds = 8; // Timeout for the first mirror
+  // Later mirrors get half the timeout, halved once (never less): a live
+  // mirror usually answers in seconds, a dead one just burns the budget.
+  static const int subsequentRequestTimeoutSeconds = 4;
   static const int retryDelayMs = 200; // Shorter delay between retries
 
   Map<String, dynamic> defaultDioHeaders = {
@@ -183,12 +186,15 @@ class AnnasArchieve {
 
       for (int attempt = 0; attempt <= retriesForThis; attempt++) {
         try {
+          // First mirror gets the full timeout; later mirrors get half.
+          final timeoutSeconds =
+              i == 0 ? requestTimeoutSeconds : subsequentRequestTimeoutSeconds;
           // Apply timeout to the request function
           final result = await requestFn(baseUrl).timeout(
-            const Duration(seconds: requestTimeoutSeconds),
+            Duration(seconds: timeoutSeconds),
             onTimeout: () {
               throw TimeoutException(
-                  "Request timed out after ${requestTimeoutSeconds}s");
+                  "Request timed out after ${timeoutSeconds}s");
             },
           );
 
