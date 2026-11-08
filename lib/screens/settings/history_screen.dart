@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
+import '../../widgets/cover_placeholder.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
@@ -38,14 +40,21 @@ class HistoryScreen extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
-                  leading: book.cover != null
+                  leading: book.cover != null && book.cover!.isNotEmpty
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            book.cover!,
+                          child: CachedNetworkImage(
+                            imageUrl: book.cover!,
                             width: 50,
                             height: 70,
                             fit: BoxFit.cover,
+                            memCacheWidth:
+                                (50 * MediaQuery.devicePixelRatioOf(context))
+                                    .ceil(),
+                            placeholder: (context, url) =>
+                                const CoverPlaceholder.static(),
+                            errorWidget: (context, url, error) =>
+                                const CoverPlaceholder.static(),
                           ),
                         )
                       : const Icon(Icons.book, size: 50),

@@ -480,6 +480,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
                                 final book = _books[index];
                                 return BookListTile(
                                   book: book.toDisplay(),
+                                  showCover: true,
                                   onTap: () {
                                     Navigator.of(context).pushNamed(
                                       AppRoutes.bookDetail,
