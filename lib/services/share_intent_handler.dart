@@ -12,6 +12,8 @@ import 'booklist_share_codec.dart';
 class PendingBooklistImportNotifier extends Notifier<BooklistShareData?> {
   @override
   BooklistShareData? build() => null;
+
+  void setData(BooklistShareData? value) => state = value;
 }
 
 final pendingBooklistImportProvider =
@@ -58,7 +60,7 @@ class ShareIntentHandler {
       if (raw == null || raw.isEmpty) continue;
       final data = BooklistShareCodec.tryDecode(raw);
       if (data != null && data.entries.isNotEmpty) {
-        _ref.read(pendingBooklistImportProvider.notifier).state = data;
+        _ref.read(pendingBooklistImportProvider.notifier).setData(data);
         break;
       }
     }

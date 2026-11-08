@@ -94,7 +94,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             // Switching tabs resets the nav to visible: a home tab
             // scrolled down must not leave the bar hidden on Settings.
             if (ref.read(navBarVisibleProvider) != true) {
-              ref.read(navBarVisibleProvider.notifier).state = true;
+              ref.read(navBarVisibleProvider.notifier).setVisible(true);
             }
             setState(() => _selectedIndex = index);
           },
@@ -150,7 +150,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (!hideEnabled) return false;
     void setVisible(bool v) {
       if (ref.read(navBarVisibleProvider) != v) {
-        ref.read(navBarVisibleProvider.notifier).state = v;
+        ref.read(navBarVisibleProvider.notifier).setVisible(v);
       }
     }
 
@@ -455,7 +455,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
   void _setNavVisible(bool visible) {
     if (ref.read(navBarVisibleProvider) != visible) {
-      ref.read(navBarVisibleProvider.notifier).state = visible;
+      ref.read(navBarVisibleProvider.notifier).setVisible(visible);
     }
   }
 

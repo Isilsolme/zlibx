@@ -8,6 +8,8 @@ import 'books_provider.dart';
 class ShelfFilterNotifier extends Notifier<ShelfSource?> {
   @override
   ShelfSource? build() => null;
+
+  void setFilter(ShelfSource? value) => state = value;
 }
 
 final shelfFilterProvider =

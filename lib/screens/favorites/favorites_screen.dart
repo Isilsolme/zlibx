@@ -65,7 +65,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
 
     ref.listen<BooklistShareData?>(pendingBooklistImportProvider, (prev, next) {
       if (next == null) return;
-      ref.read(pendingBooklistImportProvider.notifier).state = null;
+      ref.read(pendingBooklistImportProvider.notifier).setData(null);
       runImport(l, next);
     });
 
@@ -845,7 +845,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
 
   void _changeSource(ShelfSource? value) {
     _exitSelectMode();
-    ref.read(shelfFilterProvider.notifier).state = value;
+    ref.read(shelfFilterProvider.notifier).setFilter(value);
   }
 
   void _toggleSelect(int id) => setState(() {

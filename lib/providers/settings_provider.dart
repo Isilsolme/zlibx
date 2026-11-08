@@ -236,6 +236,8 @@ final hideNavOnScrollProvider =
 class NavBarVisibleNotifier extends Notifier<bool> {
   @override
   bool build() => true;
+
+  void setVisible(bool value) => state = value;
 }
 
 final navBarVisibleProvider =
