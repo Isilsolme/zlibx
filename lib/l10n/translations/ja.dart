@@ -221,6 +221,7 @@ const Map<String, String> ja = {
   'no_similar_books_message': 'この本に似た本は見つかりませんでした',
   'comments': 'コメント',
   'no_comments': 'コメントはまだありません',
+  'no_more_comments': 'これ以上コメントはありません',
   'login_to_view_comments': 'ログインしてコメントを見る',
   'comments_disabled': 'この本のコメントは無効です',
   'write_comment': 'コメントを書く',

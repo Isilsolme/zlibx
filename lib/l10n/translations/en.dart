@@ -229,6 +229,7 @@ const Map<String, String> en = {
       'We could not find any similar books for this title',
   'comments': 'Comments',
   'no_comments': 'No comments yet',
+  'no_more_comments': 'No more comments',
   'login_to_view_comments': 'Log in to view comments',
   'comments_disabled': 'Comments are disabled for this book',
   'write_comment': 'Write a comment',

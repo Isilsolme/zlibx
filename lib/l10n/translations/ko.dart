@@ -220,6 +220,7 @@ const Map<String, String> ko = {
   'no_similar_books_message': '이 책과 비슷한 책을 찾을 수 없습니다',
   'comments': '댓글',
   'no_comments': '댓글이 아직 없습니다',
+  'no_more_comments': '더 이상 댓글이 없습니다',
   'login_to_view_comments': '로그인하여 댓글 보기',
   'comments_disabled': '이 책의 댓글은 비활성화되어 있습니다',
   'write_comment': '댓글 쓰기',

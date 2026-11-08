@@ -59,6 +59,8 @@ class CommentMetricChip extends StatelessWidget {
                           color: color,
                           fontWeight:
                               active ? FontWeight.w600 : FontWeight.w400,
+                          // 等宽数字：点赞数变化时按钮不跳动。
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                   ),
                 ],

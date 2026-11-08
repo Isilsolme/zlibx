@@ -219,6 +219,7 @@ const Map<String, String> zh = {
   'no_similar_books_message': '我们没有找到相关的相似书籍推荐',
   'comments': '评论',
   'no_comments': '暂无评论',
+  'no_more_comments': '没有更多评论了',
   'login_to_view_comments': '登录后查看评论',
   'comments_disabled': '这本书的评论已关闭',
   'write_comment': '写评论',

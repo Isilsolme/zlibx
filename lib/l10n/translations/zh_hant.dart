@@ -218,6 +218,7 @@ const Map<String, String> zhHant = {
   'no_similar_books_message': '我們沒有找到相關的相似書籍推薦',
   'comments': '評論',
   'no_comments': '暫無評論',
+  'no_more_comments': '沒有更多評論了',
   'login_to_view_comments': '登入後查看評論',
   'comments_disabled': '這本書的評論已關閉',
   'write_comment': '寫評論',

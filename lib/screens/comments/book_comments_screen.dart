@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
@@ -8,8 +9,9 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
 import 'controllers/book_comments_controller.dart';
-import 'widgets/comment_card.dart';
+import 'widgets/book_context_header.dart';
 import 'widgets/comment_composer.dart';
+import 'widgets/comment_list.dart';
 
 /// Arguments for BookCommentsScreen
 class BookCommentsArgs {
@@ -24,7 +26,8 @@ class BookCommentsArgs {
 
 /// Book comments — view, post, reply and like.
 ///
-/// 逻辑在 [BookCommentsController]；这里只负责接 provider 与构建 UI。
+/// 逻辑在 [BookCommentsController]；这里只负责接 provider、组装
+/// 上下文条 / 状态视图 / 列表 / 输入区，并发起导航与聚焦。
 /// 需要登录会话，未登录显示登录入口。详见 controller 文档。
 class BookCommentsScreen extends ConsumerStatefulWidget {
   const BookCommentsScreen({super.key});
@@ -82,6 +85,10 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  bool get _signedIn => ref.read(authProvider).user != null;
+
+  Future<void> _reload() => _c.loadFirst(signedIn: _signedIn);
+
   Future<void> _submit() async {
     final text = _composerController.text.trim();
     if (text.isEmpty || _c.isPosting) return;
@@ -90,12 +97,34 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       _showSnack(AppLocalizations.of(context).get('comment_too_short'));
       return;
     }
+    final wasReply = _c.replyTo != null;
     final posted = await _c.submit(text);
     if (!mounted) return;
     if (posted) {
       _composerController.clear();
       _composerFocus.unfocus();
+      // 新顶层评论插在最前，滚回顶部让用户立刻看到自己的评论；
+      // 回复则原地不动（父评论就在视口附近）。
+      if (!wasReply && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+        );
+      }
     }
+  }
+
+  void _openProfile(BookComment comment) {
+    Navigator.of(context).pushNamed(
+      AppRoutes.userProfile,
+      arguments: UserProfileArgs(
+        userId: comment.userId,
+        userName: comment.userName,
+        userAvatar: comment.userAvatar,
+        userHash: comment.userHash,
+      ),
+    );
   }
 
   @override
@@ -111,15 +140,19 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
           final c = _c;
           return Column(
             children: [
-              _BookContextHeader(title: args.bookTitle),
+              BookContextHeader(
+                title: args.bookTitle,
+                commentCount:
+                    c.loggedIn && !c.disabled && !c.hasError && !c.isLoading
+                        ? c.comments.length
+                        : null,
+              ),
               Expanded(child: _buildBody(c, l10n)),
               if (c.loggedIn && !c.disabled && !c.isLoading)
                 CommentComposer(
                   controller: _composerController,
                   focusNode: _composerFocus,
-                  hintText: c.replyTo == null
-                      ? l10n.get('write_comment')
-                      : '${l10n.get('reply_to')} ${c.replyTo!.userName}',
+                  hintText: l10n.get('write_comment'),
                   replyBannerText: c.replyTo == null
                       ? null
                       : '${l10n.get('reply_to')} ${c.replyTo!.userName}',
@@ -136,6 +169,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     );
   }
 
+  /// 状态视图分发：加载 / 未登录 / 出错 / 关闭 / 空 / 列表。
   Widget _buildBody(BookCommentsController c, AppLocalizations l10n) {
     if (c.isLoading) return LoadingWidget(message: l10n.get('loading'));
     if (!c.loggedIn) {
@@ -154,9 +188,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
         title: l10n.get('error'),
         message: c.errorMessage,
         action: FilledButton(
-          onPressed: () => _c.loadFirst(
-            signedIn: ref.read(authProvider).user != null,
-          ),
+          onPressed: _reload,
           child: Text(l10n.get('retry')),
         ),
       );
@@ -173,110 +205,18 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
         title: l10n.get('no_comments'),
       );
     }
-    return _buildList(c);
-  }
-
-  Widget _buildList(BookCommentsController c) {
-    final shown =
-        c.visibleCount < c.comments.length ? c.visibleCount : c.comments.length;
-    return RefreshIndicator(
-      onRefresh: () =>
-          _c.loadFirst(signedIn: ref.read(authProvider).user != null),
-      child: ListView.separated(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        itemCount: shown + (c.hasMore ? 1 : 0),
-        // 视觉上把线程分组：顶层评论之后留白，回复紧贴着父评论。
-        separatorBuilder: (context, index) {
-          final list = c.comments;
-          if (index >= list.length) return const SizedBox.shrink();
-          return SizedBox(height: list[index].parentId == null ? 14 : 2);
-        },
-        itemBuilder: (context, index) {
-          final list = c.comments;
-          if (index >= shown) {
-            // 本地分页的加载尾部
-            return const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                ),
-              ),
-            );
-          }
-          final comment = list[index];
-          return CommentCard(
-            comment: comment,
-            replyCount: c.replyCounts[comment.id] ?? 0,
-            likePending: c.likingIds.contains(comment.id),
-            onLike: () => _c.toggleLike(comment),
-            onReply: () {
-              _c.beginReply(comment);
-              _composerFocus.requestFocus();
-            },
-            onAvatarTap: () => Navigator.of(context).pushNamed(
-              AppRoutes.userProfile,
-              arguments: UserProfileArgs(
-                userId: comment.userId,
-                userName: comment.userName,
-                userAvatar: comment.userAvatar,
-                userHash: comment.userHash,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// 顶部书目上下文条：图标 + 书名。
-class _BookContextHeader extends StatelessWidget {
-  final String title;
-
-  const _BookContextHeader({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerLow,
-        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: cs.primaryContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.book_outlined,
-              size: 18,
-              color: cs.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
+    return CommentList(
+      controller: c,
+      scrollController: _scrollController,
+      onRefresh: _reload,
+      visibleCount: c.visibleCount,
+      noMoreText: l10n.get('no_more_comments'),
+      onReply: (comment) {
+        _c.beginReply(comment);
+        _composerFocus.requestFocus();
+      },
+      onAvatarTap: _openProfile,
+      onLike: _c.toggleLike,
     );
   }
 }
