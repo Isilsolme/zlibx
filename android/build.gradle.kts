@@ -2,7 +2,7 @@
 // (e.g. `useCnMirror=true` in ~/.gradle/gradle.properties for developers
 // in China). CI and other builds resolve from google()/mavenCentral()
 // directly. The mirrors exist because plugin subprojects (e.g.
-// mobile_scanner) resolve their buildscript classpath from their own
+// flutter_inappwebview) resolve their buildscript classpath from their own
 // build.gradle's google()/mavenCentral(), which 403s on direct
 // connections from China — prefixing the same mirrors here fixes that.
 val useCnMirror: Boolean =

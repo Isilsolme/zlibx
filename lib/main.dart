@@ -28,8 +28,6 @@ import 'screens/account/user_profile_screen.dart';
 import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_html_cache.dart';
-import 'services/booklist_share_codec.dart';
-import 'services/share_intent_handler.dart';
 import 'services/instance_manager.dart';
 import 'services/challenge_html_cache.dart';
 import 'services/webview_challenge_solver.dart';
@@ -84,9 +82,6 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Fire-and-forget: start listening for shared booklists.
-    ref.read(shareIntentHandlerProvider).start();
-
     // The plugin reports the raw HTML of every booklist page it
     // loads over Dio; persist it so the next open paints from cache
     // first (see BooklistHtmlCache). Registered once here: the
@@ -107,16 +102,6 @@ class _MyAppState extends ConsumerState<MyApp> {
     final themeModeState = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
-    // When a shared booklist arrives while we're elsewhere in the app,
-    // jump to favorites — that screen consumes the pending data.
-    ref.listen<BooklistShareData?>(pendingBooklistImportProvider,
-        (prev, next) {
-      if (next == null) return;
-      final nav = rootNavigatorKey.currentState;
-      if (nav == null) return;
-      nav.pushNamedAndRemoveUntil(AppRoutes.favorites, (r) => r.isFirst);
-    });
-    
     // Convert AppThemeMode to ThemeMode
     ThemeMode themeMode;
     switch (themeModeState) {

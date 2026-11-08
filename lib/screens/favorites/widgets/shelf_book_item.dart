@@ -171,12 +171,6 @@ class ShelfListItem extends StatelessWidget {
         (icon: null, text: book.meta!, highlighted: false),
       if (book.score?.isNotEmpty == true && book.tagExtra != book.score)
         (icon: Icons.star_rounded, text: book.score!, highlighted: false),
-      if (item.isPersonalImport)
-        (
-          icon: Icons.person_outline_rounded,
-          text: l.get('shelf_personal_import'),
-          highlighted: false,
-        ),
       if (isDownloaded)
         (
           icon: Icons.download_done_rounded,

@@ -9,8 +9,6 @@ class UnifiedShelfItem {
   final DisplayBook displayBook;
   final String rawBookId;
   final int? lastReadTime;
-  final bool isPersonalImport;
-  final String? deepLink;
 
   String get categoryKey => '${source.name}:$rawBookId';
 
@@ -19,7 +17,5 @@ class UnifiedShelfItem {
     required this.displayBook,
     required this.rawBookId,
     this.lastReadTime,
-    this.isPersonalImport = false,
-    this.deepLink,
   });
 }

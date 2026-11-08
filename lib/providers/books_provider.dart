@@ -478,16 +478,28 @@ class SavedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
     }
   }
 
-  Future<bool> unsaveBook(String bookId) async {
+  /// 取消收藏一本书。[reload] 为 false 时不刷新列表（批量场景由调用方统一刷新）。
+  Future<bool> unsaveBook(String bookId, {bool reload = true}) async {
     try {
       final response = await _api.unsaveUserBook(bookId);
       if (!response.success) return false;
       await _storage.removeFavorite(bookId);
-      await loadSavedBooks();
+      if (reload) await loadSavedBooks();
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  /// 批量取消收藏：逐本处理，全部完成后只刷新一次收藏列表。
+  /// 返回成功取消的数量。
+  Future<int> unsaveBooks(Iterable<String> bookIds) async {
+    var removed = 0;
+    for (final id in bookIds) {
+      if (await unsaveBook(id, reload: false)) removed++;
+    }
+    await loadSavedBooks();
+    return removed;
   }
 }
 

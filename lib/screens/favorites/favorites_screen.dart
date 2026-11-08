@@ -12,12 +12,9 @@ import '../../providers/shelf_categories_provider.dart';
 import '../../providers/shelf_provider.dart';
 import '../../screens/book_detail/book_detail_screen.dart';
 import '../../screens/search/search_screen.dart';
-import '../../services/booklist_share_codec.dart';
 import '../../services/media_store.dart';
-import '../../services/share_intent_handler.dart';
 import 'widgets/shelf_book_item.dart';
-import 'widgets/shelf_filter_bar.dart';
-import 'widgets/shelf_import_handler.dart';
+import 'widgets/shelf_chip.dart';
 import '../../widgets/loading_widget.dart';
 
 enum _ShelfSort { defaultOrder, title, author }
@@ -36,8 +33,7 @@ class FavoritesScreen extends ConsumerStatefulWidget {
   ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
-    with ShelfImportHandler {
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   static const _uncategorized = '__uncategorized__';
 
   final _searchController = TextEditingController();
@@ -59,18 +55,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     final shelf = ref.watch(unifiedShelfProvider);
     final library = ref.watch(savedBooksProvider);
     final categories = ref.watch(shelfCategoriesProvider);
-    final source = ref.watch(shelfFilterProvider);
     final downloads = ref.watch(downloadProvider);
     final hasSourceError = _sourceError(library);
 
-    ref.listen<BooklistShareData?>(pendingBooklistImportProvider, (prev, next) {
-      if (next == null) return;
-      ref.read(pendingBooklistImportProvider.notifier).setData(null);
-      runImport(l, next);
-    });
-
     final allItems = shelf.valueOrNull ?? <UnifiedShelfItem>[];
-    final visible = _filteredItems(allItems, source, categories);
+    final visible = _filteredItems(allItems, categories);
     // Indexes built once per build so every item is an O(1) lookup
     // instead of a linear scan over all downloads / categories.
     final completedById = <String, DownloadTask>{
@@ -110,21 +99,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                       child: Column(
                         children: [
                           if (!_isSelectMode) _searchBar(l),
-                          ShelfFilterBar(
-                            libraryCount: allItems
-                                .where(
-                                  (item) => item.source == ShelfSource.library,
-                                )
-                                .length,
-                            source: source,
-                            onSourceChanged: _changeSource,
-                            isListView: _isListView,
-                            onViewChanged: (value) =>
-                                setState(() => _isListView = value),
-                          ),
-                          _categoryBar(l, allItems, source, categories),
+                          _categoryBar(l, allItems, categories),
                           _sortBar(l, visible.length),
-                          if (hasSourceError) _errorBanner(l, source),
+                          if (hasSourceError) _errorBanner(l),
                         ],
                       ),
                     ),
@@ -132,19 +109,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                   if (visible.isEmpty)
                     SliverFillRemaining(
                       hasScrollBody: false,
-                      child: _emptyState(l, source, hasSourceError),
+                      child: _emptyState(l, hasSourceError),
                     )
                   else ...[
-                    if (source == null || source == ShelfSource.library)
-                      _sourceGroup(
-                        l,
-                        ShelfSource.library,
-                        visible,
-                        categories,
-                        completedById,
-                        categoryNameById,
-                        showHeader: source == null,
-                      ),
+                    _bookSliver(
+                      visible,
+                      categories,
+                      completedById,
+                      categoryNameById,
+                    ),
                     const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
                   ],
                 ],
@@ -158,12 +131,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
 
   List<UnifiedShelfItem> _filteredItems(
     List<UnifiedShelfItem> all,
-    ShelfSource? source,
     ShelfCategoriesState categories,
   ) {
     final query = _searchController.text.trim().toLowerCase();
     final result = all.where((item) {
-      if (source != null && item.source != source) return false;
       final assigned = categories.categoryFor(item);
       if (_selectedCategoryId == _uncategorized && assigned != null) {
         return false;
@@ -230,42 +201,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
           icon: const Icon(Icons.label_outline_rounded),
           onPressed: _manageCategories,
         ),
-        PopupMenuButton<ImportSource>(
-          tooltip: l.get('import_booklist'),
-          icon: const Icon(Icons.file_download_outlined),
-          onSelected: (source) => handleImport(l, source),
-          itemBuilder: (_) => [
-            _importItem(
-              ImportSource.scan,
-              Icons.qr_code_scanner_rounded,
-              l.get('import_from_scan'),
-            ),
-            _importItem(
-              ImportSource.paste,
-              Icons.content_paste_rounded,
-              l.get('import_from_paste'),
-            ),
-            _importItem(
-              ImportSource.file,
-              Icons.insert_drive_file_outlined,
-              l.get('import_from_file'),
-            ),
-          ],
+        IconButton(
+          tooltip: _isListView
+              ? l.get('shelf_view')
+              : l.get('list_view'),
+          onPressed: () => setState(() => _isListView = !_isListView),
+          icon: Icon(
+            _isListView ? Icons.grid_view_rounded : Icons.view_list_rounded,
+          ),
         ),
       ],
-    );
-  }
-
-  PopupMenuItem<ImportSource> _importItem(
-    ImportSource source,
-    IconData icon,
-    String label,
-  ) {
-    return PopupMenuItem(
-      value: source,
-      child: Row(
-        children: [Icon(icon), const SizedBox(width: 12), Text(label)],
-      ),
     );
   }
 
@@ -318,10 +263,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   Widget _categoryBar(
     AppLocalizations l,
     List<UnifiedShelfItem> all,
-    ShelfSource? source,
     ShelfCategoriesState state,
   ) {
-    final scoped = all.where((item) => source == null || item.source == source);
+    final scoped = all;
     return SizedBox(
       height: 44,
       child: ListView(
@@ -422,7 +366,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     ),
   );
 
-  Widget _errorBanner(AppLocalizations l, ShelfSource? source) => Padding(
+  Widget _errorBanner(AppLocalizations l) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: Card(
       child: ListTile(
@@ -441,91 +385,48 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   static const _gridPadding = 16.0;
   static const _gridSpacing = 14.0;
 
-  Widget _sourceGroup(
-    AppLocalizations l,
-    ShelfSource source,
-    List<UnifiedShelfItem> all,
+  Widget _bookSliver(
+    List<UnifiedShelfItem> items,
     ShelfCategoriesState categories,
     Map<String, DownloadTask> completedById,
-    Map<String, String> categoryNameById, {
-    required bool showHeader,
-  }) {
-    final items = all.where((item) => item.source == source).toList();
-    if (items.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
+    Map<String, String> categoryNameById,
+  ) {
     final columns = _shelfColumns;
     final cellWidth =
         (MediaQuery.sizeOf(context).width -
             _gridPadding * 2 -
             _gridSpacing * (columns - 1)) /
         columns;
-    return SliverMainAxisGroup(
-      slivers: [
-        if (showHeader)
-          SliverToBoxAdapter(child: _groupHeader(l, source, items.length)),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(_gridPadding, 4, _gridPadding, 12),
-          sliver: _isListView
-              ? SliverList.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, index) => _listItem(
-                    items[index],
-                    categories,
-                    completedById,
-                    categoryNameById,
-                  ),
-                )
-              : SliverGrid.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: _gridSpacing,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent:
-                        cellWidth / ShelfGridItem.coverAspectRatio +
-                        ShelfGridItem.captionHeight,
-                  ),
-                  itemCount: items.length,
-                  itemBuilder: (_, index) => _gridItem(
-                    items[index],
-                    categories,
-                    completedById,
-                    categoryNameById,
-                  ),
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _groupHeader(AppLocalizations l, ShelfSource source, int count) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(_gridPadding, 12, _gridPadding, 8),
-      child: Row(
-        children: [
-          Icon(
-            Icons.library_books_rounded,
-            size: 18,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            l.get('shelf_source_library'),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(_gridPadding, 4, _gridPadding, 12),
+      sliver: _isListView
+          ? SliverList.separated(
+              itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (_, index) => _listItem(
+                items[index],
+                categories,
+                completedById,
+                categoryNameById,
+              ),
+            )
+          : SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: _gridSpacing,
+                mainAxisSpacing: 16,
+                mainAxisExtent:
+                    cellWidth / ShelfGridItem.coverAspectRatio +
+                    ShelfGridItem.captionHeight,
+              ),
+              itemCount: items.length,
+              itemBuilder: (_, index) => _gridItem(
+                items[index],
+                categories,
+                completedById,
+                categoryNameById,
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '$count',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -594,11 +495,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     );
   }
 
-  Widget _emptyState(
-    AppLocalizations l,
-    ShelfSource? source,
-    bool hasSourceError,
-  ) {
+  Widget _emptyState(AppLocalizations l, bool hasSourceError) {
     final searched = _searchController.text.trim().isNotEmpty;
     final filtered = searched || _selectedCategoryId != null;
     final title = hasSourceError
@@ -694,13 +591,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                 _selectionAction(
                   icon: Icons.delete_outline_rounded,
                   label: l.get('batch_remove'),
-                  onPressed: () =>
-                      confirmBatchRemove(l, _selectedBookIds, _exitSelectMode),
-                ),
-                _selectionAction(
-                  icon: Icons.share_rounded,
-                  label: l.get('share_booklist'),
-                  onPressed: () => showSharePreview(l, _selectedBookIds),
+                  onPressed: () => _confirmBatchRemove(l),
                 ),
               ],
             ),
@@ -843,9 +734,38 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     }
   }
 
-  void _changeSource(ShelfSource? value) {
-    _exitSelectMode();
-    ref.read(shelfFilterProvider.notifier).setFilter(value);
+  void _confirmBatchRemove(AppLocalizations l) {
+    final ids = _selectedBookIds.map((id) => id.toString()).toList();
+    if (ids.isEmpty) return;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l.get('confirm_remove_title')),
+        content: Text(
+          l.get('confirm_remove_msg').replaceAll('%d', '${ids.length}'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l.get('cancel')),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _batchRemove(ids);
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red[400]),
+            child: Text(l.get('remove')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 批量取消收藏：逐本调用接口，全部处理完后只刷新一次收藏列表。
+  Future<void> _batchRemove(List<String> ids) async {
+    await ref.read(savedBooksProvider.notifier).unsaveBooks(ids);
+    if (mounted) _exitSelectMode();
   }
 
   void _toggleSelect(int id) => setState(() {
