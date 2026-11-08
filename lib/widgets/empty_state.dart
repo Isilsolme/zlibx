@@ -14,9 +14,10 @@ class EmptyState extends StatelessWidget {
     this.action,
   });
 
-  /// 入场动画只跑一次：复用同一个 const tween，父级重建不会重播；
+  /// 入场动画只跑一次：复用同一个 tween，父级重建不会重播；
   /// 系统关动画时（[MediaQuery.disableAnimationsOf]）直接出最终态。
-  static const _entranceTween = Tween<double>(begin: 0.0, end: 1.0);
+  /// 注意：Tween 的构造不是 const，所以这里只能是 static final。
+  static final _entranceTween = Tween<double>(begin: 0.0, end: 1.0);
 
   @override
   Widget build(BuildContext context) {

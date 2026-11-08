@@ -793,7 +793,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           children: [
             Expanded(
               flex: 3,
-              child: const ClipRRect(
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: CoverPlaceholder.shimmer(),
               ),
@@ -806,7 +806,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const ClipRRect(
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: SizedBox(
                         height: 12,
@@ -815,7 +815,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const ClipRRect(
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(5),
                       child: SizedBox(
                         height: 10,
