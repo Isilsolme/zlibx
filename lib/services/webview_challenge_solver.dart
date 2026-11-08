@@ -121,7 +121,7 @@ class WebviewChallengeSolver {
     String url, {
     Duration? timeout,
   }) {
-    if (!isSupported) return null;
+    if (!isSupported) return Future<String?>.value();
     // Merge concurrent solves of the SAME url into one webview run.
     final existing = _inFlightSolves[url];
     if (existing != null) {

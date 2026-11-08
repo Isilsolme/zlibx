@@ -79,7 +79,6 @@ class MirrorFetcherService {
             _logger.debug('Challenge probe failed, continuing with '
                     'extraction',
                 tag: 'MirrorFetcher',
-                error: challengeCheckError);
           }
 
           try {
@@ -120,7 +119,7 @@ class MirrorFetcherService {
           // extraction even though the document itself loaded fine.
           if (request.isForMainFrame != true) {
             _logger.debug('Sub-resource load error (ignored)',
-                tag: 'MirrorFetcher', error: error.description);
+                tag: 'MirrorFetcher');
             return;
           }
           _logger.error('WebView load error', tag: 'MirrorFetcher', error: error.description);
