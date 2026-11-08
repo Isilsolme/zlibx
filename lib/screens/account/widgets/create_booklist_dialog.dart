@@ -5,7 +5,7 @@ import '../../../l10n/app_localizations.dart';
 /// Name + optional description form for a new booklist. Pops a record
 /// `(title, description)`, or null when cancelled.
 class CreateBooklistDialog extends StatefulWidget {
-  const CreateBooklistDialog();
+  const CreateBooklistDialog({super.key});
 
   @override
   State<CreateBooklistDialog> createState() => CreateBooklistDialogState();

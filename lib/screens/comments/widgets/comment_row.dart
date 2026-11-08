@@ -10,6 +10,7 @@ class CommentRow extends StatelessWidget {
   final VoidCallback onAvatarTap;
 
   const CommentRow({
+    super.key,
     required this.comment,
     required this.replyCount,
     required this.likePending,
