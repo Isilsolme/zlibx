@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../../utils/cover_cache.dart';
 import '../../widgets/cover_placeholder.dart';
 
 /// 一条用户评论背后的书。“我的评论”与用户主页的评论接口都只给
@@ -83,9 +84,8 @@ class CommentBookTile extends StatelessWidget {
                       imageUrl: coverUrl!,
                       fit: BoxFit.cover,
                       // 缩略图按显示尺寸解码，避免整图占内存。
-                      memCacheWidth:
-                          (34 * MediaQuery.devicePixelRatioOf(context))
-                              .ceil(),
+                      memCacheWidth: coverCacheWidth(34, context),
+                      memCacheHeight: coverCacheHeight(48, context),
                       placeholder: (context, url) =>
                           const CoverPlaceholder.static(),
                       errorWidget: (context, url, error) =>

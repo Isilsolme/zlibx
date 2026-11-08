@@ -14,9 +14,13 @@ class EmptyState extends StatelessWidget {
     this.action,
   });
 
+  /// 入场动画只跑一次：复用同一个 const tween，父级重建不会重播；
+  /// 系统关动画时（[MediaQuery.disableAnimationsOf]）直接出最终态。
+  static const _entranceTween = Tween<double>(begin: 0.0, end: 1.0);
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    final content = Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -48,6 +52,20 @@ class EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+    if (MediaQuery.disableAnimationsOf(context)) return content;
+    return TweenAnimationBuilder<double>(
+      tween: _entranceTween,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 16 * (1 - value)),
+          child: child,
+        ),
+      ),
+      child: content,
     );
   }
 }

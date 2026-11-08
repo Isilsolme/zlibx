@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/display_book.dart';
+import '../utils/cover_cache.dart';
 import 'cover_placeholder.dart';
 
 /// Compact list tile for books.
@@ -37,9 +38,8 @@ class BookListTile extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: book.cover!,
                           fit: BoxFit.cover,
-                          memCacheWidth:
-                              (48 * MediaQuery.devicePixelRatioOf(context))
-                                  .ceil(),
+                          memCacheWidth: coverCacheWidth(48, context),
+                          memCacheHeight: coverCacheHeight(68, context),
                           placeholder: (context, url) =>
                               const CoverPlaceholder.static(),
                           errorWidget: (context, url, error) =>

@@ -79,6 +79,7 @@ class SearchTrendingSection extends StatelessWidget {
                                 fit: BoxFit.cover,
                                 // 封面按显示尺寸解码，避免整图占内存。
                                 memCacheWidth: coverCacheWidth(105, context),
+                                memCacheHeight: coverCacheHeight(145, context),
                                 placeholder: (context, url) =>
                                     const CoverPlaceholder.static(),
                                 errorWidget: (context, url, error) =>

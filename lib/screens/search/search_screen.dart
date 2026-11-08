@@ -6,6 +6,7 @@ import '../../providers/books_provider.dart';
 import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
+import '../../widgets/cover_placeholder.dart';
 import 'widgets/trending_section.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
@@ -785,19 +786,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       itemCount: 8,
       itemBuilder: (_, __) {
-        final color = Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest;
+        // 骨架用已有的 CoverPlaceholder.shimmer（1500ms 渐变扫过），
+        // 不再用静态灰块；布局、数量、尺寸与原来一致。
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               flex: 3,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              child: const ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CoverPlaceholder.shimmer(),
               ),
             ),
             const SizedBox(height: 8),
@@ -808,21 +806,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 12,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(6),
+                    const ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: SizedBox(
+                        height: 12,
+                        width: double.infinity,
+                        child: CoverPlaceholder.shimmer(),
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Container(
-                      height: 10,
-                      width: 80,
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(5),
+                    const ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: SizedBox(
+                        height: 10,
+                        width: 80,
+                        child: CoverPlaceholder.shimmer(),
                       ),
                     ),
                   ],

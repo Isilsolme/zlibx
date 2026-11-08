@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/cover_cache.dart';
 import '../../utils/file_utils.dart';
 import '../../widgets/empty_state.dart';
 
@@ -187,9 +188,8 @@ class _DownloadItem extends ConsumerWidget {
                         ? CachedNetworkImage(
                             imageUrl: task.book.cover!,
                             fit: BoxFit.cover,
-                            memCacheWidth:
-                                (64 * MediaQuery.devicePixelRatioOf(context))
-                                    .ceil(),
+                            memCacheWidth: coverCacheWidth(64, context),
+                            memCacheHeight: coverCacheHeight(92, context),
                             errorWidget: (_, __, ___) => _coverPlaceholder(cs),
                           )
                         : _coverPlaceholder(cs),

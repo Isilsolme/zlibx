@@ -108,6 +108,7 @@ class _HistoryCoverThumb extends ConsumerWidget {
         height: 70,
         fit: BoxFit.cover,
         memCacheWidth: coverCacheWidth(50, context),
+        memCacheHeight: coverCacheHeight(70, context),
         placeholder: (context, url) => const CoverPlaceholder.static(),
         errorWidget: (context, url, error) {
           if (resolved == null) {

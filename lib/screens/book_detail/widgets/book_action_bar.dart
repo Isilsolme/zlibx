@@ -11,6 +11,7 @@ import '../../../services/media_store.dart';
 import '../../../services/update_service.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_snack.dart';
+import '../../../widgets/state_transition_switch.dart';
 import '../../../widgets/update_dialog.dart';
 import '../../reader/reader_screen.dart';
 import 'download_quota_dialog.dart';
@@ -90,13 +91,31 @@ class BookActionBar extends ConsumerWidget {
       label = l10n.get(S.download);
     }
 
+    // 按钮状态切换做淡入淡出：key 只区分状态（完成 / 下载中 / 待下载），
+    // 下载中的百分比用同一个 key，进度跳变不触发过渡。
+    final stateKey = isCompleted
+        ? 'completed'
+        : isDownloading
+            ? 'downloading'
+            : 'idle';
+    final iconWidget = StateTransitionSwitch(
+      child: Icon(icon, size: 20, key: ValueKey(icon)),
+    );
+    final labelWidget = StateTransitionSwitch(
+      child: Text(
+        label,
+        key: ValueKey(stateKey),
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+      ),
+    );
+
     if (isPrimary) {
       return ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 48),
         child: ElevatedButton.icon(
           onPressed: isDownloading ? null : () => _handleDownload(context, ref),
-          icon: Icon(icon, size: 20),
-          label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          icon: iconWidget,
+          label: labelWidget,
           style: ElevatedButton.styleFrom(
             backgroundColor: isCompleted ? cs.primaryContainer : cs.primary,
             foregroundColor: isCompleted ? cs.onPrimaryContainer : cs.onPrimary,
@@ -113,8 +132,8 @@ class BookActionBar extends ConsumerWidget {
       constraints: const BoxConstraints(minHeight: 48),
       child: OutlinedButton.icon(
         onPressed: isDownloading ? null : () => _handleDownload(context, ref),
-        icon: Icon(icon, size: 20),
-        label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+        icon: iconWidget,
+        label: labelWidget,
         style: OutlinedButton.styleFrom(
           foregroundColor: cs.primary,
           side: BorderSide(

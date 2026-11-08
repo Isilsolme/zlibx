@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../l10n/app_localizations.dart';
 import '../models/display_book.dart';
+import '../utils/cover_cache.dart';
 import 'book_cover_backdrop.dart';
 import 'cover_placeholder.dart';
 
@@ -194,19 +195,31 @@ class _BookCardState extends State<BookCard> {
 
     if (!_hasCover) return content();
 
-    // 首页只加载一次封面，保留原有加载和错误状态。
-    return CachedNetworkImage(
-      imageUrl: widget.book.cover!,
-      memCacheWidth: 300,
-      fadeInDuration: const Duration(milliseconds: 300),
-      fadeOutDuration: const Duration(milliseconds: 100),
-      httpHeaders: const {'Connection': 'keep-alive'},
-      imageBuilder: (context, imageProvider) {
-        return _maybeHero(content(image: imageProvider));
-      },
-      placeholder: (context, url) => content(loading: true),
-      errorWidget: (context, url, error) {
-        return content();
+    // 首页只加载一次封面，保留原有加载和错误状态。解码尺寸按
+    // 实际渲染尺寸算：宽是卡片宽，高由 BookCoverBackdrop 的
+    // 0.7 宽高比（见 heightFor）定。
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cacheWidth = coverCacheWidth(constraints.maxWidth, context);
+        final cacheHeight = coverCacheHeight(
+          BookCoverBackdrop.heightFor(constraints.maxWidth),
+          context,
+        );
+        return CachedNetworkImage(
+          imageUrl: widget.book.cover!,
+          memCacheWidth: cacheWidth,
+          memCacheHeight: cacheHeight,
+          fadeInDuration: const Duration(milliseconds: 300),
+          fadeOutDuration: const Duration(milliseconds: 100),
+          httpHeaders: const {'Connection': 'keep-alive'},
+          imageBuilder: (context, imageProvider) {
+            return _maybeHero(content(image: imageProvider));
+          },
+          placeholder: (context, url) => content(loading: true),
+          errorWidget: (context, url, error) {
+            return content();
+          },
+        );
       },
     );
   }
@@ -220,8 +233,7 @@ class _BookCardState extends State<BookCard> {
   Widget _buildFullCover() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final cacheWidth =
-            (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context)).ceil();
+        final cacheWidth = coverCacheWidth(constraints.maxWidth, context);
         final score = widget.book.score;
         final meta = widget.book.meta;
         final hasScore = score != null && score.isNotEmpty;

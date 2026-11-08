@@ -9,6 +9,7 @@ import '../../../providers/books_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../utils/app_snack.dart';
 import '../../../widgets/loading_widget.dart';
+import '../../../widgets/state_transition_switch.dart';
 import 'book_3d_cover.dart';
 
 class BookHeroSection extends ConsumerStatefulWidget {
@@ -107,21 +108,27 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
                     widget.isFavorited ? 'remove_favorite' : 'like',
                   ),
                   onPressed: _saving ? null : _toggleFavorite,
-                  icon: _saving
-                      ? LoadingWidget.inline(
-                          color: collapsed ? cs.primary : Colors.white,
-                        )
-                      : Icon(
-                          widget.isFavorited
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: collapsed
-                              ? (widget.isFavorited ? cs.primary : cs.onSurface)
-                              : (widget.isFavorited
-                                    ? const Color(0xFFFFA6B7)
-                                    : Colors.white),
-                          size: 22,
-                        ),
+                  icon: StateTransitionSwitch(
+                    child: _saving
+                        ? LoadingWidget.inline(
+                            key: const ValueKey('saving'),
+                            color: collapsed ? cs.primary : Colors.white,
+                          )
+                        : Icon(
+                            widget.isFavorited
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            key: ValueKey(
+                              widget.isFavorited ? 'favorited' : 'not-favorited',
+                            ),
+                            color: collapsed
+                                ? (widget.isFavorited ? cs.primary : cs.onSurface)
+                                : (widget.isFavorited
+                                      ? const Color(0xFFFFA6B7)
+                                      : Colors.white),
+                            size: 22,
+                          ),
+                  ),
                 ),
               ),
           ],

@@ -54,6 +54,7 @@ class BooklistCover extends StatelessWidget {
                   fit: BoxFit.cover,
                   // 封面按显示尺寸解码，避免整图占内存。
                   memCacheWidth: coverCacheWidth(width, context),
+                  memCacheHeight: coverCacheHeight(height, context),
                   placeholder: (_, __) => placeholder,
                   errorWidget: (_, __, ___) => placeholder,
                 ),

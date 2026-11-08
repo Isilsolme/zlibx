@@ -56,7 +56,16 @@ class BookDetailScreen extends ConsumerWidget {
     final book = details?.isLoading == true
         ? initialBook
         : details?.valueOrNull ?? initialBook;
-    final tasks = ref.watch(downloadProvider);
+    // 只订阅本书的任务：其他书的下载进度变化不再触发本页重建。
+    // 账号额度提醒仍在下面用 ref.listen 监听整个列表，不受影响。
+    final downloadTask = ref.watch(
+      downloadProvider.select((tasks) {
+        for (final task in tasks) {
+          if (task.id == book.id.toString()) return task;
+        }
+        return null;
+      }),
+    );
 
     // 本书下载因账号额度用尽失败时弹一次提醒
     ref.listen<List<DownloadTask>>(downloadProvider, (prev, next) {
@@ -65,14 +74,6 @@ class BookDetailScreen extends ConsumerWidget {
           list?.any((t) => t.id == id && t.quotaExceeded) ?? false;
       if (quotaHit(next) && !quotaHit(prev)) showDownloadQuotaDialog(context);
     });
-
-    DownloadTask? downloadTask;
-    for (final task in tasks) {
-      if (task.id == book.id.toString()) {
-        downloadTask = task;
-        break;
-      }
-    }
 
     final isDownloading = downloadTask?.status == DownloadStatus.downloading;
     final isCompleted = downloadTask?.status == DownloadStatus.completed;
