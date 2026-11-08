@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../models/display_book.dart';
@@ -528,9 +529,10 @@ class HistoryCoverNotifier extends Notifier<Map<String, String>> {
       if (response.success && cover != null && cover.isNotEmpty) {
         state = {...state, id: cover};
       }
-    } catch (_) {
+    } catch (error) {
       // No usable cover: keep the placeholder. _attempted prevents
       // retry loops when the row rebuilds.
+      debugPrint('[history_cover] ignored ${error.runtimeType}');
     }
   }
 }
