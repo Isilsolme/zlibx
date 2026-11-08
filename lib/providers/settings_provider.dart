@@ -11,11 +11,14 @@ enum AppThemeMode {
 }
 
 /// Theme mode notifier
-class ThemeModeNotifier extends StateNotifier<AppThemeMode> {
-  final StorageService _storage;
+class ThemeModeNotifier extends Notifier<AppThemeMode> {
+  late final StorageService _storage;
 
-  ThemeModeNotifier(this._storage) : super(AppThemeMode.system) {
+  @override
+  AppThemeMode build() {
+    _storage = ref.read(storageServiceProvider);
     _loadThemeMode();
+    return AppThemeMode.system;
   }
 
   Future<void> _loadThemeMode() async {
@@ -42,16 +45,17 @@ class ThemeModeNotifier extends StateNotifier<AppThemeMode> {
 
 /// Theme mode provider
 final themeModeProvider =
-    StateNotifierProvider<ThemeModeNotifier, AppThemeMode>((ref) {
-  return ThemeModeNotifier(ref.watch(storageServiceProvider));
-});
+    NotifierProvider<ThemeModeNotifier, AppThemeMode>(ThemeModeNotifier.new);
 
 /// Download path notifier for custom download directory (Android only)
-class DownloadPathNotifier extends StateNotifier<String?> {
-  final StorageService _storage;
-  
-  DownloadPathNotifier(this._storage) : super(null) {
+class DownloadPathNotifier extends Notifier<String?> {
+  late final StorageService _storage;
+
+  @override
+  String? build() {
+    _storage = ref.read(storageServiceProvider);
     _init();
+    return null;
   }
   
   Future<void> _init() async {
@@ -71,22 +75,23 @@ class DownloadPathNotifier extends StateNotifier<String?> {
 }
 
 /// Download path provider
-final downloadPathProvider = 
-    StateNotifierProvider<DownloadPathNotifier, String?>((ref) {
-  return DownloadPathNotifier(ref.watch(storageServiceProvider));
-});
+final downloadPathProvider =
+    NotifierProvider<DownloadPathNotifier, String?>(DownloadPathNotifier.new);
 
 /// Locale notifier for managing app language
-class LocaleNotifier extends StateNotifier<Locale?> {
-  LocaleNotifier() : super(null) {
-    _loadLocale();
-  }
+class LocaleNotifier extends Notifier<Locale?> {
+  @override
+  Locale? build() => _loadLocale();
 
-  Future<void> _loadLocale() async {
+  /// Sync Hive read; returns the persisted locale as the initial state
+  /// instead of assigning it (a state assignment inside build() would
+  /// be overwritten by build()'s return value).
+  Locale? _loadLocale() {
     final key = HiveService.settingsBox.get('locale');
     if (key != null && key is String) {
-      state = parseLocaleKey(key);
+      return parseLocaleKey(key);
     }
+    return null;
   }
 
   Future<void> setLocale(Locale? locale) async {
@@ -107,9 +112,8 @@ class LocaleNotifier extends StateNotifier<Locale?> {
 }
 
 /// Locale provider
-final localeProvider = StateNotifierProvider<LocaleNotifier, Locale?>((ref) {
-  return LocaleNotifier();
-});
+final localeProvider =
+    NotifierProvider<LocaleNotifier, Locale?>(LocaleNotifier.new);
 
 /// Available font options
 enum AppFontFamily {
@@ -124,19 +128,21 @@ enum AppFontFamily {
 }
 
 /// Font family notifier for managing app font
-class FontFamilyNotifier extends StateNotifier<AppFontFamily> {
-  FontFamilyNotifier() : super(AppFontFamily.poppins) {
-    _loadFontFamily();
-  }
+class FontFamilyNotifier extends Notifier<AppFontFamily> {
+  @override
+  AppFontFamily build() => _loadFontFamily();
 
-  Future<void> _loadFontFamily() async {
+  /// Sync Hive read; returns the persisted font as the initial state
+  /// instead of assigning it (see LocaleNotifier).
+  AppFontFamily _loadFontFamily() {
     final fontKey = HiveService.settingsBox.get('fontFamily');
     if (fontKey != null && fontKey is String) {
-      state = AppFontFamily.values.firstWhere(
+      return AppFontFamily.values.firstWhere(
         (f) => f.name == fontKey,
         orElse: () => AppFontFamily.poppins,
       );
     }
+    return AppFontFamily.poppins;
   }
 
   Future<void> setFontFamily(AppFontFamily font) async {
@@ -146,20 +152,21 @@ class FontFamilyNotifier extends StateNotifier<AppFontFamily> {
 }
 
 /// Font family provider
-final fontFamilyProvider = StateNotifierProvider<FontFamilyNotifier, AppFontFamily>((ref) {
-  return FontFamilyNotifier();
-});
+final fontFamilyProvider =
+    NotifierProvider<FontFamilyNotifier, AppFontFamily>(FontFamilyNotifier.new);
 
 /// Blur effect notifier — whether the glass header and bottom nav bar use
 /// a backdrop blur (on) or a solid surface (off). Default on.
-class BlurNotifier extends StateNotifier<bool> {
-  BlurNotifier() : super(true) {
-    _loadBlurEnabled();
-  }
+class BlurNotifier extends Notifier<bool> {
+  @override
+  bool build() => _loadBlurEnabled();
 
-  Future<void> _loadBlurEnabled() async {
+  /// Sync Hive read; returns the persisted value as the initial state
+  /// instead of assigning it (see LocaleNotifier).
+  bool _loadBlurEnabled() {
     final v = HiveService.settingsBox.get('blurEnabled');
-    if (v is bool) state = v;
+    if (v is bool) return v;
+    return true;
   }
 
   Future<void> setBlurEnabled(bool value) async {
@@ -170,21 +177,21 @@ class BlurNotifier extends StateNotifier<bool> {
 
 /// Blur effect provider
 final blurEnabledProvider =
-    StateNotifierProvider<BlurNotifier, bool>((ref) {
-  return BlurNotifier();
-});
+    NotifierProvider<BlurNotifier, bool>(BlurNotifier.new);
 
 /// Floating navigation bar — whether the bottom nav bar floats as a
 /// detached rounded pill (on) or spans the full width attached to the
 /// bottom edge (off). Default on.
-class FloatingNavNotifier extends StateNotifier<bool> {
-  FloatingNavNotifier() : super(true) {
-    _loadFloatingNav();
-  }
+class FloatingNavNotifier extends Notifier<bool> {
+  @override
+  bool build() => _loadFloatingNav();
 
-  Future<void> _loadFloatingNav() async {
+  /// Sync Hive read; returns the persisted value as the initial state
+  /// instead of assigning it (see LocaleNotifier).
+  bool _loadFloatingNav() {
     final v = HiveService.settingsBox.get('floatingNav');
-    if (v is bool) state = v;
+    if (v is bool) return v;
+    return true;
   }
 
   Future<void> setFloatingNav(bool value) async {
@@ -195,21 +202,21 @@ class FloatingNavNotifier extends StateNotifier<bool> {
 
 /// Floating navigation bar provider
 final floatingNavProvider =
-    StateNotifierProvider<FloatingNavNotifier, bool>((ref) {
-  return FloatingNavNotifier();
-});
+    NotifierProvider<FloatingNavNotifier, bool>(FloatingNavNotifier.new);
 
 /// Hide the floating nav bar on scroll down — whether the floating bar
 /// slides away while scrolling down and returns on scroll up. Only
 /// applies while the floating bar is on. Default on.
-class HideNavOnScrollNotifier extends StateNotifier<bool> {
-  HideNavOnScrollNotifier() : super(true) {
-    _loadHideNavOnScroll();
-  }
+class HideNavOnScrollNotifier extends Notifier<bool> {
+  @override
+  bool build() => _loadHideNavOnScroll();
 
-  Future<void> _loadHideNavOnScroll() async {
+  /// Sync Hive read; returns the persisted value as the initial state
+  /// instead of assigning it (see LocaleNotifier).
+  bool _loadHideNavOnScroll() {
     final v = HiveService.settingsBox.get('hideNavOnScroll');
-    if (v is bool) state = v;
+    if (v is bool) return v;
+    return true;
   }
 
   Future<void> setHideNavOnScroll(bool value) async {
@@ -220,10 +227,16 @@ class HideNavOnScrollNotifier extends StateNotifier<bool> {
 
 /// Hide-on-scroll provider
 final hideNavOnScrollProvider =
-    StateNotifierProvider<HideNavOnScrollNotifier, bool>((ref) {
-  return HideNavOnScrollNotifier();
-});
+    NotifierProvider<HideNavOnScrollNotifier, bool>(
+      HideNavOnScrollNotifier.new,
+    );
 
 /// Whether the bottom nav bar is currently visible. Driven by the home
 /// grid's scroll direction (transient UI state, not persisted).
-final navBarVisibleProvider = StateProvider<bool>((ref) => true);
+class NavBarVisibleNotifier extends Notifier<bool> {
+  @override
+  bool build() => true;
+}
+
+final navBarVisibleProvider =
+    NotifierProvider<NavBarVisibleNotifier, bool>(NavBarVisibleNotifier.new);

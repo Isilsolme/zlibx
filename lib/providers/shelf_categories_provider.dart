@@ -25,8 +25,9 @@ class ShelfCategoriesState {
       items.where((item) => categoryFor(item) == categoryId).length;
 }
 
-class ShelfCategoriesNotifier extends StateNotifier<ShelfCategoriesState> {
-  ShelfCategoriesNotifier() : super(_load());
+class ShelfCategoriesNotifier extends Notifier<ShelfCategoriesState> {
+  @override
+  ShelfCategoriesState build() => _load();
 
   static const _storageKey = 'shelf_categories_v1';
 
@@ -135,6 +136,6 @@ class ShelfCategoriesNotifier extends StateNotifier<ShelfCategoriesState> {
 }
 
 final shelfCategoriesProvider =
-    StateNotifierProvider<ShelfCategoriesNotifier, ShelfCategoriesState>(
-      (ref) => ShelfCategoriesNotifier(),
+    NotifierProvider<ShelfCategoriesNotifier, ShelfCategoriesState>(
+      ShelfCategoriesNotifier.new,
     );

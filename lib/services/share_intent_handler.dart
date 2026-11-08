@@ -9,8 +9,15 @@ import 'booklist_share_codec.dart';
 
 /// 待处理的入站书单（来自系统分享 / 深链 / 文件关联）。
 /// 由 FavoritesScreen 监听并消费，消费后置 null。
+class PendingBooklistImportNotifier extends Notifier<BooklistShareData?> {
+  @override
+  BooklistShareData? build() => null;
+}
+
 final pendingBooklistImportProvider =
-    StateProvider<BooklistShareData?>((ref) => null);
+    NotifierProvider<PendingBooklistImportNotifier, BooklistShareData?>(
+      PendingBooklistImportNotifier.new,
+    );
 
 class ShareIntentHandler {
   final Ref _ref;

@@ -71,22 +71,23 @@ final domainListProvider = Provider<List<String>>((ref) {
   return kBuiltInDomains;
 });
 
-final domainProvider = StateNotifierProvider<DomainNotifier, String>((ref) {
-  final api = ref.watch(zlibraryApiProvider);
-  return DomainNotifier(api, ref);
-});
+final domainProvider =
+    NotifierProvider<DomainNotifier, String>(DomainNotifier.new);
 
-class DomainNotifier extends StateNotifier<String> {
-  final ZLibraryApi _api;
-  final Ref _ref;
+class DomainNotifier extends Notifier<String> {
+  late final ZLibraryApi _api;
 
-  DomainNotifier(this._api, this._ref) : super(_initialDomain()) {
-    if (HiveService.settingsBox.get('domain') != state) {
-      HiveService.settingsBox.put('domain', state);
+  @override
+  String build() {
+    _api = ref.read(zlibraryApiProvider);
+    final initial = _initialDomain();
+    if (HiveService.settingsBox.get('domain') != initial) {
+      HiveService.settingsBox.put('domain', initial);
     }
     // Ensure API is in sync with initial state (no side effects: auth init
     // handles cookie setup on first boot).
-    _api.setDomain(state);
+    _api.setDomain(initial);
+    return initial;
   }
 
   static String _initialDomain() {
@@ -185,19 +186,19 @@ class DomainNotifier extends StateNotifier<String> {
       // Cookies are domain-scoped — re-issue remix_userid/remix_userkey on the
       // new domain and re-fetch profile. This also clears the lineUnavailable
       // flag on success.
-      await _ref.read(authProvider.notifier).reverify();
+      await ref.read(authProvider.notifier).reverify();
     } else {
       // Custom domain: do NOT send the stored session here. Flag the line
       // unavailable so the user explicitly logs in again if they trust it.
-      _ref.read(authProvider.notifier).flagLineUnavailable();
+      ref.read(authProvider.notifier).flagLineUnavailable();
     }
     // Bust caches for anything that depends on the line. List individual
     // providers explicitly so adding a new one is a deliberate decision.
-    _ref.invalidate(bookDetailsProvider);
-    _ref.invalidate(recommendedBooksProvider);
-    _ref.invalidate(mostPopularBooksProvider);
-    _ref.invalidate(recentBooksProvider);
-    _ref.invalidate(downloadedBooksProvider);
-    _ref.invalidate(savedBooksProvider);
+    ref.invalidate(bookDetailsProvider);
+    ref.invalidate(recommendedBooksProvider);
+    ref.invalidate(mostPopularBooksProvider);
+    ref.invalidate(recentBooksProvider);
+    ref.invalidate(downloadedBooksProvider);
+    ref.invalidate(savedBooksProvider);
   }
 }

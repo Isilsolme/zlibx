@@ -70,12 +70,16 @@ class SearchState {
   }
 }
 
-class SearchNotifier extends StateNotifier<SearchState> {
-  final ZLibraryApi _api;
+class SearchNotifier extends Notifier<SearchState> {
+  late final ZLibraryApi _api;
   SearchParams? _lastParams;
   int _requestId = 0;
 
-  SearchNotifier(this._api) : super(const SearchState());
+  @override
+  SearchState build() {
+    _api = ref.read(zlibraryApiProvider);
+    return const SearchState();
+  }
 
   /// 统一取数入口，search / loadMore 共用。
   Future<ApiResponse<List<Book>>> _fetch(SearchParams params, int page) async {
@@ -152,12 +156,8 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 }
 
-final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((
-  ref,
-) {
-  final api = ref.watch(zlibraryApiProvider);
-  return SearchNotifier(api);
-});
+final searchProvider =
+    NotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
 
 // ── Book Details ────────────────────────────────────────────────────
 
@@ -228,18 +228,20 @@ class ExternalSearchState {
   }
 }
 
-class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
-  final AnnasArchieve _annasApi;
-  SearchProvider _provider;
-  BookSource _source;
+class ExternalSearchNotifier extends Notifier<ExternalSearchState> {
+  late final AnnasArchieve _annasApi;
+  late SearchProvider _provider;
+  late BookSource _source;
   String? _lastQuery;
   int _requestId = 0;
 
-  ExternalSearchNotifier({required AnnasArchieve annasApi})
-      : _annasApi = annasApi,
-        _provider = AnnasArchiveProvider(api: annasApi),
-        _source = BookSource.annasArchive,
-        super(const ExternalSearchState());
+  @override
+  ExternalSearchState build() {
+    _annasApi = ref.read(annasArchieveProvider);
+    _provider = AnnasArchiveProvider(api: _annasApi);
+    _source = BookSource.annasArchive;
+    return const ExternalSearchState();
+  }
 
   SearchProvider _providerFor(BookSource source) => source == BookSource.libgen
       ? LibgenProvider()
@@ -325,11 +327,9 @@ class ExternalSearchNotifier extends StateNotifier<ExternalSearchState> {
 }
 
 final externalSearchProvider =
-    StateNotifierProvider<ExternalSearchNotifier, ExternalSearchState>((ref) {
-      return ExternalSearchNotifier(
-        annasApi: ref.watch(annasArchieveProvider),
-      );
-    });
+    NotifierProvider<ExternalSearchNotifier, ExternalSearchState>(
+      ExternalSearchNotifier.new,
+    );
 
 /// Shared [AnnasArchieve] instance: its Dio (and connection pool) is
 /// reused across detail and search requests instead of being rebuilt
@@ -421,13 +421,16 @@ final recentBooksProvider = FutureProvider<List<Book>>((ref) async {
 
 // ── Saved Books ─────────────────────────────────────────────────────
 
-class SavedBooksNotifier extends StateNotifier<AsyncValue<List<Book>>> {
-  final ZLibraryApi _api;
-  final StorageService _storage;
+class SavedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
+  late final ZLibraryApi _api;
+  late final StorageService _storage;
 
-  SavedBooksNotifier(this._api, this._storage)
-    : super(const AsyncValue.loading()) {
+  @override
+  AsyncValue<List<Book>> build() {
+    _api = ref.read(zlibraryApiProvider);
+    _storage = ref.read(storageServiceProvider);
     loadSavedBooks();
+    return const AsyncValue.loading();
   }
 
   Future<void> loadSavedBooks() async {
@@ -488,11 +491,9 @@ class SavedBooksNotifier extends StateNotifier<AsyncValue<List<Book>>> {
 }
 
 final savedBooksProvider =
-    StateNotifierProvider<SavedBooksNotifier, AsyncValue<List<Book>>>((ref) {
-      final api = ref.watch(zlibraryApiProvider);
-      final storage = ref.watch(storageServiceProvider);
-      return SavedBooksNotifier(api, storage);
-    });
+    NotifierProvider<SavedBooksNotifier, AsyncValue<List<Book>>>(
+      SavedBooksNotifier.new,
+    );
 
 // ── Downloaded Books ────────────────────────────────────────────────
 

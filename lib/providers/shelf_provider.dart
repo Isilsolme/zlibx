@@ -5,7 +5,13 @@ import '../models/unified_shelf_item.dart';
 import 'books_provider.dart';
 
 /// 书架来源筛选状态
-final shelfFilterProvider = StateProvider<ShelfSource?>((ref) => null);
+class ShelfFilterNotifier extends Notifier<ShelfSource?> {
+  @override
+  ShelfSource? build() => null;
+}
+
+final shelfFilterProvider =
+    NotifierProvider<ShelfFilterNotifier, ShelfSource?>(ShelfFilterNotifier.new);
 
 /// 统一书架 — z站收藏
 final unifiedShelfProvider = Provider<AsyncValue<List<UnifiedShelfItem>>>((

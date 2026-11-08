@@ -42,17 +42,21 @@ class AuthState {
 }
 
 /// Auth state notifier
-class AuthNotifier extends StateNotifier<AuthState> {
-  final ZLibraryApi _api;
+class AuthNotifier extends Notifier<AuthState> {
+  late final ZLibraryApi _api;
   final AuthStorage _storage = AuthStorage();
 
-  AuthNotifier(this._api) : super(AuthState(isLoading: true)) {
+  @override
+  AuthState build() {
+    _api = ref.read(zlibraryApiProvider);
     _init();
+    return AuthState(isLoading: true);
   }
 
   Future<void> _init() async {
-    state = state.copyWith(isLoading: true);
-
+    // No `state = state.copyWith(isLoading: true)` here: build() already
+    // returns AuthState(isLoading: true) as the initial state, and reading
+    // state inside build() would throw (not yet initialized).
     try {
       final credentials = await _storage.getCredentials();
       final userId = credentials['userId'];
@@ -268,7 +272,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 /// Auth state provider
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  final api = ref.watch(zlibraryApiProvider);
-  return AuthNotifier(api);
-});
+final authProvider =
+    NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);

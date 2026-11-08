@@ -87,9 +87,9 @@ class DownloadLimitReachedException implements Exception {
   String toString() => 'DownloadLimitReachedException';
 }
 
-class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
-  final ZLibraryApi _api;
-  final StorageService _storage;
+class DownloadNotifier extends Notifier<List<DownloadTask>> {
+  late final ZLibraryApi _api;
+  late final StorageService _storage;
   final Map<String, CancelToken> _cancelTokens = {};
 
   /// Throttle for progress ticks: Dio can fire dozens of callbacks per
@@ -103,9 +103,13 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
   late final Future<void> ready;
 
-  DownloadNotifier(this._api, this._storage) : super([]) {
+  @override
+  List<DownloadTask> build() {
+    _api = ref.read(zlibraryApiProvider);
+    _storage = ref.read(storageServiceProvider);
     // Load persisted download history on initialization
     ready = _loadDownloadHistory();
+    return [];
   }
 
   /// Load completed downloads from storage on app startup
@@ -642,8 +646,6 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 }
 
 final downloadProvider =
-    StateNotifierProvider<DownloadNotifier, List<DownloadTask>>((ref) {
-      final api = ref.watch(zlibraryApiProvider);
-      final storage = ref.watch(storageServiceProvider);
-      return DownloadNotifier(api, storage);
-    });
+    NotifierProvider<DownloadNotifier, List<DownloadTask>>(
+      DownloadNotifier.new,
+    );

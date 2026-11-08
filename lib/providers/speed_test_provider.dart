@@ -53,18 +53,19 @@ class SpeedTestState {
   }
 }
 
-class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
-  final List<String> _domains;
+class SpeedTestNotifier extends Notifier<SpeedTestState> {
+  late final List<String> _domains;
 
   /// Max concurrent requests to avoid flooding the network.
   static const int _maxConcurrent = 8;
 
-  SpeedTestNotifier(this._domains) : super(const SpeedTestState()) {
-    _initResults();
-  }
-
-  void _initResults() {
-    state = SpeedTestState(
+  @override
+  SpeedTestState build() {
+    _domains = ref.read(domainListProvider);
+    // Was _initResults(): the initial results list is the initial state
+    // itself (a state assignment inside build() would be overwritten by
+    // its return value).
+    return SpeedTestState(
       results: _domains.map((d) => DomainTestResult(d)).toList(),
     );
   }
@@ -166,7 +167,4 @@ class SpeedTestNotifier extends StateNotifier<SpeedTestState> {
 
 /// Global speed test state — cached across the app lifecycle.
 final speedTestProvider =
-    StateNotifierProvider<SpeedTestNotifier, SpeedTestState>((ref) {
-      final domains = ref.watch(domainListProvider);
-      return SpeedTestNotifier(domains);
-    });
+    NotifierProvider<SpeedTestNotifier, SpeedTestState>(SpeedTestNotifier.new);
