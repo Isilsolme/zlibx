@@ -49,6 +49,9 @@ class BooklistDetailScreen extends ConsumerStatefulWidget {
 class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   final ScrollController _scrollController = ScrollController();
   final List<Book> _books = [];
+  // Keep membership checks O(1) while pages are appended. Rebuilding a Set
+  // from the full list for every page made long lists increasingly expensive.
+  final Set<int> _bookIds = <int>{};
   int _nextPage = 1;
   bool _hasMore = true;
   bool _isLoading = true;
@@ -103,6 +106,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       _isLoading = preview.isEmpty && !hasCachedBooks;
       _hasError = false;
       _books.clear();
+      _bookIds.clear();
       // Page 1 comes from the detail HTML, so the JSON pages start at 2.
       _nextPage = 2;
       _hasMore = true;
@@ -180,9 +184,8 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     setState(() {
       // Merge by id: the carousel preview and the detail HTML carry
       // the same books — adding both would duplicate the rows.
-      final seen = _books.map((book) => book.id).toSet();
       for (final book in books) {
-        if (seen.add(book.id)) _books.add(book);
+        if (_bookIds.add(book.id)) _books.add(book);
       }
       // The list knows its total (quantity); a short first page means
       // there are JSON pages after it. Unknown total: assume there may
@@ -314,9 +317,8 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     setState(() {
       _isLoadingMore = true;
       if (cachedPage != null) {
-        final seen = _books.map((book) => book.id).toSet();
         for (final book in cachedPage) {
-          if (seen.add(book.id)) _books.add(book);
+          if (_bookIds.add(book.id)) _books.add(book);
         }
       }
     });
@@ -337,9 +339,8 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
         setState(() {
           // Merge by id: the cached page and the fresh page carry
           // the same books — adding both would duplicate the rows.
-          final seen = _books.map((book) => book.id).toSet();
           for (final book in data.books) {
-            if (seen.add(book.id)) _books.add(book);
+            if (_bookIds.add(book.id)) _books.add(book);
           }
           _hasMore = page < data.totalPages;
           _nextPage = page + 1;
