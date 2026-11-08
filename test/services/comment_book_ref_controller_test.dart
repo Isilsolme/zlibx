@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
@@ -7,7 +6,7 @@ import 'package:zlibx/screens/account/comment_book_ref_controller.dart';
 /// [CommentBookRefController] 的行为测试：预取去重、上限、单本失败
 /// 继续跑、跳详情缓存命中 / 现场反查 / 防重点 / 失败回调。
 ///
-/// fake 的 search 约定：书名传 "Book #<id>"，按 id 回应同 id 的
+/// fake 的 search 约定：书名传 "Book #`<id>`"，按 id 回应同 id 的
 /// [Book]（hash/cover 都带上）——[resolveCommentBookRef] 是按
 /// `book.id == bookId` 匹配的，与真实接口的匹配方式一致。
 class _FakeZLibraryApi implements ZLibraryApi {
@@ -45,7 +44,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
     return ApiResponse.ok([
       Book(
         id: id,
-        title: message!,
+        title: message,
         hash: 'hash-$id',
         cover: 'cover-$id',
       ),

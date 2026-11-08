@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';

@@ -323,8 +323,8 @@ class _ShelfCover extends StatelessWidget {
             borderRadius: borderRadius,
             child: cover?.isNotEmpty == true
                 ? (heroTag == null
-                      ? _coverImage()
-                      : Hero(tag: heroTag!, child: _coverImage()))
+                      ? _coverImage(cacheWidth)
+                      : Hero(tag: heroTag!, child: _coverImage(cacheWidth)))
                 : const CoverPlaceholder.static(),
           ),
         );
@@ -332,7 +332,7 @@ class _ShelfCover extends StatelessWidget {
     );
   }
 
-  Widget _coverImage() {
+  Widget _coverImage(int cacheWidth) {
     return CachedNetworkImage(
       imageUrl: cover!,
       fit: BoxFit.cover,
