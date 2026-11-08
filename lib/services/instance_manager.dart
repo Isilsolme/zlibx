@@ -110,24 +110,45 @@ class InstanceManager {
   // User preferences (per service, keyed by host).
   // ------------------------------------------------------------------
 
+  /// In-memory copy of the host maps (disabled hosts, manual order), so
+  /// a search does not pay a Hive read + jsonDecode on every request.
+  /// [_readHostMap] always hands out a copy, so callers can never mutate
+  /// the cached data; [_writeHostMap] drops the entry, so the next read
+  /// re-reads from the store.
+  final Map<String, Map<String, List<String>>> _hostMapCache = {};
+
   Future<Map<String, List<String>>> _readHostMap(String key) async {
+    final cached = _hostMapCache[key];
+    if (cached != null) return _copyHostMap(cached);
     try {
       final raw = await _store?.read(key);
       if (raw is! String || raw.isEmpty) return {};
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return {
+      final map = <String, List<String>>{
         for (final entry in decoded.entries)
           if (entry.value is List)
             entry.key: [for (final v in entry.value as List) v.toString()],
       };
+      _hostMapCache[key] = map;
+      return _copyHostMap(map);
     } catch (error) {
       debugPrint('[instance_manager] ignored ${error.runtimeType}');
       return {};
     }
   }
 
+  static Map<String, List<String>> _copyHostMap(
+    Map<String, List<String>> map,
+  ) {
+    return {
+      for (final entry in map.entries) entry.key: [...entry.value],
+    };
+  }
+
   Future<void> _writeHostMap(String key, Map<String, List<String>> map) async {
     await _store?.write(key, jsonEncode(map));
+    // The stored value changed, so the cached copy is stale.
+    _hostMapCache.remove(key);
   }
 
   /// Hosts the user switched off for [service].
@@ -192,7 +213,15 @@ class InstanceManager {
     final sites = await _catalogue.sites(service, force: force);
     final ordered = SlumCatalogue.sortAuto(sites);
 
-    final auto = await isAutoMode();
+    // The auto-mode flag and the disabled list are needed in both modes
+    // and do not depend on each other, so they are read together; the
+    // manual order is only read when auto mode is off.
+    final results = await Future.wait([
+      isAutoMode(),
+      disabledHosts(service),
+    ]);
+    final auto = results[0] as bool;
+    final disabled = results[1] as Set<String>;
     final List<SlumSite> finalOrder;
     if (auto) {
       finalOrder = ordered;
@@ -208,7 +237,6 @@ class InstanceManager {
       finalOrder = result;
     }
 
-    final disabled = await disabledHosts(service);
     return [
       for (final site in finalOrder)
         InstanceView(

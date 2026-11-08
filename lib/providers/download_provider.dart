@@ -91,6 +91,16 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   final ZLibraryApi _api;
   final StorageService _storage;
   final Map<String, CancelToken> _cancelTokens = {};
+
+  /// Throttle for progress ticks: Dio can fire dozens of callbacks per
+  /// second, and every publish rebuilds the whole task list for every
+  /// listener. A tick is published only when progress moved >= 1% or
+  /// >= 200 ms passed since the last publish for that task. Terminal
+  /// transitions (completed / error / cancelled) never go through here,
+  /// so they are always published immediately.
+  final Map<String, double> _lastPublishedProgress = {};
+  final Map<String, DateTime> _lastPublishedAt = {};
+
   late final Future<void> ready;
 
   DownloadNotifier(this._api, this._storage) : super([]) {
@@ -102,52 +112,18 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   Future<void> _loadDownloadHistory() async {
     try {
       final history = await _storage.getDownloadHistory();
-      final List<DownloadTask> loadedTasks = [];
-
-      for (final entry in history.entries) {
-        final bookId = entry.key;
-        final data = entry.value as Map<String, dynamic>;
-
-        final filePath = data['filePath'] as String?;
-
-        // Only add if file still exists (content:// URIs from
-        // MediaStore publishes are checked through the resolver).
-        if (filePath != null) {
-          final file = File(filePath);
-          final fileExists = await MediaStoreFiles.exists(filePath);
-
-          // Create a minimal Book object from stored data
-          final book = Book(
-            id: int.tryParse(bookId) ?? 0,
-            title: data['title'] as String? ?? 'Unknown',
-            author: data['author'] as String?,
-            cover: data['cover'] as String?,
-            extension: data['extension'] as String?,
-          );
-
-          loadedTasks.add(
-            DownloadTask(
-              id: bookId,
-              book: book,
-              progress: 1.0,
-              status: fileExists
-                  ? DownloadStatus.completed
-                  : DownloadStatus.error,
-              filePath: filePath,
-              error: fileExists ? null : 'File not found',
-              downloadedAt: DateTime.tryParse(
-                data['downloadTime']?.toString() ?? '',
-              ),
-              // MediaStore content URIs have no local File to measure,
-              // so the size stays unknown for history-loaded entries.
-              fileSize: fileExists && !MediaStoreFiles.isContentUri(filePath)
-                  ? await file.length()
-                  : null,
-              missingFile: !fileExists,
-            ),
-          );
-        }
-      }
+      // Entries are independent, so they load in parallel; Future.wait
+      // keeps the result order, so the task order matches the old
+      // serial loop exactly.
+      final tasks = await Future.wait(
+        history.entries.map(
+          (entry) => _taskFromHistoryEntry(
+            entry.key,
+            entry.value as Map<String, dynamic>,
+          ),
+        ),
+      );
+      final loadedTasks = [for (final task in tasks) if (task != null) task];
 
       // Update state with loaded tasks
       if (loadedTasks.isNotEmpty) {
@@ -157,6 +133,47 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
       // History failure should not break new downloads.
       debugPrint('Could not load download history: ${e.runtimeType}');
     }
+  }
+
+  /// Builds one history task from its stored entry, or null when the
+  /// entry has no file path. Kept separate so [_loadDownloadHistory]
+  /// can load entries in parallel with [Future.wait]; within one entry
+  /// the order is unchanged (existence is checked before measuring the
+  /// file, and the length is only measured for a non-content URI that
+  /// exists).
+  Future<DownloadTask?> _taskFromHistoryEntry(
+    String bookId,
+    Map<String, dynamic> data,
+  ) async {
+    final filePath = data['filePath'] as String?;
+    if (filePath == null) return null;
+    final file = File(filePath);
+    final fileExists = await MediaStoreFiles.exists(filePath);
+
+    // Create a minimal Book object from stored data
+    final book = Book(
+      id: int.tryParse(bookId) ?? 0,
+      title: data['title'] as String? ?? 'Unknown',
+      author: data['author'] as String?,
+      cover: data['cover'] as String?,
+      extension: data['extension'] as String?,
+    );
+
+    return DownloadTask(
+      id: bookId,
+      book: book,
+      progress: 1.0,
+      status: fileExists ? DownloadStatus.completed : DownloadStatus.error,
+      filePath: filePath,
+      error: fileExists ? null : 'File not found',
+      downloadedAt: DateTime.tryParse(data['downloadTime']?.toString() ?? ''),
+      // MediaStore content URIs have no local File to measure,
+      // so the size stays unknown for history-loaded entries.
+      fileSize: fileExists && !MediaStoreFiles.isContentUri(filePath)
+          ? await file.length()
+          : null,
+      missingFile: !fileExists,
+    );
   }
 
   /// 下载保存目录（各平台统一入口，下载与「文件已存在」判断共用）。
@@ -198,18 +215,21 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
   /// Check if file already exists for a book
   /// Returns the file path if exists, null otherwise
   Future<String?> checkFileExists(Book book) async {
-    // First check download history
-    final historyPath = await _storage.getDownloadedFilePath(
-      book.id.toString(),
-    );
-    if (historyPath != null) {
-      if (await MediaStoreFiles.exists(historyPath)) {
-        return historyPath;
-      }
+    // The history lookup and the save-path build do not depend on each
+    // other, so they run together; existence is then checked in the
+    // same priority order as before (history first, then save path).
+    final results = await Future.wait([
+      _storage.getDownloadedFilePath(book.id.toString()),
+      _buildSavePath(book),
+    ]);
+    final historyPath = results[0];
+    final savePath = results[1];
+    if (historyPath != null &&
+        await MediaStoreFiles.exists(historyPath)) {
+      return historyPath;
     }
 
     // Also check if file exists in download directory (may have been downloaded elsewhere)
-    final savePath = await _buildSavePath(book);
     if (savePath != null) {
       final file = File(savePath);
       if (await file.exists()) {
@@ -335,7 +355,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
           onProgress: (received, total) {
             if (total != -1) {
               final progress = received / total;
-              _updateTask(id, (t) => t.copyWith(progress: progress));
+              _updateProgress(id, progress);
             }
           },
           cancelToken: cancelToken,
@@ -350,7 +370,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
             onProgress: (received, total) {
               if (total != -1) {
                 final progress = received / total;
-                _updateTask(id, (t) => t.copyWith(progress: progress));
+                _updateProgress(id, progress);
               }
             },
             cancelToken: cancelToken,
@@ -420,6 +440,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
           fileSize: fileSize,
         ),
       );
+      _clearProgressThrottle(id);
     } on DownloadLimitReachedException catch (e) {
       if (!cancelToken.isCancelled) {
         _updateTask(
@@ -430,6 +451,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
             quotaExceeded: true,
           ),
         );
+        _clearProgressThrottle(id);
       }
     } catch (e) {
       if (!cancelToken.isCancelled) {
@@ -437,6 +459,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
           id,
           (t) => t.copyWith(status: DownloadStatus.error, error: e.toString()),
         );
+        _clearProgressThrottle(id);
       }
     } finally {
       // Keep the partial file after a failure so the next retry resumes
@@ -537,6 +560,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     if (token == null) return;
     token.cancel();
     _updateTask(id, (t) => t.copyWith(status: DownloadStatus.cancelled));
+    _clearProgressThrottle(id);
   }
 
   void markMissingFile(String id) {
@@ -568,6 +592,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
     // Remove from state
     state = state.where((t) => t.id != id).toList();
+    _clearProgressThrottle(id);
   }
 
   void _updateOrAddTask(DownloadTask task) {
@@ -576,6 +601,34 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     } else {
       state = [...state, task];
     }
+  }
+
+  /// Publishes one progress tick, throttled: a tick below 1.0 is only
+  /// published when progress moved >= 1% since the last publish for
+  /// this task, or >= 200 ms passed. A tick that reaches 1.0 always
+  /// goes through immediately.
+  void _updateProgress(String id, double progress) {
+    if (progress < 1.0) {
+      final now = DateTime.now();
+      final last = _lastPublishedProgress[id];
+      final lastAt = _lastPublishedAt[id];
+      if (last != null &&
+          (progress - last).abs() < 0.01 &&
+          lastAt != null &&
+          now.difference(lastAt).inMilliseconds < 200) {
+        return;
+      }
+      _lastPublishedProgress[id] = progress;
+      _lastPublishedAt[id] = now;
+    }
+    _updateTask(id, (t) => t.copyWith(progress: progress));
+  }
+
+  /// Drops the throttle bookkeeping for [id]; called when a task leaves
+  /// the downloading state so the maps stay bounded.
+  void _clearProgressThrottle(String id) {
+    _lastPublishedProgress.remove(id);
+    _lastPublishedAt.remove(id);
   }
 
   void _updateTask(String id, DownloadTask Function(DownloadTask) updater) {

@@ -71,11 +71,25 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
 
     final allItems = shelf.valueOrNull ?? <UnifiedShelfItem>[];
     final visible = _filteredItems(allItems, source, categories);
-    final selectedVisible = visible
-        .where((item) => item.source == ShelfSource.library)
-        .map((item) => int.tryParse(item.rawBookId))
-        .whereType<int>()
-        .toSet();
+    // Indexes built once per build so every item is an O(1) lookup
+    // instead of a linear scan over all downloads / categories.
+    final completedById = <String, DownloadTask>{
+      for (final task in downloads)
+        if (task.status == DownloadStatus.completed && task.filePath != null)
+          task.id: task,
+    };
+    final categoryNameById = <String, String>{
+      for (final category in categories.categories)
+        category.id: category.name,
+    };
+    // Only the select-mode app bar needs the visible library ids.
+    final selectedVisible = _isSelectMode
+        ? visible
+              .where((item) => item.source == ShelfSource.library)
+              .map((item) => int.tryParse(item.rawBookId))
+              .whereType<int>()
+              .toSet()
+        : const <int>{};
 
     return Scaffold(
       body: shelf is AsyncLoading && allItems.isEmpty
@@ -127,7 +141,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                         ShelfSource.library,
                         visible,
                         categories,
-                        downloads,
+                        completedById,
+                        categoryNameById,
                         showHeader: source == null,
                       ),
                     const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
@@ -431,7 +446,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     ShelfSource source,
     List<UnifiedShelfItem> all,
     ShelfCategoriesState categories,
-    List<DownloadTask> downloads, {
+    Map<String, DownloadTask> completedById,
+    Map<String, String> categoryNameById, {
     required bool showHeader,
   }) {
     final items = all.where((item) => item.source == source).toList();
@@ -454,8 +470,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               ? SliverList.separated(
                   itemCount: items.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, index) =>
-                      _listItem(items[index], categories, downloads),
+                  itemBuilder: (_, index) => _listItem(
+                    items[index],
+                    categories,
+                    completedById,
+                    categoryNameById,
+                  ),
                 )
               : SliverGrid.builder(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -467,8 +487,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
                         ShelfGridItem.captionHeight,
                   ),
                   itemCount: items.length,
-                  itemBuilder: (_, index) =>
-                      _gridItem(items[index], categories, downloads),
+                  itemBuilder: (_, index) => _gridItem(
+                    items[index],
+                    categories,
+                    completedById,
+                    categoryNameById,
+                  ),
                 ),
         ),
       ],
@@ -513,42 +537,34 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   String? _categoryName(
     UnifiedShelfItem item,
     ShelfCategoriesState categories,
+    Map<String, String> categoryNameById,
   ) {
     final id = categories.categoryFor(item);
     if (id == null) return null;
-    for (final category in categories.categories) {
-      if (category.id == id) return category.name;
-    }
-    return null;
+    return categoryNameById[id];
   }
 
   DownloadTask? _localDownload(
     UnifiedShelfItem item,
-    List<DownloadTask> downloads,
+    Map<String, DownloadTask> completedById,
   ) {
     if (item.source != ShelfSource.library) return null;
-    for (final task in downloads) {
-      if (task.id == item.rawBookId &&
-          task.status == DownloadStatus.completed &&
-          task.filePath != null) {
-        return task;
-      }
-    }
-    return null;
+    return completedById[item.rawBookId];
   }
 
   Widget _gridItem(
     UnifiedShelfItem item,
     ShelfCategoriesState categories,
-    List<DownloadTask> downloads,
+    Map<String, DownloadTask> completedById,
+    Map<String, String> categoryNameById,
   ) {
     final id = _libraryId(item);
-    final local = _localDownload(item, downloads);
+    final local = _localDownload(item, completedById);
     return ShelfGridItem(
       item: item,
       isSelectMode: _isSelectMode,
       isSelected: id != null && _selectedBookIds.contains(id),
-      categoryName: _categoryName(item, categories),
+      categoryName: _categoryName(item, categories, categoryNameById),
       isDownloaded: local != null,
       onTap: () => _onItemTap(item),
       onLongPress: id == null
@@ -560,15 +576,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   Widget _listItem(
     UnifiedShelfItem item,
     ShelfCategoriesState categories,
-    List<DownloadTask> downloads,
+    Map<String, DownloadTask> completedById,
+    Map<String, String> categoryNameById,
   ) {
     final id = _libraryId(item);
-    final local = _localDownload(item, downloads);
+    final local = _localDownload(item, completedById);
     return ShelfListItem(
       item: item,
       isSelectMode: _isSelectMode,
       isSelected: id != null && _selectedBookIds.contains(id),
-      categoryName: _categoryName(item, categories),
+      categoryName: _categoryName(item, categories, categoryNameById),
       isDownloaded: local != null,
       onTap: () => _onItemTap(item),
       onLongPress: id == null
