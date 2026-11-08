@@ -423,13 +423,15 @@ final recentBooksProvider = FutureProvider<List<Book>>((ref) async {
 // ── Saved Books ─────────────────────────────────────────────────────
 
 class SavedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
-  late final ZLibraryApi _api;
-  late final StorageService _storage;
+  // Getters, not `late final` fields: ref.invalidate (account switch, line
+  // change, logout) re-runs build() on the SAME notifier instance, and a
+  // second assignment to a late final throws LateInitializationError, which
+  // left the provider in an error state and blanked the library screen.
+  ZLibraryApi get _api => ref.read(zlibraryApiProvider);
+  StorageService get _storage => ref.read(storageServiceProvider);
 
   @override
   AsyncValue<List<Book>> build() {
-    _api = ref.read(zlibraryApiProvider);
-    _storage = ref.read(storageServiceProvider);
     loadSavedBooks();
     return const AsyncValue.loading();
   }
