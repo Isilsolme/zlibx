@@ -93,8 +93,8 @@ class BooklistHtmlCache {
   static bool has(String url, {String? accountId}) =>
       get(url, accountId: accountId) != null;
 
-  /// Books of one detail JSON page (page 2+), or null when never
-  /// cached, stale, or corrupt. The key is the detail URL + page,
+  /// Books of one detail page (page 1 is HTML; page 2+ is JSON), or null
+  /// when never cached, stale, or corrupt. The key is the detail URL + page,
   /// with the same account partition as [store].
   static List<Book>? getBooksPage(
     String url,
@@ -127,7 +127,7 @@ class BooklistHtmlCache {
     List<Book> books, {
     String? accountId,
   }) {
-    if (url.isEmpty || books.isEmpty) return;
+    if (url.isEmpty) return;
     _put(_key('$url#json-page=$page', accountId), {
       'at': DateTime.now().millisecondsSinceEpoch,
       'books': books.map((book) => book.toJson()).toList(),

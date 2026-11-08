@@ -24,11 +24,10 @@ class BooklistDetailArgs {
   const BooklistDetailArgs({required this.booklist});
 }
 
-/// Books inside one booklist. When the list page's carousel already
-/// carried the books (`Booklist.previewBooks`), those paint instantly
-/// with no fetch, and the detail page is only fetched in the
-/// background when the carousel is short of the list total. Otherwise
-/// page 1 comes from the detail page's own HTML (`<z-bookcard>`
+/// Books inside one booklist. The last-known first page is painted from
+/// a parsed Hive cache (or the list page preview as a cold-cache fallback),
+/// then the detail page is always revalidated in the background so changes
+/// made on the Z-Library website are picked up. Page 1 comes from the detail page's own HTML (`<z-bookcard>`
 /// elements, via `ZLibraryApi.getBooklistDetailBooks`): the site
 /// renders the first page into the document and its JSON endpoint
 /// only serves page 2 and up (`GET /papi/booklist/{id}/get-books/{page}`,
@@ -52,6 +51,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   // Keep membership checks O(1) while pages are appended. Rebuilding a Set
   // from the full list for every page made long lists increasingly expensive.
   final Set<int> _bookIds = <int>{};
+  // IDs currently represented by the server-rendered first page. On a
+  // revalidation, replace this slice while retaining already-loaded page 2+.
+  final Set<int> _firstPageIds = <int>{};
   int _nextPage = 1;
   bool _hasMore = true;
   bool _isLoading = true;
@@ -82,58 +84,65 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   Future<void> _loadFirst() async {
     final preview = widget.args.booklist.previewBooks;
     final list = widget.args.booklist;
-    // Captured once for this load: the detail HTML cache and the
-    // JSON page cache are both partitioned by account, so the read,
-    // refresh, and solver store must all use the same key.
+    // Keep the same account partition for cache reads and writes.
     final accountId = ref.read(authProvider).user?.id ?? 'signed-out';
-    // The persistent cache covers the detail HTML (page 1) when the
-    // carousel did not already carry the books.
-    final cachedHtml = preview.isEmpty
+
+    // Page 1 is cached independently of the booklist-list preview. The
+    // preview belongs to the (possibly stale) list-page response and must
+    // never prevent us from reading a newer detail-page cache.
+    final cachedPage = BooklistHtmlCache.getBooksPage(
+      list.url,
+      1,
+      accountId: accountId,
+    );
+    final cachedHtml = cachedPage == null
         ? BooklistHtmlCache.get(list.url, accountId: accountId)
         : null;
-    final cachedBooks =
-        cachedHtml != null && !_isChallengeHtml(cachedHtml)
-            ? parseBooklistDetailBooks(
-                cachedHtml,
-                baseUrl: Uri.parse(list.url).origin,
-              )
-            : null;
-    final hasCachedBooks = cachedBooks != null && cachedBooks.isNotEmpty;
+    final cachedHtmlBooks = cachedHtml != null && !_isChallengeHtml(cachedHtml)
+        ? parseBooklistDetailBooks(
+            cachedHtml,
+            baseUrl: Uri.parse(list.url).origin,
+          )
+        : null;
+    final hasCachedHtml = cachedHtml != null && !_isChallengeHtml(cachedHtml);
+    final initialBooks = cachedPage ??
+        (hasCachedHtml ? (cachedHtmlBooks ?? const <Book>[]) : preview);
+    final hasLocalSnapshot = cachedPage != null || hasCachedHtml || preview.isNotEmpty;
+
     setState(() {
-      // With a carousel the books paint instantly — no spinner, no
-      // fetch. Without one, the detail HTML load runs as before.
-      // A cached first page paints instantly too.
-      _isLoading = preview.isEmpty && !hasCachedBooks;
+      _isLoading = !hasLocalSnapshot;
+      _isLoadingMore = false;
       _hasError = false;
       _books.clear();
       _bookIds.clear();
-      // Page 1 comes from the detail HTML, so the JSON pages start at 2.
+      _firstPageIds.clear();
+      // Page 1 comes from detail HTML; JSON pagination starts at 2.
       _nextPage = 2;
       _hasMore = true;
     });
-    if (preview.isNotEmpty) {
-      _applyDetailBooks(preview);
-      if (!_hasMore) return;
-      // The carousel is short of the list total — top up in the
-      // background (detail HTML first page, merged by id). A failure
-      // here is silent: the preview books stay on screen.
+
+    if (hasLocalSnapshot) {
+      // Paint cached data immediately (including a cached empty booklist). Even when the old list count says
+      // there are no more books, always revalidate: a user may have added
+      // books on the Z-Library website since this Booklist object was made.
+      _applyDetailBooks(initialBooks, replaceFirstPage: true);
       setState(() => _isLoadingMore = true);
       await _loadDetailPage(background: true, accountId: accountId);
-      if (mounted) setState(() => _isLoadingMore = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+          _isLoading = false;
+        });
+      }
       return;
     }
-    if (cachedBooks != null && cachedBooks.isNotEmpty) {
-      // Paint the cached first page instantly; the background
-      // top-up (the carousel branch's path) refreshes it silently.
-      _applyDetailBooks(cachedBooks);
-      setState(() => _isLoadingMore = true);
-      await _loadDetailPage(background: true, accountId: accountId);
-      if (mounted) setState(() => _isLoadingMore = false);
-      return;
-    }
+
     await _loadDetailPage(accountId: accountId);
     if (mounted) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
     }
   }
 
@@ -141,8 +150,8 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   /// (the site renders page 1 into the document; its JSON endpoint
   /// only serves page 2+). Dio fast path first; on the browser-check
   /// wall, the WebView solver (the booklists screen's pattern).
-  /// In background mode (carousel top-up) a failure is silent — the
-  /// books already on screen stay, and the list just ends there.
+  /// In background mode a failure is silent — the cached/preview books
+  /// already on screen stay available.
   Future<void> _loadDetailPage({
     bool background = false,
     String? accountId,
@@ -153,7 +162,15 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
       final response = await api.getBooklistDetailBooks(list);
       if (!mounted) return;
       if (response.success && response.data != null) {
-        _applyDetailBooks(response.data!);
+        // Persist the parsed first page so the next visit can paint it
+        // immediately without depending on the booklist-list preview.
+        BooklistHtmlCache.storeBooksPage(
+          list.url,
+          1,
+          response.data!,
+          accountId: accountId,
+        );
+        _applyDetailBooks(response.data!, replaceFirstPage: true);
         return;
       }
       if (_isChallengeError(response.error)) {
@@ -180,20 +197,38 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     }
   }
 
-  void _applyDetailBooks(List<Book> books) {
+  void _applyDetailBooks(
+    List<Book> books, {
+    bool replaceFirstPage = false,
+  }) {
     setState(() {
-      // Merge by id: the carousel preview and the detail HTML carry
-      // the same books — adding both would duplicate the rows.
-      for (final book in books) {
-        if (_bookIds.add(book.id)) _books.add(book);
+      if (replaceFirstPage) {
+        // Replace stale first-page rows instead of only merging. This lets
+        // website-side additions/deletions propagate while preserving any
+        // page-2+ rows already loaded by the user.
+        final laterPages = _books
+            .where((book) => !_firstPageIds.contains(book.id))
+            .toList();
+        _books
+          ..clear();
+        _bookIds.clear();
+        _firstPageIds.clear();
+        for (final book in books) {
+          if (_bookIds.add(book.id)) {
+            _books.add(book);
+            _firstPageIds.add(book.id);
+          }
+        }
+        for (final book in laterPages) {
+          if (_bookIds.add(book.id)) _books.add(book);
+        }
+      } else {
+        for (final book in books) {
+          if (_bookIds.add(book.id)) _books.add(book);
+        }
       }
-      // The list knows its total (quantity); a short first page means
-      // there are JSON pages after it. Unknown total: assume there may
-      // be more whenever the first page had books — a page-2 miss just
-      // ends the list silently (see _loadPage's failure branch).
       final total = widget.args.booklist.count;
-      _hasMore =
-          total == null ? books.isNotEmpty : _books.length < total;
+      _hasMore = total == null ? books.isNotEmpty : _books.length < total;
       _nextPage = 2;
     });
   }
@@ -247,9 +282,17 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     // under the same account partition as the read.
     await bridgeWallCookies(ref.read(zlibraryApiProvider), url);
     BooklistHtmlCache.store(url, html, accountId: accountId);
-    _applyDetailBooks(
-      parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin),
+    final books = parseBooklistDetailBooks(
+      html,
+      baseUrl: Uri.parse(url).origin,
     );
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      1,
+      books,
+      accountId: accountId,
+    );
+    _applyDetailBooks(books, replaceFirstPage: true);
   }
 
   /// The plugin's short error for a browser-check wall
