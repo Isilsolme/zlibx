@@ -41,7 +41,7 @@ const bookLanguageNames = <String, String>{
 String? bookLanguageName(String? info) {
   if (info == null || info.trim().isEmpty) return null;
   final bracket =
-      RegExp(r'\[([a-z]{2})\]', caseSensitive: false).firstMatch(info);
+      RegExp(r'\[([a-z]{2,3})\]', caseSensitive: false).firstMatch(info);
   if (bracket != null) {
     final name = bookLanguageNames[bracket.group(1)!.toLowerCase()];
     if (name != null) return name;

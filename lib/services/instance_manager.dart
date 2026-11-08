@@ -147,8 +147,11 @@ class InstanceManager {
 
   Future<void> _writeHostMap(String key, Map<String, List<String>> map) async {
     await _store?.write(key, jsonEncode(map));
-    // The stored value changed, so the cached copy is stale.
-    _hostMapCache.remove(key);
+    // The stored value now matches [map]: refresh the in-memory copy
+    // (a defensive deep copy, same as _readHostMap returns) instead of
+    // dropping it — dropping it made every toggle re-read Hive and
+    // re-run jsonDecode on the next read.
+    _hostMapCache[key] = _copyHostMap(map);
   }
 
   /// Hosts the user switched off for [service].

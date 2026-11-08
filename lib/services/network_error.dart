@@ -98,8 +98,11 @@ class NetworkError implements Exception {
       );
     }
 
-    // Handle string-based socket exception marker
-    if (error.toString().contains("socketException")) {
+    // Handle string-based socket exception marker. The comparison is
+    // case-insensitive on purpose: SocketException.toString() renders
+    // "SocketException: ..." (capital S), so a case-sensitive check
+    // never matched and wrapped socket errors fell into "unknown".
+    if (error.toString().toLowerCase().contains("socketexception")) {
       return NetworkError(
         type: NetworkErrorType.noInternet,
         userMessage: "Unable to access the internet",
@@ -171,7 +174,7 @@ class NetworkError implements Exception {
     }
 
     // Handle string-based socket exception marker
-    if (error.toString().contains("socketException")) {
+    if (error.toString().toLowerCase().contains("socketexception")) {
       return NetworkError(
         type: NetworkErrorType.noInternet,
         userMessage: "Unable to access the internet",
@@ -573,7 +576,11 @@ class ConnectivityChecker {
   // Quick check if device can reach the internet
   static Future<bool> hasInternetConnection() async {
     try {
-      final result = await InternetAddress.lookup("google.com");
+      // lookup() itself has no built-in timeout: on a broken/hijacked
+      // DNS setup it can hang far longer than the user should wait for
+      // an error message. Bound it explicitly.
+      final result = await InternetAddress.lookup("google.com")
+          .timeout(const Duration(seconds: 3));
       final hasConnection =
           result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       _logger.debug(
@@ -600,7 +607,9 @@ class ConnectivityChecker {
     try {
       final uri = Uri.parse(host);
       final hostname = uri.host.isNotEmpty ? uri.host : host;
-      final result = await InternetAddress.lookup(hostname);
+      // Same bounded lookup as [hasInternetConnection].
+      final result = await InternetAddress.lookup(hostname)
+          .timeout(const Duration(seconds: 3));
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } on SocketException {
       return false;

@@ -57,6 +57,15 @@ const String annasDonationKeySecureKey = 'annasDonationKey';
 /// the one-time migration below; new writes never touch Hive.
 const String annasDonationKeyHiveKey = 'annasDonationKey';
 
+/// Shared Anna's Archive service for download resolution. Every call
+/// used to build a fresh `AnnasArchieve` — a fresh Dio with its
+/// keep-alive HttpClient pool, abandoned unclosed after one
+/// fast-download lookup. The service is stateless between requests (its
+/// headers map is only read), so one process-wide instance is safe —
+/// same reasoning as the annasArchieveProvider used by the search/detail
+/// side.
+final AnnasArchieve _sharedAnnas = AnnasArchieve();
+
 /// One-time migration of the donation key out of plaintext Hive into
 /// secure storage. Runs at most once per process (cached future).
 /// Best-effort: a failure leaves the key in Hive, and reads fall back
@@ -167,7 +176,7 @@ Future<DownloadTarget> resolveExternalDownload(BookInfoData info) async {
     if (hasOpen) {
       try {
         final fastLink =
-            await AnnasArchieve().getFastDownloadUrl(info.md5, donationKey);
+            await _sharedAnnas.getFastDownloadUrl(info.md5, donationKey);
         if (fastLink != null && fastLink.isNotEmpty) {
           return chooseDownloadTarget(url: fastLink, fast: true);
         }

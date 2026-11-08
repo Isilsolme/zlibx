@@ -5,7 +5,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
 import '../services/challenge_html_cache.dart';
 import '../services/hive_service.dart';
-import 'books_provider.dart';
+import 'cache_invalidation.dart';
 import 'domain_provider.dart';
 import 'zlibrary_provider.dart';
 
@@ -47,6 +47,14 @@ class AuthNotifier extends Notifier<AuthState> {
   late final ZLibraryApi _api;
   final AuthStorage _storage = AuthStorage();
 
+  /// Request generation counter. Every async flow captures the epoch
+  /// before its first await and re-checks it before writing state:
+  /// without this, a slow-boot `_init` can "resurrect" a user who
+  /// logged out while it was in flight (and a stale login result can
+  /// overwrite a fresh one the same way).
+  int _epoch = 0;
+  bool _isCurrent(int epoch) => epoch == _epoch;
+
   @override
   AuthState build() {
     _api = ref.read(zlibraryApiProvider);
@@ -58,8 +66,10 @@ class AuthNotifier extends Notifier<AuthState> {
     // No `state = state.copyWith(isLoading: true)` here: build() already
     // returns AuthState(isLoading: true) as the initial state, and reading
     // state inside build() would throw (not yet initialized).
+    final epoch = _epoch;
     try {
       final credentials = await _storage.getCredentials();
+      if (!_isCurrent(epoch)) return;
       final userId = credentials['userId'];
       final userKey = credentials['userKey'];
 
@@ -91,6 +101,7 @@ class AuthNotifier extends Notifier<AuthState> {
         // Dio and hits /eapi/user/profile directly, so it works even on a
         // fresh boot when the api's internal _loggedIn flag is still false.
         final response = await _api.loginWithToken(userId, userKey);
+        if (!_isCurrent(epoch)) return;
 
         if (response.success && response.data != null) {
           state = AuthState(user: response.data);
@@ -99,15 +110,20 @@ class AuthNotifier extends Notifier<AuthState> {
           // Line is unreachable — keep credentials, suggest switching.
           state = AuthState(user: cachedUser(), lineUnavailable: true);
         } else {
-          // Real auth failure (e.g. invalid token) — drop creds.
+          // Real auth failure (e.g. invalid token) — drop creds, and make
+          // sure the plugin instance no longer holds the rejected pair.
+          _api.clearSession();
           await _storage.clearCredentials();
+          if (!_isCurrent(epoch)) return;
           state = AuthState();
         }
       } catch (e) {
+        if (!_isCurrent(epoch)) return;
         // Network exception — assume line issue, keep using cached creds.
         state = AuthState(user: cachedUser(), lineUnavailable: true);
       }
     } catch (e) {
+      if (!_isCurrent(epoch)) return;
       state = AuthState(error: e.toString());
     }
   }
@@ -130,10 +146,18 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<bool> login(String email, String password) async {
     ChallengeHtmlCache.clear();
+    // A new login invalidates any in-flight init/previous flow: from here
+    // on only this flow may write auth state.
+    final epoch = ++_epoch;
+    // Drop any session still held from a previous account BEFORE trying:
+    // otherwise the plugin's rpc-login fallback could mistake the old
+    // in-memory pair for a successful login and "log in" the wrong user.
+    _api.clearSession();
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final response = await _api.login(email, password);
+      if (!_isCurrent(epoch)) return false;
 
       if (response.success && response.data != null) {
         final user = response.data!;
@@ -144,6 +168,7 @@ class AuthNotifier extends Notifier<AuthState> {
           email: user.email,
           name: user.name,
         );
+        if (!_isCurrent(epoch)) return false;
 
         state = AuthState(user: user);
         return true;
@@ -152,6 +177,7 @@ class AuthNotifier extends Notifier<AuthState> {
         return false;
       }
     } catch (e) {
+      if (!_isCurrent(epoch)) return false;
       state = AuthState(error: e.toString());
       return false;
     }
@@ -159,10 +185,13 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<bool> loginWithToken(String userId, String userKey) async {
     ChallengeHtmlCache.clear();
+    final epoch = ++_epoch;
+    _api.clearSession();
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       final response = await _api.loginWithToken(userId, userKey);
+      if (!_isCurrent(epoch)) return false;
 
       if (response.success && response.data != null) {
         state = AuthState(user: response.data);
@@ -172,13 +201,22 @@ class AuthNotifier extends Notifier<AuthState> {
         return false;
       }
     } catch (e) {
+      if (!_isCurrent(epoch)) return false;
       state = AuthState(error: e.toString());
       return false;
     }
   }
 
   Future<void> logout() async {
+    // Kill every in-flight auth flow first: a slow _init/profile fetch
+    // must not resurrect the user right after logout.
+    _epoch++;
     ChallengeHtmlCache.clear();
+    // The plugin holds the session pair in memory and appends it to every
+    // request's Cookie header. Without this the app is "logged out" in the
+    // UI but keeps sending the logged-out account's remix_* cookies on
+    // every search/detail call until the process restarts.
+    _api.clearSession();
     await _storage.clearCredentials();
     // Session cookies installed for the online reader live in the WebView
     // cookie store; clear them too so logout really logs out everywhere.
@@ -197,12 +235,7 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState();
     // Same account-scoped caches as an account switch: a later login
     // as a different account must not see the old account's data.
-    ref.invalidate(bookDetailsProvider);
-    ref.invalidate(recommendedBooksProvider);
-    ref.invalidate(mostPopularBooksProvider);
-    ref.invalidate(recentBooksProvider);
-    ref.invalidate(downloadedBooksProvider);
-    ref.invalidate(savedBooksProvider);
+    invalidateAccountScopedProviders(ref);
   }
 
   /// Mark the current line unavailable without sending any credentials:
@@ -214,9 +247,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> refreshProfile() async {
     if (!state.isAuthenticated) return;
+    final epoch = _epoch;
 
     try {
       final response = await _api.getProfile();
+      if (!_isCurrent(epoch)) return;
       if (response.success && response.data != null) {
         state = AuthState(user: response.data);
       }
@@ -228,13 +263,16 @@ class AuthNotifier extends Notifier<AuthState> {
   /// Re-verify the current line/credentials. Used after the user switches
   /// network line to refresh the lineUnavailable flag and pick up real profile.
   Future<void> reverify() async {
+    final epoch = _epoch;
     final credentials = await _storage.getCredentials();
+    if (!_isCurrent(epoch)) return;
     final userId = credentials['userId'];
     final userKey = credentials['userKey'];
     if (userId == null || userKey == null) return;
 
     try {
       final response = await _api.loginWithToken(userId, userKey);
+      if (!_isCurrent(epoch)) return;
       if (response.success && response.data != null) {
         state = AuthState(user: response.data);
       } else if (response.error == 'cf_blocked' ||
@@ -244,6 +282,7 @@ class AuthNotifier extends Notifier<AuthState> {
       }
       // Other errors: leave existing state alone; user can logout manually.
     } catch (error) {
+      if (!_isCurrent(epoch)) return;
       debugPrint('[auth_provider] ignored ${error.runtimeType}');
       state = state.copyWith(lineUnavailable: true);
     }
@@ -271,12 +310,7 @@ class AuthNotifier extends Notifier<AuthState> {
         // the line change does (see domain_provider): otherwise the
         // library keeps showing the previous account's books until a
         // manual refresh.
-        ref.invalidate(bookDetailsProvider);
-        ref.invalidate(recommendedBooksProvider);
-        ref.invalidate(mostPopularBooksProvider);
-        ref.invalidate(recentBooksProvider);
-        ref.invalidate(downloadedBooksProvider);
-        ref.invalidate(savedBooksProvider);
+        invalidateAccountScopedProviders(ref);
       }
       return success;
     }

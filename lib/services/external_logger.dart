@@ -35,6 +35,10 @@ class AppLogger {
     String? tag,
     Map<String, dynamic>? metadata,
   }) {
+    // Release builds must not print to logcat: the metadata can carry
+    // the user's search query, per-book URLs and response-body previews,
+    // readable by any process holding READ_LOGS. Same gate as debug().
+    if (!kDebugMode) return;
     debugPrint(_format('INFO', tag, message, metadata));
   }
 
@@ -44,6 +48,7 @@ class AppLogger {
     dynamic error,
     Map<String, dynamic>? metadata,
   }) {
+    if (!kDebugMode) return;
     debugPrint(_format('WARN', tag, message, metadata, error));
   }
 
@@ -54,8 +59,9 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? metadata,
   }) {
+    if (!kDebugMode) return;
     debugPrint(_format('ERROR', tag, message, metadata, error));
-    if (stackTrace != null && kDebugMode) debugPrint(stackTrace.toString());
+    if (stackTrace != null) debugPrint(stackTrace.toString());
   }
 
   String _format(

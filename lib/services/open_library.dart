@@ -63,11 +63,17 @@ class OpenLibrary extends TrendingBooksImpl {
               null) {
         String? thumbnail =
             element.querySelector('img[itemprop="image" ]')?.attributes['src'];
+        final thumb = thumbnail?.toString() ?? '';
         trendingBooks.add(
           TrendingBookData(
               title:
                   element.querySelector('h3[class="booktitle"]')?.text.trim(),
-              thumbnail: 'https:${thumbnail.toString()}'),
+              // Open Library usually serves protocol-relative src values
+              // ("//..."), but an absolute https:// src must not be
+              // double-prefixed into `https:https://...`.
+              thumbnail: thumb.startsWith('http')
+                  ? thumb
+                  : 'https:$thumb'),
         );
       }
     }
@@ -79,16 +85,21 @@ class OpenLibrary extends TrendingBooksImpl {
     try {
       final dio = createDio();
       const timeOutDuration = 5;
-      final response = await dio.get(url,
-          options: Options(
-              sendTimeout: const Duration(seconds: timeOutDuration),
-              receiveTimeout: const Duration(seconds: timeOutDuration)));
-      final response2 = await dio.get(
+      Options timeoutOptions() => Options(
+            sendTimeout: const Duration(seconds: timeOutDuration),
+            receiveTimeout: const Duration(seconds: timeOutDuration),
+          );
+      // The two trend pages are independent: fetching them in parallel
+      // halves the worst-case wait (2×5s serial → 5s).
+      final responses = await Future.wait([
+        dio.get(url, options: timeoutOptions()),
+        dio.get(
           "https://openlibrary.org/trending/daily?page=2",
-          options: Options(
-              sendTimeout: const Duration(seconds: timeOutDuration),
-              receiveTimeout: const Duration(seconds: timeOutDuration)));
-      return _parser('${response.data.toString()}${response2.data.toString()}');
+          options: timeoutOptions(),
+        ),
+      ]);
+      return _parser(
+          '${responses[0].data.toString()}${responses[1].data.toString()}');
     } on DioException catch (e) {
       _logger.warning('Failed to fetch OpenLibrary trending books',
           tag: 'OpenLibrary', metadata: {'error': e.message});

@@ -9,7 +9,10 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 
 class StorageService {
   static const String _keyFavorites = 'favorite_books';
-  static const String _keyDownloads = 'downloaded_books';
+  // _keyDownloads was removed with the dead saveDownloadedBook() method:
+  // it stored `bookInfo.toString()` (a Dart debug string, not JSON, not
+  // parseable) and had no callers — download history lives in
+  // _keyDownloadHistory below.
   static const String _keyThemeMode = 'theme_mode';
   static const String _keyDownloadPath = 'download_path';
   static const String _keyDownloadHistory = 'download_history';
@@ -51,14 +54,6 @@ class StorageService {
   Future<bool> isFavorite(String bookId) async {
     final favorites = getFavoritesSync();
     return favorites.contains(bookId);
-  }
-
-  /// Save downloaded book info
-  Future<void> saveDownloadedBook(Map<String, dynamic> bookInfo) async {
-    final data = HiveService.settingsBox.get(_keyDownloads);
-    final downloads = data != null ? List<String>.from(data) : <String>[];
-    downloads.add(bookInfo.toString());
-    await HiveService.settingsBox.put(_keyDownloads, downloads);
   }
 
   /// Get theme mode (0: system, 1: light, 2: dark)

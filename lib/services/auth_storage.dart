@@ -169,6 +169,13 @@ class AuthStorage {
     // Keep the most recently used account at the end of the list.
     final entry = Map<String, dynamic>.from(account)..remove('password');
     accounts.add(entry);
+    // Each entry carries a session key that can re-login the account.
+    // Copies accumulate forever otherwise — cap the list and drop the
+    // LEAST recently used entries (front of the MRU-ordered list).
+    const maxSavedAccounts = 8;
+    while (accounts.length > maxSavedAccounts) {
+      accounts.removeAt(0);
+    }
     await SecureStorage.write(_keyAccounts, jsonEncode(accounts));
   }
 

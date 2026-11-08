@@ -9,12 +9,18 @@
 // show an error as if it were a suggestion.
 
 // Project imports:
+import 'package:dio/dio.dart';
 import 'package:zlibx/services/http_client.dart';
 
 class GoogleSuggestApi {
   // Base URL for the Google Autocomplete service
   static const String _baseUrl =
       'https://suggestqueries.google.com/complete/search';
+
+  /// One shared Dio client for the lifetime of this API object (the
+  /// owning search screen). Previously every keystroke built a fresh
+  /// Dio (leaking its keep-alive HttpClient connection pool until GC).
+  final Dio _dio = createDio();
 
   /// Fetches a list of search suggestions using the Google Autocomplete
   /// endpoint. Returns an empty list on any failure — the caller shows
@@ -30,7 +36,7 @@ class GoogleSuggestApi {
     });
 
     try {
-      final response = await createDio().getUri(url);
+      final response = await _dio.getUri(url);
 
       if (response.statusCode == 200) {
         // Google Suggest returns a JSON array (Dio already decodes it).

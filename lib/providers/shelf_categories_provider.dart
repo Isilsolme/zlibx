@@ -58,6 +58,12 @@ class ShelfCategoriesNotifier extends Notifier<ShelfCategoriesState> {
   }
 
   Future<void> _save(ShelfCategoriesState next) async {
+    // Publish the new state BEFORE awaiting the disk write: computing
+    // each change from `state` (see create/rename/assign), a second
+    // change fired while the first was still awaiting Hive would read
+    // the OLD state and overwrite the first change's result (a freshly
+    // created category silently disappeared).
+    state = next;
     final data = jsonEncode({
       'categories': [
         for (final category in next.categories)
@@ -65,8 +71,13 @@ class ShelfCategoriesNotifier extends Notifier<ShelfCategoriesState> {
       ],
       'assignments': next.assignments,
     });
-    await HiveService.settingsBox.put(_storageKey, data);
-    state = next;
+    try {
+      await HiveService.settingsBox.put(_storageKey, data);
+    } catch (error) {
+      // Persistence failure must not lose the in-memory change; the next
+      // successful save rewrites the whole blob anyway.
+      debugPrint('Could not persist shelf categories: ${error.runtimeType}');
+    }
   }
 
   Future<void> create(String name) async {

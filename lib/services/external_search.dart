@@ -330,10 +330,27 @@ class LibgenProvider implements SearchProvider {
               metadata: {'mirror': mirror, 'status': response.statusCode});
           continue;
         }
-        final books = parseResults(response.data.toString(), mirror);
+        final html = response.data.toString();
+        final books = parseResults(html, mirror);
         _logger.info('Libgen search returned ${books.length} books',
             tag: 'LibgenProvider', metadata: {'mirror': mirror});
-        return books;
+        if (books.isNotEmpty) return books;
+        // A challenge/error/placeholder page also parses to an empty
+        // list. Only a real LibGen page may answer "no results"; on
+        // anything else keep trying the remaining mirrors — otherwise
+        // one protected mirror makes the search look empty forever
+        // (same failure the Anna's Archive side fixed via
+        // _isAnnasArchivePage).
+        final looksLikeLibgenPage =
+            html.contains('Library Genesis') || html.contains('libgen');
+        if (looksLikeLibgenPage) {
+          return books;
+        }
+        _logger.warning(
+            'Libgen mirror returned a non-LibGen page (possible '
+            'challenge page), trying next',
+            tag: 'LibgenProvider',
+            metadata: {'mirror': mirror, 'htmlLength': html.length});
       } catch (e) {
         lastError = e;
         _logger.warning('Libgen mirror failed, trying next',

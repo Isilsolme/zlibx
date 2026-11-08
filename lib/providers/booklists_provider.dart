@@ -5,6 +5,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../services/booklist_html_cache.dart';
 import '../services/booklist_solver.dart';
+import '../services/external_logger.dart';
 import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
 
@@ -67,6 +68,8 @@ class BooklistsState {
 /// solver ([BooklistSolver]).
 class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   static const int _pageSize = 10;
+
+  final AppLogger _logger = AppLogger();
 
   bool _alive = true;
 
@@ -137,14 +140,27 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       page: 1,
     );
     final cachedHtml = BooklistHtmlCache.get(url, accountId: accountId);
+    BooklistsPage? cachedPage;
     if (cachedHtml != null && !BooklistSolver.isChallengeHtml(cachedHtml)) {
+      // The cached HTML is user-unreachable data from an older app run;
+      // a parse failure there must not leave the screen loading forever.
+      // Treat a broken cache like a cache miss and fall through to the
+      // network path.
+      try {
+        cachedPage = parseBooklistsPage(
+          cachedHtml,
+          baseUrl: Uri.parse(url).origin,
+        );
+      } catch (e) {
+        _logger.warning('Cached booklists page failed to parse, ignoring it',
+            tag: 'Booklists', error: e);
+        cachedPage = null;
+      }
+    }
+    if (cachedPage != null) {
       // Stale-while-revalidate: paint the last-known lists instantly,
       // then refresh page 1 in the background.
-      _applyPage(
-        parseBooklistsPage(cachedHtml, baseUrl: Uri.parse(url).origin),
-        1,
-        replace: true,
-      );
+      _applyPage(cachedPage, 1, replace: true);
       unawaited(
         _loadPage(1, replace: true, generation: generation, accountId: accountId),
       );
@@ -185,7 +201,8 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     final api = ref.read(zlibraryApiProvider);
     final tab = state.tab;
     final query = state.query;
-    if (page > 1) state = state.copyWith(isLoadingMore: true);
+    final tracksLoadMore = page > 1;
+    if (tracksLoadMore) state = state.copyWith(isLoadingMore: true);
     try {
       final response = tab == BooklistTab.mine
           ? await api.searchMyBooklists(query: query, page: page)
@@ -215,6 +232,15 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     } catch (e) {
       if (!_isCurrent(generation)) return;
       _applyFailure(page, e.toString(), replace: replace);
+    } finally {
+      // A stale response (a refresh bumped the generation while this
+      // loadMore was in flight) is dropped above WITHOUT any path that
+      // resets isLoadingMore — the flag then blocks every future
+      // loadMore() at the `s.isLoadingMore` guard forever. Reset it
+      // here so pagination can never dead-lock.
+      if (tracksLoadMore && !_isCurrent(generation)) {
+        state = state.copyWith(isLoadingMore: false);
+      }
     }
   }
 
@@ -287,7 +313,12 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   void _applyFailure(int page, String message, {bool replace = false}) {
     // A background refresh (cached lists on screen) never errors: the
     // cached data stays, and the next open or pull-to-refresh retries.
-    if (replace) return;
+    // It still must clear a leftover loadMore flag — a loadMore that ran
+    // concurrently with this refresh had its response dropped.
+    if (replace) {
+      state = state.copyWith(isLoadingMore: false);
+      return;
+    }
     if (page == 1) {
       state = state.copyWith(
         phase: BooklistsPhase.error,

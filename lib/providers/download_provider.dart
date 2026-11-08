@@ -133,9 +133,17 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       );
       final loadedTasks = [for (final task in tasks) if (task != null) task];
 
-      // Update state with loaded tasks
+      // Merge by id instead of overwriting: the user may already have
+      // started a new download while this async history load was in
+      // flight — `state = loadedTasks` would erase it and its progress
+      // bar would silently disappear (the download keeps running but
+      // _updateTask can no longer find the row).
       if (loadedTasks.isNotEmpty) {
-        state = loadedTasks;
+        final loadedIds = loadedTasks.map((t) => t.id).toSet();
+        state = [
+          ...state.where((t) => !loadedIds.contains(t.id)),
+          ...loadedTasks,
+        ];
       }
     } catch (e) {
       // History failure should not break new downloads.
@@ -361,7 +369,10 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
           temporaryPath,
           headers: presetHeaders,
           onProgress: (received, total) {
-            if (total != -1) {
+            // `total` can be 0 (empty body / CDN without length): only a
+            // positive total yields a valid fraction — 0/0 would push a
+            // NaN into the state and straight into the progress bar.
+            if (total > 0) {
               final progress = received / total;
               _updateProgress(id, progress);
             }
@@ -376,7 +387,8 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
             book.hash ?? '',
             temporaryPath,
             onProgress: (received, total) {
-              if (total != -1) {
+              // Same NaN guard as the preset branch above.
+              if (total > 0) {
                 final progress = received / total;
                 _updateProgress(id, progress);
               }
@@ -585,10 +597,12 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
   /// Remove task and delete file
   Future<void> removeTask(String id) async {
     cancelDownload(id);
-    final task = state.firstWhere(
-      (t) => t.id == id,
-      orElse: () => throw Exception("Task not found"),
-    );
+    // Idempotent delete: the task may already be gone (double tap on the
+    // menu, history cleanup racing the UI). A missing task used to throw
+    // and the caller showed "删除失败" for a perfectly successful delete.
+    final matches = state.where((t) => t.id == id).toList();
+    if (matches.isEmpty) return;
+    final task = matches.first;
 
     // Delete file if exists (content:// URIs via ContentResolver).
     if (task.filePath != null) {
@@ -616,6 +630,25 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
   /// this task, or >= 200 ms passed. A tick that reaches 1.0 always
   /// goes through immediately.
   void _updateProgress(String id, double progress) {
+    // Late ticks from a cancelled/finished download must not republish
+    // state: cancelDownload already flipped the status and cleared the
+    // throttle maps, but chunks already queued in the stream keep
+    // arriving for a moment.
+    final token = _cancelTokens[id];
+    if (token == null || token.isCancelled) return;
+    // No firstOrNull dependency: avoid pulling in package:collection.
+    DownloadTask? task;
+    for (final t in state) {
+      if (t.id == id) {
+        task = t;
+        break;
+      }
+    }
+    if (task == null ||
+        (task.status != DownloadStatus.downloading &&
+            task.status != DownloadStatus.pending)) {
+      return;
+    }
     if (progress < 1.0) {
       final now = DateTime.now();
       final last = _lastPublishedProgress[id];

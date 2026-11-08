@@ -72,13 +72,16 @@ class SearchState {
 }
 
 class SearchNotifier extends Notifier<SearchState> {
-  late final ZLibraryApi _api;
+  // Getter, not a `late final` field: ref.invalidate re-runs build() on
+  // the SAME notifier instance and a second late-final assignment throws
+  // LateInitializationError (same documented pitfall as
+  // SavedBooksNotifier below).
+  ZLibraryApi get _api => ref.read(zlibraryApiProvider);
   SearchParams? _lastParams;
   int _requestId = 0;
 
   @override
   SearchState build() {
-    _api = ref.read(zlibraryApiProvider);
     return const SearchState();
   }
 
@@ -230,7 +233,8 @@ class ExternalSearchState {
 }
 
 class ExternalSearchNotifier extends Notifier<ExternalSearchState> {
-  late final AnnasArchieve _annasApi;
+  // Getters / mutable fields, not `late final`: see SearchNotifier above.
+  AnnasArchieve get _annasApi => ref.read(annasArchieveProvider);
   late SearchProvider _provider;
   late BookSource _source;
   String? _lastQuery;
@@ -238,7 +242,6 @@ class ExternalSearchNotifier extends Notifier<ExternalSearchState> {
 
   @override
   ExternalSearchState build() {
-    _annasApi = ref.read(annasArchieveProvider);
     _provider = AnnasArchiveProvider(api: _annasApi);
     _source = BookSource.annasArchive;
     return const ExternalSearchState();
@@ -350,6 +353,13 @@ final annasBookDetailsProvider =
       return archive.bookInfo(url: link);
     });
 
+/// Shared LibGen service instance. Creating one per detail request built
+/// a fresh Dio (and a fresh keep-alive HttpClient pool) every time the
+/// user opened a LibGen book — the same leak pattern the search side
+/// already fixed with [annasArchieveProvider].
+final libgenServiceProvider =
+    Provider<LibgenService>((ref) => LibgenService());
+
 // ── LibGen Book Details ──────────────────────────────────────────────
 //
 // [link] is the BookData.link from a search result (an absolute
@@ -358,7 +368,7 @@ final annasBookDetailsProvider =
 // a StateError for the detail page's error UI.
 final libgenBookDetailsProvider =
     FutureProvider.family<BookInfoData, String>((ref, link) async {
-      final info = await LibgenService().bookInfo(link);
+      final info = await ref.watch(libgenServiceProvider).bookInfo(link);
       if (info == null) throw StateError('Failed to load book details');
       return info;
     });
@@ -391,32 +401,40 @@ class BookIdentifier {
 final mostPopularBooksProvider = FutureProvider<List<Book>>((ref) async {
   final api = ref.watch(zlibraryApiProvider);
   final response = await api.getMostPopular();
+  if (!response.success) {
+    // Surface the failure as AsyncError so the UI shows its error/retry
+    // branch — an API failure and a genuinely empty list must not look
+    // identical (and only the former is retryable).
+    throw StateError(response.error ?? 'Failed to load popular books');
+  }
   return response.data ?? [];
 });
 
 final recommendedBooksProvider = FutureProvider<List<Book>>((ref) async {
   final api = ref.watch(zlibraryApiProvider);
   final response = await api.getUserRecommended();
+  if (!response.success) {
+    throw StateError(response.error ?? 'Failed to load recommendations');
+  }
   return response.data ?? [];
 });
 
 /// 首页推荐：z站推荐，转为 DisplayBook 列表。
 final homeRecommendedProvider = Provider<AsyncValue<List<DisplayBook>>>((ref) {
   final zlibAsync = ref.watch(recommendedBooksProvider);
-  if (zlibAsync is AsyncLoading) {
-    return const AsyncValue.loading();
-  }
-  final zlibBooks =
-      zlibAsync
-          .whenData((books) => books.map((b) => b.toDisplay()).toList())
-          .valueOrNull ??
-      <DisplayBook>[];
-  return AsyncValue.data(zlibBooks);
+  // whenData keeps loading/error states as-is: the home screen keeps its
+  // error/retry entry and keeps showing the previous data while a
+  // revalidation after an account switch is in flight.
+  return zlibAsync
+      .whenData((books) => books.map((b) => b.toDisplay()).toList());
 });
 
 final recentBooksProvider = FutureProvider<List<Book>>((ref) async {
   final api = ref.watch(zlibraryApiProvider);
   final response = await api.getRecently();
+  if (!response.success) {
+    throw StateError(response.error ?? 'Failed to load recent books');
+  }
   return response.data ?? [];
 });
 
@@ -515,6 +533,9 @@ final savedBooksProvider =
 final downloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
   final api = ref.watch(zlibraryApiProvider);
   final response = await api.getUserDownloaded(limit: 100);
+  if (!response.success) {
+    throw StateError(response.error ?? 'Failed to load download history');
+  }
   return response.data ?? [];
 });
 

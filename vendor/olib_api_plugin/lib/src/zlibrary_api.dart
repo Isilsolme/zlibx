@@ -261,11 +261,14 @@ class ZLibraryApi {
         return _Raw(status: status, error: 'cf_blocked');
       }
       // Not JSON — keep the raw body: the site's list pages (booklists)
-      // are HTML, fetched with `Accept: text/html`.
+      // are HTML, fetched with `Accept: text/html`. Set-Cookie is
+      // forwarded too, so a session re-issued on an HTML page is not
+      // silently dropped.
       return _Raw(
         status: status,
         error: 'non-JSON response (HTTP $status)',
         body: body,
+        cookies: cookies,
       );
     }
   }
@@ -395,10 +398,18 @@ class ZLibraryApi {
     // From Set-Cookie headers first (the server's own session values).
     for (final cookie in setCookie) {
       for (final part in cookie.split(';')) {
-        final kv = part.trim().split('=');
-        if (kv.length != 2) continue;
-        if (kv[0] == 'remix_userid') _userId = kv[1];
-        if (kv[0] == 'remix_userkey') _userKey = kv[1];
+        final trimmed = part.trim();
+        final eq = trimmed.indexOf('=');
+        // Values may legitimately contain '=' (base64 padding): split on
+        // the FIRST '=' only, not every one. An empty value is not a
+        // session — adopting it would send `remix_userkey=` (empty) on
+        // every later request.
+        if (eq <= 0) continue;
+        final name = trimmed.substring(0, eq);
+        final value = trimmed.substring(eq + 1);
+        if (value.isEmpty) continue;
+        if (name == 'remix_userid') _userId = value;
+        if (name == 'remix_userkey') _userKey = value;
       }
     }
     // Then from the user object, which carries the same pair.
@@ -446,6 +457,19 @@ class ZLibraryApi {
     // website login is the other shape a mirror's login handler may
     // expect. If rpc.php is not served here either, the original eapi
     // error is reported, not the fallback's.
+    //
+    // A structured eapi rejection (an explicit error/message field, e.g.
+    // "wrong email or password") is a definitive business error: the same
+    // credentials will be rejected by /rpc.php too, and resubmitting them
+    // only doubles the mirror's lock-out risk. Fall back only when the
+    // eapi answer looks like a protocol mismatch (no usable error text).
+    // (The null check must be the direct `if` condition: Dart only
+    // promotes locals on a direct test, not via a boolean variable.)
+    final eapiErrorText =
+        (raw.json?['error'] ?? raw.json?['message'])?.toString().trim();
+    if (eapiErrorText != null && eapiErrorText.isNotEmpty) {
+      return ApiResponse.fail(eapiErrorText, statusCode: raw.status);
+    }
     final rpc = await _postForm('/rpc.php', fields);
     if (rpc.json != null) {
       final rpcJson = rpc.json!;
@@ -453,8 +477,17 @@ class ZLibraryApi {
       if (validationError != null && validationError.isNotEmpty) {
         return ApiResponse.fail(validationError, statusCode: rpc.status);
       }
+      // Compare against the session that was installed BEFORE this call:
+      // if _learnSession learned nothing, a pair left over from a previous
+      // account would still make `_userId != null && _userKey != null`
+      // true, and the profile fetch would "successfully" log the previous
+      // account in with this account's password.
+      final prevUserId = _userId;
+      final prevUserKey = _userKey;
       _learnSession(rpcJson, rpc.cookies);
-      if (_userId != null && _userKey != null) {
+      final learnedNewSession = (_userId != null && _userId != prevUserId) ||
+          (_userKey != null && _userKey != prevUserKey);
+      if (learnedNewSession && _userId != null && _userKey != null) {
         final profile = await getProfile();
         if (profile.success && profile.data != null) return profile;
         return ApiResponse.fail(
@@ -527,7 +560,16 @@ class ZLibraryApi {
   ) async {
     _userId = userId;
     _userKey = userKey;
-    return getProfile();
+    final profile = await getProfile();
+    if (!profile.success) {
+      // Do not leave an unvalidated (possibly stale or rejected) pair
+      // installed: every later request would keep sending its cookies,
+      // and a subsequent login()'s rpc fallback would mistake the stale
+      // pair for a successful login of the wrong account.
+      _userId = null;
+      _userKey = null;
+    }
+    return profile;
   }
 
   /// Registration step 1: ask the server to send a verification code.
@@ -722,6 +764,13 @@ class ZLibraryApi {
   /// on the run #6 package.)
   Future<ApiResponse<List<Book>>> getMostPopular() async {
     final raw = await _get('/eapi/book/most_popular');
+    // A blocked line would make the search fallback fail too — chaining
+    // it only burns 2×15s more of timeouts before surfacing the same
+    // "cf_blocked". The device-verified fallback for success:0/empty
+    // payloads below is intentional and stays.
+    if (raw.error == 'cf_blocked') {
+      return ApiResponse.fail('cf_blocked', statusCode: raw.status);
+    }
     if (raw.status == 404) {
       return search(order: 'popular', limit: 20);
     }
@@ -744,6 +793,10 @@ class ZLibraryApi {
   /// has no history, so the endpoint legitimately returns nothing).
   Future<ApiResponse<List<Book>>> getUserRecommended() async {
     final raw = await _get('/eapi/user/recommended');
+    // Same cf_blocked short-circuit as [getMostPopular].
+    if (raw.error == 'cf_blocked') {
+      return ApiResponse.fail('cf_blocked', statusCode: raw.status);
+    }
     if (raw.status == 404) return getMostPopular();
     if (raw.json == null) return getMostPopular();
     if (!_isSuccess(raw.json!)) return getMostPopular();
@@ -755,6 +808,11 @@ class ZLibraryApi {
   /// Recently added books. Falls back to a newest-ordered search on 404.
   Future<ApiResponse<List<Book>>> getRecently() async {
     final raw = await _get('/eapi/book/recently');
+    // Same cf_blocked short-circuit as [getMostPopular]: the search
+    // fallback cannot succeed on a blocked line either.
+    if (raw.error == 'cf_blocked') {
+      return ApiResponse.fail('cf_blocked', statusCode: raw.status);
+    }
     if (raw.status == 404) {
       return search(order: 'newest', limit: 20);
     }
@@ -1592,6 +1650,21 @@ class ZLibraryApi {
         -1;
     final resumed = code == 206 && start > 0;
     final total = resumed ? start + contentLength : contentLength;
+
+    // An HTML answer to a file request is a challenge/error page, not a
+    // book: saving it would produce a tiny, "successfully downloaded"
+    // corrupted file. Reject before anything is written.
+    final contentType =
+        res.headers.value(HttpHeaders.contentTypeHeader) ?? '';
+    if (contentType.toLowerCase().contains('text/html')) {
+      await res.data?.stream.drain<void>();
+      throw StateError(
+        'download answered an HTML page '
+        '(HTTP $code, content-type $contentType) — the mirror is likely '
+        'serving a challenge or error page instead of the file',
+      );
+    }
+
     final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
     var received = resumed ? start : 0;
     try {
@@ -1602,6 +1675,14 @@ class ZLibraryApi {
       }
     } finally {
       await sink.close();
+    }
+    // Length check: a stream that ends early (connection dropped and
+    // silently closed by a proxy, truncated CDN answer) must not count
+    // as a finished download.
+    if (total > 0 && received < total) {
+      throw StateError(
+        'download truncated: received $received of $total bytes',
+      );
     }
     return res;
   }
@@ -1656,8 +1737,23 @@ class ZLibraryApi {
           throw StateError(err ?? 'no download link in file response');
         }
       } on FormatException {
-        // Not JSON: the endpoint itself streams the file.
-        return '$_base$path';
+        // Not JSON: the endpoint itself streams the file — but only if
+        // the payload really is a binary/ebook response. An HTML answer
+        // is a wall or error page: treating it as a "file stream" makes
+        // downloadBook fetch the same page a second time and save the
+        // HTML as the book (and this request already pulled the whole
+        // body into memory for nothing).
+        final contentType =
+            res.headers.value(HttpHeaders.contentTypeHeader) ?? '';
+        if (res.statusCode == 200 &&
+            !contentType.toLowerCase().contains('text/html')) {
+          return '$_base$path';
+        }
+        throw StateError(
+          'file endpoint answered HTTP ${res.statusCode} '
+          '(${contentType.isEmpty ? 'no content-type' : contentType}) '
+          'instead of JSON or a file stream',
+        );
       }
       throw StateError('no download link in file response');
     } on DioException catch (e) {

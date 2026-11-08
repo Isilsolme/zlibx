@@ -151,7 +151,10 @@ List<SlumSite> parseSlumPage(
     // The "other" page mixes WeLib with unrelated libraries; only the
     // service's own hosts become mirrors.
     if (service == MirrorService.welib) {
-      if (!host.contains('welib') || skipHosts.contains(host)) continue;
+      // Word-boundary-ish match: `contains('welib')` also accepted hosts
+      // like notwelib.org that merely embed the string.
+      final isWelibHost = RegExp(r'(?:^|\.)welib\.').hasMatch(host);
+      if (!isWelibHost || skipHosts.contains(host)) continue;
     }
 
     final status = _parseStatus(card);

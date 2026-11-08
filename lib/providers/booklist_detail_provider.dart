@@ -118,9 +118,20 @@ class BooklistDetailController
         (cachedHtml != null && !BooklistSolver.isChallengeHtml(cachedHtml))
         ? cachedHtml
         : null;
-    final htmlBooks = usableHtml == null
-        ? null
-        : parseBooklistDetailBooks(usableHtml, baseUrl: Uri.parse(list.url).origin);
+    List<Book>? htmlBooks;
+    if (usableHtml != null) {
+      // Same guard as BooklistsController.loadFirst: the cache was written
+      // by an older run — a parse failure must not escape loadFirst (which
+      // runs from a microtask) and leave the screen loading forever.
+      try {
+        htmlBooks = parseBooklistDetailBooks(
+          usableHtml,
+          baseUrl: Uri.parse(list.url).origin,
+        );
+      } catch (_) {
+        htmlBooks = null;
+      }
+    }
     final initialBooks = cachedPage ?? htmlBooks ?? preview;
     final hasLocalSnapshot =
         cachedPage != null || usableHtml != null || preview.isNotEmpty;
@@ -264,12 +275,17 @@ class BooklistDetailController
           isLoadingMore: false,
         );
       } else {
-        // A failed later page just ends the list.
-        state = state.copyWith(isLoadingMore: false, hasMore: false);
+        // A failed later page must not silently end the list: a network
+        // blip would look like "no more books" with no way back (and
+        // setting `error` here would trip the loadMore guard above,
+        // which blocks retries while an error is set). Keep hasMore so
+        // the next scroll event re-enters loadMore and retries.
+        state = state.copyWith(isLoadingMore: false);
       }
     } catch (e) {
       if (!_isCurrent(generation)) return;
-      state = state.copyWith(isLoadingMore: false, hasMore: false);
+      // Same as above: keep the list resumable instead of truncating it.
+      state = state.copyWith(isLoadingMore: false);
     }
   }
 

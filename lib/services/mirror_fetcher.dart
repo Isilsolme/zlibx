@@ -15,6 +15,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 // Project imports:
 import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/webview_challenge_solver.dart';
 
 /// Service to fetch mirror links in the background without showing UI
 class MirrorFetcherService {
@@ -47,6 +48,39 @@ class MirrorFetcherService {
           }
 
           _logger.debug('Page loaded successfully', tag: 'MirrorFetcher', metadata: {'url': url.toString()});
+
+          // A challenge interstitial is ALSO a "page load": completing
+          // here used to extract 0 links from the challenge page (or throw
+          // in the slow_download branch) and fail instantly on every
+          // protected mirror — the exact opposite of this service's job.
+          // Detect it and keep waiting: the challenge auto-solves and
+          // redirects, firing another onLoadStop with the real page. The
+          // 15s outer timeout below still bounds the whole wait.
+          try {
+            final title = await controller.getTitle() ?? '';
+            final bodySnippet = await controller.evaluateJavascript(
+                  source:
+                      "document.body ? document.body.innerText.substring(0, 1500) : '';",
+                );
+            final snippet = bodySnippet?.toString() ?? '';
+            if (WebviewChallengeSolver.isChallengePage(
+              title: title,
+              bodySnippet: snippet,
+            )) {
+              _logger.info('Challenge page detected, waiting for the '
+                      'auto-solve redirect',
+                  tag: 'MirrorFetcher',
+                  metadata: {'url': url.toString()});
+              return;
+            }
+          } catch (challengeCheckError) {
+            // Title/JS probing failed — fall through and try link
+            // extraction anyway; it has its own error handling.
+            _logger.debug('Challenge probe failed, continuing with '
+                    'extraction',
+                tag: 'MirrorFetcher',
+                error: challengeCheckError);
+          }
 
           try {
             if (url.toString().contains("slow_download")) {
@@ -81,6 +115,14 @@ class MirrorFetcherService {
           }
         },
         onReceivedError: (controller, request, error) {
+          // Only a MAIN-FRAME error means the page is unavailable.
+          // favicon / image / analytics 404s used to kill the whole
+          // extraction even though the document itself loaded fine.
+          if (request.isForMainFrame != true) {
+            _logger.debug('Sub-resource load error (ignored)',
+                tag: 'MirrorFetcher', error: error.description);
+            return;
+          }
           _logger.error('WebView load error', tag: 'MirrorFetcher', error: error.description);
           // Load error, complete with empty list
           if (!completer.isCompleted) {

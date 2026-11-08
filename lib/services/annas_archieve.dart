@@ -87,6 +87,12 @@ class AnnasArchieve {
   final InstanceManager _instanceManager;
   final AppLogger _logger = AppLogger();
 
+  /// A WebView-captured page below this size never holds a usable
+  /// search/detail result (an empty shell or a redirect stub). A size
+  /// check alone is not enough — it is always paired with
+  /// [WebviewChallengeSolver.isChallengeHtml], see [_usableCachedHtml].
+  static const int minUsableHtmlLength = 1000;
+
   // Optimized retry settings for faster response
   static const int maxRetriesPerInstance =
       1; // Only 1 retry per instance for speed
@@ -402,6 +408,24 @@ class AnnasArchieve {
         .hasUnprotectedMirror(MirrorService.annasArchive);
   }
 
+  /// Reads [url]'s solve cache and only returns HTML that is actually a
+  /// usable page. The solver's capture check keys on the <title>, so a
+  /// DDoS-Guard interstitial whose title already names the site can slip
+  /// into the cache; parsing that page would produce a silent "empty
+  /// result" for the next 10 minutes (booklist_solver.dart fixed the
+  /// same issue with a comment: "a stale challenge page must not
+  /// short-circuit the solve"). Returns null when absent or stale.
+  String? _usableCachedHtml(String url) {
+    final cached = ChallengeHtmlCache.get(url);
+    if (cached == null) return null;
+    if (WebviewChallengeSolver.isChallengeHtml(cached)) {
+      _logger.warning('Ignoring cached challenge HTML for $url',
+          tag: 'AnnasArchive');
+      return null;
+    }
+    return cached;
+  }
+
   /// WebView fallback for a search whose Dio attempts all failed without a
   /// response (timeout / connection killed — the DDoS-Guard signature when
   /// it drops non-browser clients). Builds the search URL for the first
@@ -439,7 +463,7 @@ class AnnasArchieve {
     // A previous solve already captured this exact page: parse it
     // directly instead of solving again. (The Dio path checks this same
     // cache first; skipping Dio must not lose the instant repeat search.)
-    final cached = ChallengeHtmlCache.get(targetUrl);
+    final cached = _usableCachedHtml(targetUrl);
     if (cached != null) {
       _logger.info('Using cached challenge HTML for search',
           tag: 'AnnasArchive', metadata: {'url': targetUrl});
@@ -449,7 +473,7 @@ class AnnasArchieve {
         tag: 'AnnasArchive', metadata: {'url': targetUrl});
     final html =
         await WebviewChallengeSolver.fetchHtmlAfterChallenge(targetUrl);
-    if (html == null || html.length <= 1000) {
+    if (html == null || html.length <= minUsableHtmlLength) {
       _logger.warning('WebView solve returned no usable HTML for search',
           tag: 'AnnasArchive');
       return null;
@@ -476,7 +500,7 @@ class AnnasArchieve {
     }
     // Same cache fast-path as the Dio closure: a previous solve already
     // captured this exact detail page.
-    final cached = ChallengeHtmlCache.get(adjustedUrl);
+    final cached = _usableCachedHtml(adjustedUrl);
     if (cached != null) {
       _logger.info('Using cached challenge HTML for bookInfo',
           tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
@@ -486,7 +510,7 @@ class AnnasArchieve {
         tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
     final html =
         await WebviewChallengeSolver.fetchHtmlAfterChallenge(adjustedUrl);
-    if (html == null || html.length <= 1000) {
+    if (html == null || html.length <= minUsableHtmlLength) {
       _logger.warning('WebView solve returned no usable HTML for bookInfo',
           tag: 'AnnasArchive');
       return null;
@@ -568,7 +592,8 @@ class AnnasArchieve {
 
         // If the challenge solver already captured this page in a browser,
         // use it directly - Dio can never pass the challenge itself.
-        final cached = ChallengeHtmlCache.get(encodedURL);
+        // _usableCachedHtml rejects stale challenge interstitials.
+        final cached = _usableCachedHtml(encodedURL);
         if (cached != null) {
           _logger.info('Using cached challenge HTML for search',
               tag: 'AnnasArchive', metadata: {'url': encodedURL});
@@ -635,16 +660,29 @@ class AnnasArchieve {
         _logger.info('Attempting automatic challenge solve via webview',
             tag: 'AnnasArchive');
 
-        final html = await WebviewChallengeSolver.fetchHtmlAfterChallenge(
-            networkErr.blockedUrl!);
-        if (html != null && html.length > 1000) {
-          _logger.info('Challenge solved, parsing results from webview HTML',
-              tag: 'AnnasArchive');
-          final currentBaseUrl = Uri.parse(networkErr.blockedUrl!).origin;
-          return _parser(html, fileType, currentBaseUrl);
-        } else {
-          _logger.warning('Webview solver returned no usable HTML',
-              tag: 'AnnasArchive');
+        try {
+          final html = await WebviewChallengeSolver.fetchHtmlAfterChallenge(
+              networkErr.blockedUrl!);
+          if (html != null && html.length > minUsableHtmlLength) {
+            _logger.info('Challenge solved, parsing results from webview HTML',
+                tag: 'AnnasArchive');
+            // Uri.parse(...).origin throws on non-http(s) schemes, and the
+            // solver itself can fail: a crash here must escape as the
+            // original NetworkError, not as a bare StateError that
+            // violates the "searchBooks only throws NetworkError"
+            // contract.
+            final currentBaseUrl = Uri.parse(networkErr.blockedUrl!).origin;
+            return _parser(html, fileType, currentBaseUrl);
+          } else {
+            _logger.warning('Webview solver returned no usable HTML',
+                tag: 'AnnasArchive');
+          }
+        } catch (solveError, solveStack) {
+          _logger.error('Challenge solve crashed; reporting the original '
+              'block instead',
+          tag: 'AnnasArchive',
+          error: solveError,
+          stackTrace: solveStack);
         }
       }
       // Dio never got a response at all: every mirror timed out (DDoS-Guard
@@ -656,19 +694,27 @@ class AnnasArchieve {
       if ((networkErr.type == NetworkErrorType.timeout ||
               networkErr.type == NetworkErrorType.serverUnavailable) &&
           WebviewChallengeSolver.isSupported) {
-        final solved = await _solveSearchViaWebView(
-          searchQuery: searchQuery,
-          content: content,
-          sort: sort,
-          fileType: fileType,
-          language: language,
-          year: year,
-          author: author,
-          publisher: publisher,
-          enableFilters: enableFilters,
-          page: page,
-        );
-        if (solved != null) return solved;
+        try {
+          final solved = await _solveSearchViaWebView(
+            searchQuery: searchQuery,
+            content: content,
+            sort: sort,
+            fileType: fileType,
+            language: language,
+            year: year,
+            author: author,
+            publisher: publisher,
+            enableFilters: enableFilters,
+            page: page,
+          );
+          if (solved != null) return solved;
+        } catch (solveError, solveStack) {
+          _logger.error('WebView search fallback crashed; rethrowing the '
+              'original network error',
+          tag: 'AnnasArchive',
+          error: solveError,
+          stackTrace: solveStack);
+        }
       }
       // Re-throw NetworkError as-is for UI to handle if solver failed or unavailable
       rethrow;
@@ -773,7 +819,8 @@ class AnnasArchieve {
 
         // If the challenge solver already captured this page in a browser,
         // use it directly - Dio can never pass the challenge itself.
-        final cached = ChallengeHtmlCache.get(adjustedUrl);
+        // _usableCachedHtml rejects stale challenge interstitials.
+        final cached = _usableCachedHtml(adjustedUrl);
         if (cached != null) {
           _logger.info('Using cached challenge HTML for bookInfo',
               tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
@@ -852,33 +899,47 @@ class AnnasArchieve {
             'Attempting automatic challenge solve via webview for bookInfo',
             tag: 'AnnasArchive');
 
-        final targetUrl = networkErr.blockedUrl!;
-        final html =
-            await WebviewChallengeSolver.fetchHtmlAfterChallenge(targetUrl);
-        if (html != null && html.length > 1000) {
-          _logger.info('Challenge solved, parsing bookInfo from webview HTML',
-              tag: 'AnnasArchive');
-          final currentBaseUrl = Uri.parse(targetUrl).origin;
-          final data = await _bookInfoParser(html, targetUrl, currentBaseUrl);
-          if (data != null) {
-            return data;
-          } else {
-            // The page rendered fine but holds no book details - the md5
-            // led to a search redirect. This is a dead link, not a block.
-            _logger.warning('Webview HTML parsed but returned null bookInfo',
+        try {
+          final targetUrl = networkErr.blockedUrl!;
+          final html =
+              await WebviewChallengeSolver.fetchHtmlAfterChallenge(targetUrl);
+          if (html != null && html.length > minUsableHtmlLength) {
+            _logger.info('Challenge solved, parsing bookInfo from webview HTML',
                 tag: 'AnnasArchive');
-            throw NetworkError(
-              type: NetworkErrorType.unknown,
-              userMessage: "Book not found",
-              solution:
-                  "The page loaded but no book details were on it. The md5 link may be outdated - try searching for the title instead.",
-              technicalDetails:
-                  "Parser returned null for solved page: $targetUrl",
-            );
+            final currentBaseUrl = Uri.parse(targetUrl).origin;
+            final data =
+                await _bookInfoParser(html, targetUrl, currentBaseUrl);
+            if (data != null) {
+              return data;
+            } else {
+              // The page rendered fine but holds no book details - the md5
+              // led to a search redirect. This is a dead link, not a block.
+              _logger.warning('Webview HTML parsed but returned null bookInfo',
+                  tag: 'AnnasArchive');
+              throw NetworkError(
+                type: NetworkErrorType.unknown,
+                userMessage: "Book not found",
+                solution:
+                    "The page loaded but no book details were on it. The md5 link may be outdated - try searching for the title instead.",
+                technicalDetails:
+                    "Parser returned null for solved page: $targetUrl",
+              );
+            }
+          } else {
+            _logger.warning(
+                'Webview solver returned no usable HTML for bookInfo',
+                tag: 'AnnasArchive');
           }
-        } else {
-          _logger.warning('Webview solver returned no usable HTML for bookInfo',
-              tag: 'AnnasArchive');
+        } catch (solveError, solveStack) {
+          // A solver crash (bad URL scheme, UI callback failure, ...)
+          // must not escape as a bare exception: surface the original
+          // NetworkError so the UI's error handling keeps working.
+          if (solveError is NetworkError) rethrow;
+          _logger.error('Challenge solve crashed; reporting the original '
+              'block instead',
+          tag: 'AnnasArchive',
+          error: solveError,
+          stackTrace: solveStack);
         }
       }
       // Same timeout fallback as searchBooks: Dio got no response from any
@@ -887,8 +948,17 @@ class AnnasArchieve {
       if ((networkErr.type == NetworkErrorType.timeout ||
               networkErr.type == NetworkErrorType.serverUnavailable) &&
           WebviewChallengeSolver.isSupported) {
-        final solved = await _solveBookInfoViaWebView(url);
-        if (solved != null) return solved;
+        try {
+          final solved = await _solveBookInfoViaWebView(url);
+          if (solved != null) return solved;
+        } catch (solveError, solveStack) {
+          if (solveError is NetworkError) rethrow;
+          _logger.error('WebView bookInfo fallback crashed; rethrowing the '
+              'original network error',
+          tag: 'AnnasArchive',
+          error: solveError,
+          stackTrace: solveStack);
+        }
       }
       // Re-throw NetworkError as-is for UI to handle if solver failed or unavailable
       rethrow;

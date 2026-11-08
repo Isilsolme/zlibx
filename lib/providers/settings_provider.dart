@@ -23,7 +23,14 @@ class ThemeModeNotifier extends Notifier<AppThemeMode> {
 
   Future<void> _loadThemeMode() async {
     final mode = await _storage.getThemeMode();
-    state = AppThemeMode.values[mode];
+    // Persisted values can be out of range after an enum change or a
+    // corrupted settings box: AppThemeMode.values[mode] would throw an
+    // uncaught RangeError inside this async gap and the theme would
+    // silently stay on `system` forever. Clamp instead (clamp() returns
+    // num, so round-trip through toInt() for the list index).
+    final index =
+        mode.clamp(0, AppThemeMode.values.length - 1).toInt();
+    state = AppThemeMode.values[index];
   }
 
   Future<void> setThemeMode(AppThemeMode mode) async {

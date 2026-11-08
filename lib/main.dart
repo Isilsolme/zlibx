@@ -152,25 +152,46 @@ class _MyAppState extends ConsumerState<MyApp> {
             AppRoutes.account: (context) => const AccountScreen(),
             AppRoutes.booklists: (context) => const BooklistsScreen(),
             AppRoutes.booklistDetail: (context) {
-              final args = ModalRoute.of(context)!.settings.arguments
-                  as BooklistDetailArgs;
-              return BooklistDetailScreen(args: args);
+              final args = ModalRoute.of(context)!.settings.arguments;
+              // A missing/mistyped arguments object (deep link, hot-reload
+              // route change) used to throw an async type-cast error and
+              // red-screen. Show a plain fallback instead.
+              if (args is BooklistDetailArgs) {
+                return BooklistDetailScreen(args: args);
+              }
+              return const _MissingRouteArgsScreen();
             },
             AppRoutes.myComments: (context) => const MyCommentsScreen(),
             AppRoutes.userProfile: (context) => const UserProfileScreen(),
             AppRoutes.reader: (context) {
-              final args =
-                  ModalRoute.of(context)!.settings.arguments as ReaderArgs;
-              return ReaderScreen(
-                url: args.url,
-                title: args.title,
-                remixUserId: args.remixUserId,
-                remixUserKey: args.remixUserKey,
-              );
+              final args = ModalRoute.of(context)!.settings.arguments;
+              if (args is ReaderArgs) {
+                return ReaderScreen(
+                  url: args.url,
+                  title: args.title,
+                  remixUserId: args.remixUserId,
+                  remixUserKey: args.remixUserKey,
+                );
+              }
+              return const _MissingRouteArgsScreen();
             },
           },
         );
       },
+    );
+  }
+}
+
+/// Plain fallback for routes whose typed arguments are missing or of the
+/// wrong type — see the booklistDetail / reader builders above.
+class _MissingRouteArgsScreen extends StatelessWidget {
+  const _MissingRouteArgsScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: const Center(child: Text('Page unavailable')),
     );
   }
 }

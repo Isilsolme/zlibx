@@ -62,7 +62,10 @@ class Book {
     return Book(
       id: _asInt(json['id']) ?? 0,
       title: _asString(json['title']) ?? '',
-      hash: _asString(json['hash'] ?? json['hashId']) ??
+      // An EMPTY hash string must not shadow the href fallback below:
+      // `hash: ""` would produce `/eapi/book/{id}/` requests that only
+      // the expensive resolveEapiHash search could ever repair.
+      hash: _nonEmptyString(json['hash'] ?? json['hashId']) ??
           _hashFromBookHref(href),
       author: _joinAuthor(json['author']),
       cover: _asString(json['cover']),
@@ -164,6 +167,17 @@ class Book {
     if (bytes < 1024 * 1024) {
       return '${(bytes / 1024).toStringAsFixed(1)} KB';
     }
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
+  }
+
+  /// [_asString] with empty-string normalization: many endpoints return
+  /// `""` instead of omitting optional fields, and an empty value must
+  /// behave like an absent one.
+  static String? _nonEmptyString(dynamic v) {
+    final s = _asString(v);
+    return (s == null || s.isEmpty) ? null : s;
   }
 }

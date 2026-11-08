@@ -61,25 +61,54 @@ class ArchiveBookDetails extends ArchiveBook {
 /// The app and the CLI both call these functions so a selector fix or a URL
 /// change only has to be made once.
 class ArchiveParsing {
+  // Compiled once: cleanText runs for every title/author/publisher of
+  // every search-result row — re-building six RegExp instances per call
+  // was pure overhead on the hottest parsing path.
+  static final RegExp _reEmojiBlock =
+      RegExp(r'[\u{1F300}-\u{1F9FF}]', unicode: true);
+  static final RegExp _reMiscSymbols =
+      RegExp(r'[\u{2600}-\u{26FF}]', unicode: true);
+  static final RegExp _reDingbats =
+      RegExp(r'[\u{2700}-\u{27BF}]', unicode: true);
+  static final RegExp _reEmoticons =
+      RegExp(r'[\u{1F600}-\u{1F64F}]', unicode: true);
+  static final RegExp _reTransport =
+      RegExp(r'[\u{1F680}-\u{1F6FF}]', unicode: true);
+  static final RegExp _reWhitespace = RegExp(r'\s+');
+
   /// Removes emoji/icon noise and collapses whitespace.
   static String cleanText(String text) {
     return text
-        .replaceAll(RegExp(r'[\u{1F300}-\u{1F9FF}]', unicode: true), '')
-        .replaceAll(RegExp(r'[\u{2600}-\u{26FF}]', unicode: true), '')
-        .replaceAll(RegExp(r'[\u{2700}-\u{27BF}]', unicode: true), '')
-        .replaceAll(RegExp(r'[\u{1F600}-\u{1F64F}]', unicode: true), '')
-        .replaceAll(RegExp(r'[\u{1F680}-\u{1F6FF}]', unicode: true), '')
+        .replaceAll(_reEmojiBlock, '')
+        .replaceAll(_reMiscSymbols, '')
+        .replaceAll(_reDingbats, '')
+        .replaceAll(_reEmoticons, '')
+        .replaceAll(_reTransport, '')
         .replaceAll('🔍', '')
-        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(_reWhitespace, ' ')
         .trim();
   }
 
-  /// Detects `pdf` / `cbr` / `cbz` from the info line, defaulting to `epub`.
+  /// Formats Anna's Archive commonly puts in its info line, checked with
+  /// word boundaries so a title mentioning "pdf" cannot win over the
+  /// real format token. Unknown formats fall back to `epub` (unchanged
+  /// from the previous behavior for unrecognized entries).
+  static const List<String> _knownFormats = [
+    'pdf', 'epub', 'mobi', 'azw3', 'fb2', 'djvu', 'cbz', 'cbr',
+    'txt', 'rtf', 'doc', 'docx', 'lit', 'chm',
+  ];
+
+  /// Detects the book format from the info line, defaulting to `epub`.
+  static final List<MapEntry<String, RegExp>> _knownFormatMatchers = [
+    for (final format in _knownFormats)
+      MapEntry(format, RegExp(r'\b' + format + r'\b')),
+  ];
+
   static String formatFromInfo(String? info) {
     final lower = (info ?? '').toLowerCase();
-    if (lower.contains('pdf')) return 'pdf';
-    if (lower.contains('cbr')) return 'cbr';
-    if (lower.contains('cbz')) return 'cbz';
+    for (final entry in _knownFormatMatchers) {
+      if (entry.value.hasMatch(lower)) return entry.key;
+    }
     return 'epub';
   }
 
@@ -153,7 +182,8 @@ class ArchiveParsing {
       fieldTerms.write(
           'publisher:%22${Uri.encodeQueryComponent(publisher.trim())}%22 ');
     }
-    final encodedQuery = '${fieldTerms.toString()}$query'.replaceAll(' ', '+');
+    final encodedQuery =
+        '${fieldTerms.toString()}${Uri.encodeQueryComponent(query.trim())}';
 
     final hasYearRange =
         (yearFrom?.isNotEmpty ?? false) || (yearTo?.isNotEmpty ?? false);
@@ -210,16 +240,19 @@ class ArchiveParsing {
     if (containers.isEmpty) {
       final md5Links = document.querySelectorAll('a[href*="/md5/"]');
       if (md5Links.isNotEmpty) {
-        containers = md5Links
-            .map((link) {
-              var parent = link.parent;
-              while (parent != null && parent.localName != 'div') {
-                parent = parent.parent;
-              }
-              return parent;
-            })
-            .whereType<dom.Element>()
-            .toList();
+        // Several links in one container (cover + title both pointing at
+        // /md5/) used to add the SAME container twice — the book showed
+        // up duplicated in the fallback results. A Set deduplicates by
+        // element identity.
+        final seenContainers = <dom.Element>{};
+        for (final link in md5Links) {
+          var parent = link.parent;
+          while (parent != null && parent.localName != 'div') {
+            parent = parent.parent;
+          }
+          if (parent != null) seenContainers.add(parent);
+        }
+        containers = seenContainers.toList();
       }
     }
 
@@ -318,7 +351,7 @@ class ArchiveParsing {
       descriptionElement = descriptionLabel?.nextElementSibling;
     }
 
-    final title = cleanText(titleElement.text.trim().split('<span')[0].trim());
+    final title = cleanText(titleElement.text.trim());
     final author = cleanText(authorElement?.text.trim() ?? 'unknown');
     final publisher = cleanText(publisherElement?.text.trim() ?? 'unknown');
     final info = visibleText(main.querySelector('div.text-gray-800'));
@@ -399,7 +432,10 @@ class ArchiveParsing {
   /// Extracts the direct download link from a `slow_download` page.
   static String? extractSlowDownloadLink(String html, {String pageUrl = ''}) {
     final document = parse(html);
-    final paragraph =
+    // Class-combining selector (order-insensitive) first; the exact
+    // attribute match stays as a fallback in case the site renders an
+    // additional class in between.
+    final paragraph = document.querySelector('p.mb-4.text-xl.font-bold') ??
         document.querySelector('p[class="mb-4 text-xl font-bold"]');
     final href = paragraph?.querySelector('a')?.attributes['href'];
     if (href == null || href.isEmpty) return null;

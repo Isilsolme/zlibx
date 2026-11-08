@@ -102,6 +102,12 @@ class WebviewChallengeSolver {
     return titleMarkers.any(t.contains) || bodyMarkers.any(b.contains);
   }
 
+  /// One in-flight solve per URL. A search + its detail request failing
+  /// at the same time used to launch TWO headless webviews for the same
+  /// page (and could pop the visible fallback twice). Keyed by URL: a
+  /// different URL must never receive this page's HTML.
+  static final Map<String, Future<String?>> _inFlightSolves = {};
+
   /// Solves the challenge for [url] and returns the fully rendered page HTML,
   /// or null if the challenge could not be cleared within [timeout].
   ///
@@ -114,9 +120,30 @@ class WebviewChallengeSolver {
   static Future<String?> fetchHtmlAfterChallenge(
     String url, {
     Duration? timeout,
-  }) async {
+  }) {
     if (!isSupported) return null;
+    // Merge concurrent solves of the SAME url into one webview run.
+    final existing = _inFlightSolves[url];
+    if (existing != null) {
+      _logger.debug('Joining in-flight challenge solve',
+          tag: 'ChallengeSolver', metadata: {'url': url});
+      return existing;
+    }
+    final future = _fetchHtmlAfterChallengeUncancelable(url, timeout);
+    _inFlightSolves[url] = future;
+    // Remove on completion — whenComplete returns a NEW future, so the
+    // map entry must point at `future`, and unawaited cleanup keeps the
+    // map bounded.
+    unawaited(
+      future.whenComplete(() => _inFlightSolves.remove(url)),
+    );
+    return future;
+  }
 
+  static Future<String?> _fetchHtmlAfterChallengeUncancelable(
+    String url,
+    Duration? timeout,
+  ) async {
     final effectiveTimeout = timeout ?? const Duration(seconds: 60);
 
     final tryHeadless = guiEnabled && headlessEnabled;

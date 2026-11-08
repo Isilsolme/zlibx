@@ -83,6 +83,13 @@ class BooklistWarmup {
       if (warm != null && !WebviewChallengeSolver.isChallengeHtml(warm)) {
         return;
       }
+      // The in-memory cache only lasts ~10 minutes, but the solved page
+      // is ALSO persisted for 7 days (BooklistHtmlCache). Without this
+      // second check every cold start re-ran a headless solve (up to a
+      // minute of WebView work) for a page the app already had on disk.
+      if (BooklistHtmlCache.get(url, accountId: accountId) != null) {
+        return;
+      }
       if (needsSession) {
         await installSessionCookies(
           userId: user.id,

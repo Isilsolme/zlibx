@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/hive_service.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'auth_provider.dart';
-import 'books_provider.dart';
+import 'cache_invalidation.dart';
 import 'zlibrary_provider.dart';
 
 const defaultDomain = 'bookroom.lifestyle';
@@ -192,13 +192,9 @@ class DomainNotifier extends Notifier<String> {
       // unavailable so the user explicitly logs in again if they trust it.
       ref.read(authProvider.notifier).flagLineUnavailable();
     }
-    // Bust caches for anything that depends on the line. List individual
-    // providers explicitly so adding a new one is a deliberate decision.
-    ref.invalidate(bookDetailsProvider);
-    ref.invalidate(recommendedBooksProvider);
-    ref.invalidate(mostPopularBooksProvider);
-    ref.invalidate(recentBooksProvider);
-    ref.invalidate(downloadedBooksProvider);
-    ref.invalidate(savedBooksProvider);
+    // Bust caches for anything that depends on the line. The shared list
+    // (see cache_invalidation.dart) grew out of three hand-copied blocks
+    // that had already drifted apart — keep one list, not three.
+    invalidateAccountScopedProviders(ref);
   }
 }

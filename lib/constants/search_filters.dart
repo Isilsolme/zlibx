@@ -55,7 +55,55 @@ const searchLanguages = {
 
 /// Localized language display names (key: api_value)
 Map<String, String> getLanguageDisplayNames(String locale) {
-  // Common languages with localized names
+  // Common languages with localized names.
+  // zh_Hant must be matched BEFORE the generic 'zh' prefix check:
+  // traditional-Chinese users otherwise get the simplified table even
+  // though the app ships a zh_Hant translation.
+  final lowerLocale = locale.toLowerCase();
+  if (lowerLocale.startsWith('zh_hant') ||
+      lowerLocale.startsWith('zh-hant') ||
+      lowerLocale == 'zh_tw' ||
+      lowerLocale.startsWith('zh_tw') ||
+      lowerLocale == 'zh_hk' ||
+      lowerLocale.startsWith('zh_hk') ||
+      lowerLocale == 'zh_mo') {
+    return {
+      'all': '所有語言',
+      'chinese': '簡體中文',
+      'traditional_chinese': '繁體中文',
+      'english': '英語',
+      'russian': '俄語',
+      'german': '德語',
+      'spanish': '西班牙語',
+      'french': '法語',
+      'italian': '意大利語',
+      'portuguese': '葡萄牙語',
+      'brazilian': '巴西葡萄牙語',
+      'japanese': '日語',
+      'korean': '韓語',
+      'arabic': '阿拉伯語',
+      'turkish': '土耳其語',
+      'vietnamese': '越南語',
+      'thai': '泰語',
+      'indonesian': '印度尼西亞語',
+      'polish': '波蘭語',
+      'ukrainian': '烏克蘭語',
+      'dutch': '荷蘭語',
+      'swedish': '瑞典語',
+      'danish': '丹麥語',
+      'norwegian': '挪威語',
+      'finnish': '芬蘭語',
+      'greek': '希臘語',
+      'czech': '捷克語',
+      'romanian': '羅馬尼亞語',
+      'hungarian': '匈牙利語',
+      'persian': '波斯語',
+      'hindi': '印地語',
+      'bengali': '孟加拉語',
+      'hebrew': '希伯來語',
+      'latin': '拉丁語',
+    };
+  }
   if (locale.startsWith('zh')) {
     return {
       'all': '所有语言',
@@ -91,7 +139,8 @@ Map<String, String> getLanguageDisplayNames(String locale) {
       'hindi': '印地语',
       'bengali': '孟加拉语',
       'hebrew': '希伯来语',
-      'latin': 'latin',
+      // Was left as the raw key 'latin' — every other entry is translated.
+      'latin': '拉丁语',
     };
   }
   // Default: English names
