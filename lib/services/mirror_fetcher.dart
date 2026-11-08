@@ -78,7 +78,7 @@ class MirrorFetcherService {
             // extraction anyway; it has its own error handling.
             _logger.debug('Challenge probe failed, continuing with '
                     'extraction',
-                tag: 'MirrorFetcher',
+                tag: 'MirrorFetcher');
           }
 
           try {
