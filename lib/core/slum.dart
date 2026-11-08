@@ -118,6 +118,14 @@ String normalizeSlumUrl(String href) {
   return url;
 }
 
+/// The app forbids cleartext traffic, so an `http://` mirror could never
+/// be reached as written (and a donation key or session must not travel
+/// over plain HTTP anyway). Upgrade the scheme instead of dropping the
+/// mirror: most still answer on HTTPS. [normalizeSlumUrl] keeps its
+/// documented behaviour; only parsed catalogue entries go through this.
+String _preferHttps(String url) =>
+    url.startsWith('http://') ? 'https://${url.substring(7)}' : url;
+
 /// Parses one SLUM service page.
 ///
 /// Each page lists `<div class="card" id="service.host">` blocks with a
@@ -151,7 +159,7 @@ List<SlumSite> parseSlumPage(
 
     sites.add(SlumSite(
       service: service,
-      url: normalizeSlumUrl(href),
+      url: _preferHttps(normalizeSlumUrl(href)),
       host: host,
       status: status,
       protection: protection,

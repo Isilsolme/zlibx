@@ -127,7 +127,11 @@ class BooklistShareCodec {
   /// 万能解析：URI / 旧 olib_share / JSON 文本 都能塞进来
   static BooklistShareData? tryDecode(String input) {
     final trimmed = input.trim();
-    if (trimmed.isEmpty || utf8.encode(trimmed).length > maxFileBytes) {
+    // length (UTF-16 units) never exceeds the UTF-8 byte count, so this
+    // cheap check rejects huge inputs before utf8.encode copies them.
+    if (trimmed.isEmpty ||
+        trimmed.length > maxFileBytes ||
+        utf8.encode(trimmed).length > maxFileBytes) {
       return null;
     }
 

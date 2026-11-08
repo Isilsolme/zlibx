@@ -1576,6 +1576,7 @@ class ZLibraryApi {
       return res;
     }
     if (code == 416 && start > 0) {
+      await res.data?.stream.drain<void>();
       await file.writeAsBytes(const []);
       return _downloadOnce(
         link,

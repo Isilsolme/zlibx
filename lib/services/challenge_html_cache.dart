@@ -23,15 +23,33 @@ class ChallengeHtmlCache {
 
   static const _ttl = Duration(minutes: 10);
 
-  // Full request URL -> (html, capturedAt)
+  /// Upper bounds so a long session can never hold unbounded HTML in
+  /// memory: at most [maxEntries] pages and [maxTotalChars] characters in
+  /// total (UTF-16 code units, roughly 2 bytes each). A single page above
+  /// [maxEntryChars] is not cached at all.
+  static const maxEntries = 24;
+  static const maxTotalChars = 6 * 1000 * 1000;
+  static const maxEntryChars = 3 * 1000 * 1000;
+
+  // Full request URL -> (html, capturedAt). Insertion order = age order.
   static final Map<String, _CacheEntry> _entries = {};
+  static int _totalChars = 0;
+
+  static int get entryCount => _entries.length;
+  static int get totalChars => _totalChars;
 
   static void store(String url, String html) {
-    if (url.isEmpty || html.isEmpty) return;
+    if (url.isEmpty || html.isEmpty || html.length > maxEntryChars) return;
+    _remove(url); // re-inserting moves the key to the "newest" end
     _entries[url] = _CacheEntry(html: html, capturedAt: DateTime.now());
+    _totalChars += html.length;
+    _evictExpired();
+    while (_entries.length > maxEntries || _totalChars > maxTotalChars) {
+      _remove(_entries.keys.first);
+    }
     _logger.debug('Cached challenge HTML',
         tag: 'ChallengeCache',
-        metadata: {'url': url, 'size': html.length, 'entries': _entries.length});
+        metadata: {'size': html.length, 'entries': _entries.length});
   }
 
   /// Returns the cached HTML for [url] if it is fresh, otherwise null.
@@ -44,11 +62,25 @@ class ChallengeHtmlCache {
 
   static bool has(String url) => get(url) != null;
 
-  static void clear() => _entries.clear();
+  /// Drops everything. Called on login / logout: captured pages can be
+  /// account-specific, and the key is only the URL.
+  static void clear() {
+    _entries.clear();
+    _totalChars = 0;
+  }
+
+  static void _remove(String url) {
+    final removed = _entries.remove(url);
+    if (removed != null) _totalChars -= removed.html.length;
+  }
 
   static void _evictExpired() {
     final now = DateTime.now();
-    _entries.removeWhere((_, e) => now.difference(e.capturedAt) > _ttl);
+    final expired = [
+      for (final e in _entries.entries)
+        if (now.difference(e.value.capturedAt) > _ttl) e.key,
+    ];
+    expired.forEach(_remove);
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:zlibx/utils/host_utils.dart';
 
 import '../../l10n/app_localizations.dart';
 
@@ -64,9 +65,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     // on reader.bookroom.lifestyle while the Log In button points at
     // z-library.mn). Those are still the same site, so they stay in the
     // WebView; only truly external hosts go to the system browser.
-    const familyMarkers = ['z-library', 'z-lib.', 'bookroom', 'singlelogin'];
-    if (familyMarkers.any(host.contains)) return true;
-    return false;
+    return isZlibFamilyHost(host);
   }
 
   /// 会话改走 WebView Cookie（HttpOnly + Secure），不再拼进 URL。

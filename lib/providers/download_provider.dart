@@ -487,6 +487,8 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     );
     final code = res.statusCode ?? 0;
     if (code == 416 && start > 0) {
+      // Release the connection: the stream body is otherwise never read.
+      await res.data?.stream.drain<void>();
       await file.writeAsBytes(const []);
       return _downloadResumable(
         dio,

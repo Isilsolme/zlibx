@@ -11,12 +11,45 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
 
     companion object {
         private const val CHANNEL = "zlibx/media_store"
         private const val TAG = "ZlibxMediaStore"
+    }
+
+    // File copies (publish to Downloads, copy to cache) can move hundreds
+    // of MB; they must not run on the platform (UI) thread or the app
+    // freezes / ANRs. A single worker keeps them ordered.
+    private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    override fun onDestroy() {
+        // shutdown() lets a running copy finish; it only rejects new work.
+        ioExecutor.shutdown()
+        super.onDestroy()
+    }
+
+    /// Runs [block] on the worker thread and replies on the UI thread.
+    private fun <T> runAsync(result: MethodChannel.Result, block: () -> T?) {
+        ioExecutor.execute {
+            val value = try {
+                block()
+            } catch (e: Exception) {
+                Log.w(TAG, "MediaStore task failed", e)
+                null
+            }
+            runOnUiThread {
+                try {
+                    result.success(value)
+                } catch (e: IllegalStateException) {
+                    // Engine detached while the copy was running.
+                    Log.w(TAG, "reply after detach ignored", e)
+                }
+            }
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -31,9 +64,9 @@ class MainActivity : FlutterActivity() {
                         if (sourcePath == null || displayName == null || mimeType == null) {
                             result.success(null)
                         } else {
-                            result.success(
-                                publishToDownloads(sourcePath, displayName, mimeType),
-                            )
+                            runAsync(result) {
+                                publishToDownloads(sourcePath, displayName, mimeType)
+                            }
                         }
                     }
                     "contentExists" -> {
@@ -50,7 +83,11 @@ class MainActivity : FlutterActivity() {
                     }
                     "copyContentToCache" -> {
                         val uri = call.argument<String>("uri")?.let(Uri::parse)
-                        result.success(uri?.let { copyContentToCache(it) })
+                        if (uri == null) {
+                            result.success(null)
+                        } else {
+                            runAsync(result) { copyContentToCache(uri) }
+                        }
                     }
                     else -> result.notImplemented()
                 }

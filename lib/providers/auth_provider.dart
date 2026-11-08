@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/auth_storage.dart';
+import '../services/challenge_html_cache.dart';
 import '../services/hive_service.dart';
 import 'domain_provider.dart';
 import 'zlibrary_provider.dart';
@@ -123,6 +124,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> login(String email, String password) async {
+    ChallengeHtmlCache.clear();
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -151,6 +153,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<bool> loginWithToken(String userId, String userKey) async {
+    ChallengeHtmlCache.clear();
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -170,6 +173,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    ChallengeHtmlCache.clear();
     await _storage.clearCredentials();
     // Session cookies installed for the online reader live in the WebView
     // cookie store; clear them too so logout really logs out everywhere.

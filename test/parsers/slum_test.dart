@@ -25,6 +25,19 @@ const _slumHtml = '''
 
 void main() {
   group('parseSlumPage', () {
+    test('upgrades http mirrors to https instead of dropping them', () {
+      const html = '''
+<div class="card" id="annas-archive.example">
+<a class="card-title" href="http://mirror.example/">Mirror</a>
+<span class="status-badge up">UP</span>
+</div>
+''';
+      final sites = parseSlumPage(html, service: MirrorService.zlibrary);
+      expect(sites.length, 1);
+      expect(sites.single.url, 'https://mirror.example');
+      expect(sites.single.host, 'mirror.example');
+    });
+
     test('parses status, protection, latency and HTTP status', () {
       final sites = parseSlumPage(
         _slumHtml,
