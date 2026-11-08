@@ -230,6 +230,7 @@ const Map<String, String> en = {
   'comments': 'Comments',
   'no_comments': 'No comments yet',
   'no_more_comments': 'No more comments',
+  'open_book_failed': 'Could not open book details',
   'login_to_view_comments': 'Log in to view comments',
   'comments_disabled': 'Comments are disabled for this book',
   'write_comment': 'Write a comment',

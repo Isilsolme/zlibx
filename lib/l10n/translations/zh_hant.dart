@@ -219,6 +219,7 @@ const Map<String, String> zhHant = {
   'comments': '評論',
   'no_comments': '暫無評論',
   'no_more_comments': '沒有更多評論了',
+  'open_book_failed': '無法開啟書籍詳情',
   'login_to_view_comments': '登入後查看評論',
   'comments_disabled': '這本書的評論已關閉',
   'write_comment': '寫評論',

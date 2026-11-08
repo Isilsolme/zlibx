@@ -220,6 +220,7 @@ const Map<String, String> zh = {
   'comments': '评论',
   'no_comments': '暂无评论',
   'no_more_comments': '没有更多评论了',
+  'open_book_failed': '无法打开书籍详情',
   'login_to_view_comments': '登录后查看评论',
   'comments_disabled': '这本书的评论已关闭',
   'write_comment': '写评论',

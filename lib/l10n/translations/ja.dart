@@ -222,6 +222,7 @@ const Map<String, String> ja = {
   'comments': 'コメント',
   'no_comments': 'コメントはまだありません',
   'no_more_comments': 'これ以上コメントはありません',
+  'open_book_failed': '書籍の詳細を開けませんでした',
   'login_to_view_comments': 'ログインしてコメントを見る',
   'comments_disabled': 'この本のコメントは無効です',
   'write_comment': 'コメントを書く',

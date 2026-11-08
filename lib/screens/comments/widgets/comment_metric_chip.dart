@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 /// 评论下方的药丸形操作按钮：图标 + 计数。
 /// 激活态（已点赞）带主色底与放大动效；忙碌中忽略点击并降透明度。
+/// [onTap] 可为 null：纯展示计数（无水波、不可点），如“我的评论”页。
 class CommentMetricChip extends StatelessWidget {
   final IconData icon;
   final int count;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool active;
   final bool busy;
 
@@ -13,7 +14,7 @@ class CommentMetricChip extends StatelessWidget {
     super.key,
     required this.icon,
     required this.count,
-    required this.onTap,
+    this.onTap,
     this.active = false,
     this.busy = false,
   });
