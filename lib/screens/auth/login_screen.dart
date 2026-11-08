@@ -153,7 +153,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           title: AppLocalizations.of(context).get('login_failed'),
           desc: failureKind == LoginFailureKind.credentials
               ? (AppLocalizations.of(context).get('login_bad_credentials'))
-              : (AppLocalizations.of(context).get('login_unknown_failure').replaceAll('{line}', '$lineName').replaceAll('{time}', '$occurredAt').replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
+              : (AppLocalizations.of(context).get('login_unknown_failure').replaceAll('{line}', lineName).replaceAll('{time}', occurredAt).replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
           btnOkText: AppLocalizations.of(context).get('confirm_ok'),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
