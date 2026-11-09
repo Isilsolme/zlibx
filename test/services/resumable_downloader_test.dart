@@ -10,10 +10,10 @@ import 'package:zlibx/services/resumable_downloader.dart';
 /// Serves one fixed "remote file" and honours Range / If-Range the way a
 /// real origin does, with knobs to misbehave.
 class _Origin implements HttpClientAdapter {
-  _Origin(this.body, {this.etag = '"v1"'});
+  _Origin(this.body);
 
   List<int> body;
-  String? etag;
+  String? etag = '"v1"';
   String contentType = 'application/epub+zip';
   bool truncate = false; // advertise full length but send half
   final List<Map<String, dynamic>> seen = [];

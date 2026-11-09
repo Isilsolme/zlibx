@@ -5,6 +5,9 @@
 // Dart imports:
 import 'dart:convert';
 
+// Package imports:
+import 'package:meta/meta.dart';
+
 // Project imports:
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/preference_store.dart';
