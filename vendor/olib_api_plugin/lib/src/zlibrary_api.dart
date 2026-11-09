@@ -514,7 +514,14 @@ class ZLibraryApi {
                   ?.toString()
                   .trim();
               if (msg != null && msg.isNotEmpty) {
-                return _Raw(status: status, error: msg);
+                // Server error texts carry HTML markup (e.g. the
+                // "Some errors occured" 500 wraps its identifier in
+                // <b>…</b><br>); strip it here, at the source, so no
+                // caller can show raw tags in a toast or dialog. This
+                // is the path the booklist remove/delete 500s take —
+                // the JSON success:0 branch already strips, this one
+                // did not.
+                return _Raw(status: status, error: _plainError(msg, msg));
               }
             }
           } on FormatException {
@@ -522,7 +529,10 @@ class ZLibraryApi {
           }
           final snippet =
               body.length > 200 ? '${body.substring(0, 200)}…' : body;
-          return _Raw(status: status, error: 'HTTP $status: $snippet');
+          return _Raw(
+            status: status,
+            error: _plainError('HTTP $status: $snippet', 'HTTP $status'),
+          );
         }
         return _Raw(status: status, error: 'HTTP $status');
       case DioExceptionType.cancel:
