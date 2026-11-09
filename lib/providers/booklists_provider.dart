@@ -78,6 +78,12 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   /// slower response for an old tab/query is dropped.
   int _generation = 0;
 
+  /// Identity of the loadMore currently holding the [BooklistsState.isLoadingMore]
+  /// flag (0 = none). A stale loadMore's `finally` must not clear a
+  /// newer loadMore's flag — only the holder may release it.
+  int _loadMoreToken = 0;
+  int _loadMoreOwner = 0;
+
   @override
   BooklistsState build() {
     _alive = true;
@@ -111,6 +117,11 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   /// removal, restored on failure. Returns the API response so the
   /// caller can show the failure message; the guard cases return a
   /// failure response and change nothing.
+  ///
+  /// The restore is guarded by the generation captured at delete
+  /// start: a refresh that ran during the delete owns the
+  /// authoritative list, so a stale restore must not re-insert a
+  /// list the refresh already dropped (or duplicate one it kept).
   Future<ApiResponse<bool>> deleteBooklist(Booklist list) async {
     if (state.tab != BooklistTab.mine ||
         state.phase != BooklistsPhase.ready) {
@@ -122,6 +133,7 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     if (listId == null) {
       return ApiResponse.fail('delete booklist not available');
     }
+    final generation = _generation;
     final removed = state.lists[index];
     state = state.copyWith(
       lists: [...state.lists]..removeAt(index),
@@ -131,19 +143,51 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
           await ref.read(zlibraryApiProvider).deleteBooklist(listId);
       if (!_alive) return response;
       if (response.success) return response;
-      state = state.copyWith(
-        lists: [...state.lists]
-          ..insert(index.clamp(0, state.lists.length), removed),
-      );
+      _restoreDeleted(generation, removed, index);
       return response;
     } catch (_) {
       if (!_alive) return ApiResponse.fail('delete booklist failed');
-      state = state.copyWith(
-        lists: [...state.lists]
-          ..insert(index.clamp(0, state.lists.length), removed),
-      );
+      _restoreDeleted(generation, removed, index);
       return ApiResponse.fail('delete booklist failed');
     }
+  }
+
+  /// Re-inserts a list whose delete failed — only when the list has
+  /// not been replaced since the delete started (a refresh owns the
+  /// authoritative list then) and the list is not already present.
+  void _restoreDeleted(int generation, Booklist removed, int index) {
+    if (!_isCurrent(generation)) return;
+    if (state.lists.any((item) => item.id == removed.id)) return;
+    state = state.copyWith(
+      lists: [...state.lists]
+        ..insert(index.clamp(0, state.lists.length), removed),
+    );
+  }
+
+  /// A book was added to one of the user's lists (from the
+  /// add-to-booklist picker): bump that list's count optimistically
+  /// so the booklists screen shows the new count without waiting
+  /// for its next background refresh. No-op when the list is not
+  /// in the currently loaded page.
+  void noteBookAdded(String listId) {
+    final index = state.lists.indexWhere((item) => item.id == listId);
+    if (index < 0) return;
+    final list = state.lists[index];
+    final count = list.count;
+    if (count == null) return;
+    final updated = Booklist(
+      id: list.id,
+      name: list.name,
+      description: list.description,
+      author: list.author,
+      count: count + 1,
+      views: list.views,
+      coverUrl: list.coverUrl,
+      url: list.url,
+      previewBooks: list.previewBooks,
+    );
+    final lists = [...state.lists]..[index] = updated;
+    state = state.copyWith(lists: lists);
   }
 
   /// Pull-to-refresh: revalidate page 1 in place when lists are on
@@ -164,8 +208,14 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
 
   Future<void> loadFirst() async {
     if (!_alive) return;
-    if (ref.read(authProvider).user == null) {
-      state = state.copyWith(phase: BooklistsPhase.loggedOut);
+    // Only the own-lists tab needs a login; the discover tab is
+    // public, so a signed-out user must still be able to browse it.
+    if (state.tab == BooklistTab.mine &&
+        ref.read(authProvider).user == null) {
+      state = state.copyWith(
+        phase: BooklistsPhase.loggedOut,
+        lists: const [],
+      );
       return;
     }
     final generation = ++_generation;
@@ -241,7 +291,13 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     final tab = state.tab;
     final query = state.query;
     final tracksLoadMore = page > 1;
-    if (tracksLoadMore) state = state.copyWith(isLoadingMore: true);
+    // This loadMore's identity: only the request currently holding
+    // the flag may release it (see the finally below).
+    final loadMoreToken = tracksLoadMore ? ++_loadMoreToken : 0;
+    if (tracksLoadMore) {
+      _loadMoreOwner = loadMoreToken;
+      state = state.copyWith(isLoadingMore: true);
+    }
     try {
       final response = tab == BooklistTab.mine
           ? await api.searchMyBooklists(query: query, page: page)
@@ -276,8 +332,12 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       // loadMore was in flight) is dropped above WITHOUT any path that
       // resets isLoadingMore — the flag then blocks every future
       // loadMore() at the `s.isLoadingMore` guard forever. Reset it
-      // here so pagination can never dead-lock.
-      if (tracksLoadMore && !_isCurrent(generation)) {
+      // here so pagination can never dead-lock. But only the request
+      // currently holding the flag may release it: a newer loadMore
+      // may have started since (a refresh cleared the way), and
+      // clearing its flag would let a duplicate loadMore through.
+      if (tracksLoadMore && _loadMoreOwner == loadMoreToken) {
+        _loadMoreOwner = 0;
         state = state.copyWith(isLoadingMore: false);
       }
     }
@@ -371,6 +431,17 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
 }
 
 final booklistsControllerProvider =
+    NotifierProvider.autoDispose<BooklistsController, BooklistsState>(
+      BooklistsController.new,
+    );
+
+/// A second, independent [BooklistsController] for the add-to-booklist
+/// picker. The picker only ever shows the user's own lists, but it
+/// must not switch the shared [booklistsControllerProvider]'s tab to
+/// mine as a side effect (the booklists screen may be sitting on the
+/// discover tab). This instance defaults to the mine tab and loads
+/// its own page 1; it is disposed with the dialog.
+final addToBooklistPickerProvider =
     NotifierProvider.autoDispose<BooklistsController, BooklistsState>(
       BooklistsController.new,
     );

@@ -8,8 +8,12 @@ import '../services/booklist_solver.dart';
 import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
 
-/// Arguments for BooklistDetailScreen. Equality is by list id so the
-/// screen's provider family resolves to the same controller on rebuild.
+/// Arguments for BooklistDetailScreen. Equality is by list id and
+/// URL so the screen's provider family resolves to the same
+/// controller on rebuild, while a list whose page moved (or whose
+/// count changed) gets a fresh controller. `canEdit` is deliberately
+/// excluded: the screen reads it from its own widget arguments, not
+/// from the controller, so it must not force a new controller.
 class BooklistDetailArgs {
   final Booklist booklist;
 
@@ -22,10 +26,12 @@ class BooklistDetailArgs {
 
   @override
   bool operator ==(Object other) =>
-      other is BooklistDetailArgs && other.booklist.id == booklist.id;
+      other is BooklistDetailArgs &&
+      other.booklist.id == booklist.id &&
+      other.booklist.url == booklist.url;
 
   @override
-  int get hashCode => booklist.id.hashCode;
+  int get hashCode => Object.hash(booklist.id, booklist.url);
 }
 
 class BooklistDetailState {
@@ -83,6 +89,10 @@ class BooklistDetailController
   // IDs currently represented by the server-rendered first page. On a
   // revalidation, this slice is replaced while page 2+ rows are kept.
   final Set<int> _firstPageIds = <int>{};
+  // Books with a remove in flight. The same book cannot be removed
+  // twice concurrently; without this, two overlapping removes can
+  // each resolve the entry id, then remove/restore the wrong row.
+  final Set<int> _removingBookIds = <int>{};
 
   bool _alive = true;
   int _generation = 0;
@@ -295,10 +305,9 @@ class BooklistDetailController
   }
 
   /// Remove one book from this list: optimistic removal; on failure
-  /// the book is restored at its original position. On success the
-  /// cached first page is rewritten from the remaining first-page
-  /// rows so the book does not flash back on the next open before
-  /// the background refresh.
+  /// the book is restored. On success every cached page of this list
+  /// is invalidated so the book does not reappear from a later
+  /// page's cache on the next open.
   ///
   /// remove-book takes the readlist ENTRY id (the per-(book, list)
   /// membership-row id from `current-user`), NOT the book id — the
@@ -307,56 +316,80 @@ class BooklistDetailController
   /// resolve fails here without calling remove-book at all: falling
   /// back to the book id is the bug that made the server 500 every
   /// app remove.
+  ///
+  /// Two removes of the same book cannot overlap (a
+  /// [_removingBookIds] guard); removes of different books re-locate
+  /// their target by id after each await, so a concurrent remove
+  /// cannot shift one onto the wrong row. Restore inserts before
+  /// the removed book's successor instead of a stale index.
   Future<ApiResponse<bool>> removeBook(Book book) async {
     if (!_alive) return ApiResponse.fail('remove book failed');
     final listId = int.tryParse(_list.id);
     if (listId == null) {
       return ApiResponse.fail('remove book not available');
     }
-    final index = _books.indexWhere((b) => b.id == book.id);
-    if (index < 0) return ApiResponse.fail('book not in list');
-    final entry = await ref.read(zlibraryApiProvider).getReadlistBookId(
-      booklistId: listId,
-      bookId: book.id,
-    );
-    if (!_alive) {
-      return ApiResponse.fail(entry.error ?? 'remove book failed');
+    if (_books.indexWhere((b) => b.id == book.id) < 0) {
+      return ApiResponse.fail('book not in list');
     }
-    final entryId = entry.data;
-    if (!entry.success || entryId == null) {
-      return ApiResponse.fail(
-        entry.error ?? 'book is not in this booklist',
+    if (!_removingBookIds.add(book.id)) {
+      return ApiResponse.fail('book is already being removed');
+    }
+    try {
+      final entry = await ref.read(zlibraryApiProvider).getReadlistBookId(
+        booklistId: listId,
+        bookId: book.id,
       );
-    }
-    final wasFirstPage = _firstPageIds.contains(book.id);
-    final removed = _books[index];
-    _books.removeAt(index);
-    _bookIds.remove(book.id);
-    _firstPageIds.remove(book.id);
-    state = state.copyWith(books: List.of(_books));
-    final response = await ref
-        .read(zlibraryApiProvider)
-        .removeBookFromBooklist(
-          booklistId: listId,
-          readlistBookId: entryId,
+      if (!_alive) {
+        return ApiResponse.fail(entry.error ?? 'remove book failed');
+      }
+      final entryId = entry.data;
+      if (!entry.success || entryId == null) {
+        return ApiResponse.fail(
+          entry.error ?? 'book is not in this booklist',
         );
-    if (!_alive) return response;
-    if (response.success) {
-      final firstPage =
-          _books.where((b) => _firstPageIds.contains(b.id)).toList();
-      BooklistHtmlCache.storeBooksPage(
-        _list.url,
-        1,
-        firstPage,
-        accountId: _accountId,
-      );
+      }
+      // Re-locate by id: another remove may have shifted the list
+      // while the entry id was being resolved.
+      final currentIndex = _books.indexWhere((b) => b.id == book.id);
+      if (currentIndex < 0) return ApiResponse.fail('book not in list');
+      final wasFirstPage = _firstPageIds.contains(book.id);
+      final successorId = currentIndex + 1 < _books.length
+          ? _books[currentIndex + 1].id
+          : null;
+      final removed = _books[currentIndex];
+      _books.removeAt(currentIndex);
+      _bookIds.remove(book.id);
+      _firstPageIds.remove(book.id);
+      state = state.copyWith(books: List.of(_books));
+      final response = await ref
+          .read(zlibraryApiProvider)
+          .removeBookFromBooklist(
+            booklistId: listId,
+            readlistBookId: entryId,
+          );
+      if (response.success) {
+        // Invalidate even when the controller is gone — the next
+        // open must not paint the deleted book from a page cache.
+        BooklistHtmlCache.invalidateBooklist(
+          _list.url,
+          accountId: _accountId,
+        );
+      }
+      if (!_alive) return response;
+      if (response.success) return response;
+      // Restore before the successor (or at the end when it is gone):
+      // the captured index may be stale after a concurrent remove.
+      _bookIds.add(book.id);
+      if (wasFirstPage) _firstPageIds.add(book.id);
+      final restoreIndex = successorId == null
+          ? _books.length
+          : _books.indexWhere((b) => b.id == successorId);
+      _books.insert(restoreIndex < 0 ? _books.length : restoreIndex, removed);
+      state = state.copyWith(books: List.of(_books));
       return response;
+    } finally {
+      _removingBookIds.remove(book.id);
     }
-    _books.insert(index, removed);
-    _bookIds.add(book.id);
-    if (wasFirstPage) _firstPageIds.add(book.id);
-    state = state.copyWith(books: List.of(_books));
-    return response;
   }
 
   void _merge(List<Book> books) {
@@ -382,10 +415,13 @@ class BooklistDetailController
       }
     }
     _merge(laterPages);
-    final total = _list.count;
     state = state.copyWith(
       books: List.of(_books),
-      hasMore: total == null ? books.isNotEmpty : _books.length < total,
+      // Do not trust the list page's book count here — it is stale
+      // (the site's own count disagrees with the rendered cards).
+      // A non-empty first page means page 2 may exist; the JSON
+      // endpoint's totalPages arbitrates from page 2 on.
+      hasMore: books.isNotEmpty,
       nextPage: 2,
     );
   }

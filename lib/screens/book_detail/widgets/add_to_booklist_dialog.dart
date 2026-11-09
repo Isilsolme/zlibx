@@ -4,12 +4,18 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../../l10n/s_keys.dart';
+import '../../../providers/auth_provider.dart';
 import '../../../providers/booklists_provider.dart';
 import '../../../providers/zlibrary_provider.dart';
+import '../../../services/booklist_html_cache.dart';
 import '../../../utils/app_snack.dart';
 
 /// Picker for the signed-in user's own booklists; adds [bookId] to the
 /// picked list (`GET /papi/booklist/{id}/add-book/{bookId}`).
+///
+/// The picker reads its own [addToBooklistPickerProvider] instance —
+/// never the shared [booklistsControllerProvider] — so opening it
+/// cannot flip the booklists screen's tab to mine as a side effect.
 ///
 /// Returns true when the user asked to log in (the caller navigates to
 /// the login page); false otherwise. The API call and its notices happen
@@ -38,16 +44,10 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final state = ref.watch(booklistsControllerProvider);
-    if (state.tab != BooklistTab.mine) {
-      // The picker only ever shows the user's own lists; the shared
-      // controller may currently sit on the discover tab.
-      Future.microtask(
-        () => ref
-            .read(booklistsControllerProvider.notifier)
-            .setTab(BooklistTab.mine),
-      );
-    }
+    // The picker's own controller instance (mine tab by default);
+    // watching the shared controller here used to flip the
+    // booklists screen's tab to mine as a side effect.
+    final state = ref.watch(addToBooklistPickerProvider);
     return AlertDialog(
       title: Text(l10n.get(S.selectBooklist)),
       content: SizedBox(
@@ -91,7 +91,7 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () =>
-                  ref.read(booklistsControllerProvider.notifier).loadFirst(),
+                  ref.read(addToBooklistPickerProvider.notifier).loadFirst(),
               child: Text(l10n.get(S.retry)),
             ),
           ],
@@ -143,6 +143,15 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
         .addBookToBooklist(booklistId: listId, bookId: widget.bookId);
     if (!mounted) return;
     if (response.success) {
+      // Sync the add: the target list's cached books are stale now
+      // (the book is not in them), and its count is one short. The
+      // next detail open re-fetches; the shared controller's count
+      // is bumped optimistically. No membership state is shown —
+      // whether a repeat add is a no-op or a toggle is unverified,
+      // so a repeat tap is left to the server, not faked here.
+      final accountId = ref.read(authProvider).user?.id;
+      BooklistHtmlCache.invalidateBooklist(list.url, accountId: accountId);
+      ref.read(booklistsControllerProvider.notifier).noteBookAdded(list.id);
       showAppSnack(
         context,
         AppLocalizations.of(context).get(S.addToBooklistSuccess),
