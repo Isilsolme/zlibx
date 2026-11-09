@@ -107,6 +107,45 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     unawaited(loadFirst());
   }
 
+  /// Delete one of the user's own lists (mine tab only): optimistic
+  /// removal, restored on failure. Returns the API response so the
+  /// caller can show the failure message; the guard cases return a
+  /// failure response and change nothing.
+  Future<ApiResponse<bool>> deleteBooklist(Booklist list) async {
+    if (state.tab != BooklistTab.mine ||
+        state.phase != BooklistsPhase.ready) {
+      return ApiResponse.fail('delete booklist not available');
+    }
+    final index = state.lists.indexWhere((l) => l.id == list.id);
+    if (index < 0) return ApiResponse.fail('delete booklist not available');
+    final listId = int.tryParse(list.id);
+    if (listId == null) {
+      return ApiResponse.fail('delete booklist not available');
+    }
+    final removed = state.lists[index];
+    state = state.copyWith(
+      lists: [...state.lists]..removeAt(index),
+    );
+    try {
+      final response =
+          await ref.read(zlibraryApiProvider).deleteBooklist(listId);
+      if (!_alive) return response;
+      if (response.success) return response;
+      state = state.copyWith(
+        lists: [...state.lists]
+          ..insert(index.clamp(0, state.lists.length), removed),
+      );
+      return response;
+    } catch (_) {
+      if (!_alive) return ApiResponse.fail('delete booklist failed');
+      state = state.copyWith(
+        lists: [...state.lists]
+          ..insert(index.clamp(0, state.lists.length), removed),
+      );
+      return ApiResponse.fail('delete booklist failed');
+    }
+  }
+
   /// Pull-to-refresh: revalidate page 1 in place when lists are on
   /// screen, otherwise do a full first load.
   Future<void> refresh() async {

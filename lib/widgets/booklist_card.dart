@@ -131,17 +131,25 @@ class BooklistMetaPills extends StatelessWidget {
 }
 
 /// One booklist as a card: cover, name, creator, meta pills and a short
-/// description. Used by the booklists screen.
+/// description. Used by the booklists screen. [onDelete] shows a delete
+/// button on the card's trailing edge; null hides it (discover tab).
 class BooklistCard extends StatelessWidget {
   final Booklist list;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
-  const BooklistCard({super.key, required this.list, required this.onTap});
+  const BooklistCard({
+    super.key,
+    required this.list,
+    required this.onTap,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
@@ -207,6 +215,12 @@ class BooklistCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onDelete != null)
+                IconButton(
+                  tooltip: l10n.get(S.delete),
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  onPressed: onDelete,
+                ),
             ],
           ),
         ),

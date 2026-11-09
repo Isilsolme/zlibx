@@ -39,6 +39,9 @@ const Map<String, String> ja = {
   'current_account': '現在のアカウント',
   'add_account': '別のアカウントを追加',
   'add_account_subtitle': 'ログインすると別のアカウントを保存できます',
+  'add_to_booklist': 'ブックリストに追加',
+  'add_to_booklist_failed': 'ブックリストへの追加に失敗しました：{error}',
+  'add_to_booklist_success': 'ブックリストに追加しました',
   'account_actions': 'アカウント操作',
   'remove_account': 'アカウントを削除',
   'remove_account_title': 'このアカウントを削除しますか？',
@@ -249,6 +252,7 @@ const Map<String, String> ja = {
   'edit': '編集',
   'done': '完了',
   'select_all': 'すべて選択',
+  'select_booklist': 'ブックリストを選択',
   'deselect_all': '選択を解除',
   'batch_remove': '選択した本を削除',
   'confirm_remove_title': '削除の確認',
@@ -330,6 +334,10 @@ const Map<String, String> ja = {
   'booklist_description_optional': '説明（任意）',
   'booklist_created': 'ブックリストを作成しました',
   'booklist_create_failed': '作成に失敗しました：{error}',
+  'booklist_delete_confirm': 'このブックリストを削除しますか？',
+  'booklist_delete_desc': '削除すると元に戻せません。',
+  'booklist_delete_failed': 'ブックリストの削除に失敗しました：{error}',
+  'booklist_deleted': 'ブックリストを削除しました',
   'login_to_view_booklists': 'ログインしてブックリストを見る',
 
   // UI strings moved out of inline isZh ternaries

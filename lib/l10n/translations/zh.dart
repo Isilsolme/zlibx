@@ -39,6 +39,9 @@ const Map<String, String> zh = {
   'current_account': '当前账号',
   'add_account': '添加其他账号',
   'add_account_subtitle': '登录后即可保存并切换账号',
+  'add_to_booklist': '加入书单',
+  'add_to_booklist_failed': '加入书单失败：{error}',
+  'add_to_booklist_success': '已加入书单',
   'account_actions': '账号操作',
   'remove_account': '移除账号',
   'remove_account_title': '移除这个账号？',
@@ -247,6 +250,7 @@ const Map<String, String> zh = {
   'edit': '编辑',
   'done': '完成',
   'select_all': '全选',
+  'select_booklist': '选择书单',
   'deselect_all': '取消全选',
   'batch_remove': '批量移除',
   'confirm_remove_title': '确认移除',
@@ -328,6 +332,10 @@ const Map<String, String> zh = {
   'booklist_description_optional': '描述（可选）',
   'booklist_created': '书单已创建',
   'booklist_create_failed': '创建失败：{error}',
+  'booklist_delete_confirm': '删除这个书单？',
+  'booklist_delete_desc': '删除后将无法恢复。',
+  'booklist_delete_failed': '删除书单失败：{error}',
+  'booklist_deleted': '书单已删除',
   'login_to_view_booklists': '登录后查看书单',
 
   // UI strings moved out of inline isZh ternaries

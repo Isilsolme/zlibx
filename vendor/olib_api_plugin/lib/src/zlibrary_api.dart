@@ -349,6 +349,71 @@ class ZLibraryApi {
     return _Raw(status: lastStatus, error: 'too many redirects');
   }
 
+  /// GET, following redirects by hand — same pattern as [_postText].
+  ///
+  /// The site's `papi/booklist/*` write endpoints answer the first GET
+  /// with 307 to the same URL (the DDoS-Guard challenge sets a cookie
+  /// and redirects); 307/308 are re-sent as GET, 301/302/303 are
+  /// followed as GET (browser behaviour). The session Cookie is only
+  /// sent to our own host: a hop to another host drops it (Dio's
+  /// automatic following would re-send it to whatever host a 302
+  /// points at).
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// callers only handle `ApiResponse.fail`, they do not catch
+  /// [StateError].
+  Future<_Raw> _getWithRedirects(String path) async {
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final res = await _dio.get<String>(
+          url,
+          options: Options(
+            headers: headers,
+            responseType: ResponseType.plain,
+            followRedirects: false,
+            validateStatus: (status) => status != null && status < 400,
+          ),
+        );
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
+  }
+
   /// Form encoding with repeated keys for list values, matching how the
   /// Python eapi clients send the same parameters.
   static String _encodeForm(Map<String, dynamic> fields) {
@@ -1660,6 +1725,74 @@ class ZLibraryApi {
       );
     }
     return ApiResponse.ok(_booklistFromCreateResponse(json, cleanTitle));
+  }
+
+  /// Add a book to one of the signed-in user's booklists:
+  /// `GET /papi/booklist/{booklistId}/add-book/{bookId}`, confirmed
+  /// by a packet capture on 2026-11-09 (Firefox, zh.z-library.sk):
+  /// HTTP 200 with `{"success": 1, "book": {"readlist_id": 4090055, "book_id": "18337950", "date": "2026-11-09T08:04:24.000000Z"}}`.
+  /// No request body (GET). The site's submenu shows a filled bookmark
+  /// when the book is already in a list, so this endpoint is likely
+  /// a toggle (clicking again removes the book) — removing a book
+  /// from a list is NOT implemented; its response shape is unknown.
+  Future<ApiResponse<bool>> addBookToBooklist({
+    required int booklistId,
+    required int bookId,
+  }) async {
+    final raw = await _getWithRedirects(
+      '/papi/booklist/$booklistId/add-book/$bookId',
+    );
+    if (raw.json == null) {
+      return ApiResponse.fail(
+        raw.error ?? 'add to booklist failed',
+        statusCode: raw.status,
+      );
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'add to booklist failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(true);
+  }
+
+  /// Delete one of the signed-in user's booklists:
+  /// `GET /papi/booklist/{booklistId}/delete`, confirmed by a packet
+  /// capture on 2026-11-09 (Firefox, zh.z-library.sk). The first
+  /// response is 307 to the same URL with a `__diamwall` set-cookie
+  /// (the DDoS-Guard challenge, not delete logic); the list was gone
+  /// from the profile BOOKLISTS tab afterwards, so the delete itself
+  /// succeeded. The final response body after following the redirect
+  /// was never observed, so a non-JSON 2xx final response counts as
+  /// success only when it is an empty body (same precedent as
+  /// [createBooklist]) — an HTML final page fails instead.
+  Future<ApiResponse<bool>> deleteBooklist(int booklistId) async {
+    final raw = await _getWithRedirects('/papi/booklist/$booklistId/delete');
+    final status = raw.status;
+    final json = raw.json;
+    if (json == null) {
+      final is2xx = status != null && status >= 200 && status < 300;
+      final emptyBody = raw.body == null &&
+          (raw.error?.startsWith('empty response') ?? false);
+      if (is2xx && emptyBody) {
+        return ApiResponse.ok(true);
+      }
+      return ApiResponse.fail(
+        raw.error ?? 'delete booklist failed',
+        statusCode: status,
+      );
+    }
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'delete booklist failed',
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(true);
   }
 
   /// Best-effort read of the list a create call returned. The response

@@ -39,6 +39,9 @@ const Map<String, String> en = {
   'current_account': 'Current account',
   'add_account': 'Add another account',
   'add_account_subtitle': 'Sign in to save another account',
+  'add_to_booklist': 'Add to booklist',
+  'add_to_booklist_failed': 'Could not add to booklist: {error}',
+  'add_to_booklist_success': 'Added to booklist',
   'account_actions': 'Account actions',
   'remove_account': 'Remove account',
   'remove_account_title': 'Remove this account?',
@@ -258,6 +261,7 @@ const Map<String, String> en = {
   'edit': 'Edit',
   'done': 'Done',
   'select_all': 'Select All',
+  'select_booklist': 'Choose a booklist',
   'deselect_all': 'Deselect All',
   'batch_remove': 'Remove Selected',
   'confirm_remove_title': 'Confirm Remove',
@@ -345,6 +349,10 @@ const Map<String, String> en = {
   'booklist_description_optional': 'Description (optional)',
   'booklist_created': 'Booklist created',
   'booklist_create_failed': 'Could not create: {error}',
+  'booklist_delete_confirm': 'Delete this booklist?',
+  'booklist_delete_desc': 'This cannot be undone.',
+  'booklist_delete_failed': 'Could not delete booklist: {error}',
+  'booklist_deleted': 'Booklist deleted',
   'login_to_view_booklists': 'Log in to view booklists',
 
   // UI strings moved out of inline isZh ternaries

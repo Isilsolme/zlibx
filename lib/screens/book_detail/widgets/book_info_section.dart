@@ -8,6 +8,7 @@ import '../../../l10n/book_categories.dart';
 import '../../../routes/app_routes.dart';
 import '../../similar/similar_books_screen.dart';
 import '../../comments/book_comments_screen.dart';
+import 'add_to_booklist_dialog.dart';
 import 'book_detail_content.dart';
 
 import '../../../l10n/s_keys.dart';
@@ -143,9 +144,39 @@ class BookInfoSection extends StatelessWidget {
                 ),
               ),
             ),
+            // Add this book to one of the user's own booklists.
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.collections_bookmark_outlined,
+                color: cs.primary,
+                size: 22,
+              ),
+              title: Text(
+                l10n.get(S.addToBooklist),
+                style: const TextStyle(fontSize: 15),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              onTap: () => _addToBooklist(context, book),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+/// Open the my-booklists picker and add this book to the picked list.
+/// The picker handles the API call and its notices; this only navigates
+/// to the login page when the picker reports the user is signed out.
+Future<void> _addToBooklist(BuildContext context, Book book) async {
+  final loginRequested = await showAddToBooklistDialog(context, book.id);
+  if (loginRequested && context.mounted) {
+    Navigator.of(context).pushNamed(AppRoutes.login);
   }
 }

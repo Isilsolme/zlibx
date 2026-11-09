@@ -39,6 +39,9 @@ const Map<String, String> ko = {
   'current_account': '현재 계정',
   'add_account': '다른 계정 추가',
   'add_account_subtitle': '로그인하면 다른 계정을 저장할 수 있습니다',
+  'add_to_booklist': '북리스트에 추가',
+  'add_to_booklist_failed': '북리스트에 추가하지 못했습니다: {error}',
+  'add_to_booklist_success': '북리스트에 추가했습니다',
   'account_actions': '계정 작업',
   'remove_account': '계정 삭제',
   'remove_account_title': '이 계정을 삭제하시겠습니까?',
@@ -248,6 +251,7 @@ const Map<String, String> ko = {
   'edit': '편집',
   'done': '완료',
   'select_all': '모두 선택',
+  'select_booklist': '북리스트 선택',
   'deselect_all': '선택 해제',
   'batch_remove': '선택한 항목 삭제',
   'confirm_remove_title': '삭제 확인',
@@ -329,6 +333,10 @@ const Map<String, String> ko = {
   'booklist_description_optional': '설명 (선택)',
   'booklist_created': '북리스트를 만들었습니다',
   'booklist_create_failed': '만들지 못했습니다: {error}',
+  'booklist_delete_confirm': '이 북리스트를 삭제하시겠습니까?',
+  'booklist_delete_desc': '삭제하면 복구할 수 없습니다.',
+  'booklist_delete_failed': '북리스트를 삭제하지 못했습니다: {error}',
+  'booklist_deleted': '북리스트를 삭제했습니다',
   'login_to_view_booklists': '로그인하여 책 목록 보기',
 
   // UI strings moved out of inline isZh ternaries

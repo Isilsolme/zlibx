@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/booklist_detail_provider.dart';
@@ -15,9 +16,10 @@ import '../../utils/app_snack.dart';
 import '../../l10n/s_keys.dart';
 /// Booklists: the signed-in user's own booklists and public booklists to
 /// discover, with search on both. Tapping a list opens its books. The
-/// "my booklists" tab can create a new list (`createBooklist`); adding
-/// books to a list and deleting lists are NOT wired yet — those write
-/// endpoints have not been captured.
+/// "my booklists" tab can create a new list (`createBooklist`) and
+/// delete one (`deleteBooklist`); adding a book to a list lives on the
+/// book detail page (`addBookToBooklist`). Removing a book from a list
+/// is not wired — its response shape has not been captured.
 ///
 /// Loading, paging, cache and the WebView fallback live in
 /// [BooklistsController]; this widget only renders its state.
@@ -83,6 +85,46 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 .get(S.booklistCreateFailed)
                 .replaceAll('{error}', response.error ?? ''),
           );
+    }
+  }
+
+  /// Delete one of the user's own lists: confirm first (destructive),
+  /// then the controller's optimistic removal; on failure the list is
+  /// restored and the error is shown, on success the tab reloads.
+  Future<void> _confirmDelete(Booklist list) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.get(S.booklistDeleteConfirm)),
+        content: Text(l10n.get(S.booklistDeleteDesc)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.get(S.cancel)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.get(S.delete)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(booklistsControllerProvider.notifier);
+    final response = await controller.deleteBooklist(list);
+    if (!mounted) return;
+    if (response.success) {
+      showAppSnackOn(messenger, l10n.get(S.booklistDeleted));
+      await controller.loadFirst();
+    } else {
+      showAppSnackOn(
+        messenger,
+        l10n
+            .get(S.booklistDeleteFailed)
+            .replaceAll('{error}', response.error ?? ''),
+      );
     }
   }
 
@@ -255,6 +297,9 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                   AppRoutes.booklistDetail,
                   arguments: BooklistDetailArgs(booklist: list),
                 ),
+                onDelete: state.tab == BooklistTab.mine
+                    ? () => _confirmDelete(list)
+                    : null,
               );
             },
           ),

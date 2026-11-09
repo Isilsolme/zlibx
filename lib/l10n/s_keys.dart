@@ -17,6 +17,9 @@ abstract final class S {
   static const String accountRemoved = 'account_removed';
   static const String addAccount = 'add_account';
   static const String addAccountSubtitle = 'add_account_subtitle';
+  static const String addToBooklist = 'add_to_booklist';
+  static const String addToBooklistFailed = 'add_to_booklist_failed';
+  static const String addToBooklistSuccess = 'add_to_booklist_success';
   static const String alreadyHaveAccount = 'already_have_account';
   static const String annasDonationKey = 'annas_donation_key';
   static const String annasDonationKeyHint = 'annas_donation_key_hint';
@@ -32,6 +35,10 @@ abstract final class S {
   static const String booklistBookCount = 'booklist_book_count';
   static const String booklistCreateFailed = 'booklist_create_failed';
   static const String booklistCreated = 'booklist_created';
+  static const String booklistDeleteConfirm = 'booklist_delete_confirm';
+  static const String booklistDeleteDesc = 'booklist_delete_desc';
+  static const String booklistDeleteFailed = 'booklist_delete_failed';
+  static const String booklistDeleted = 'booklist_deleted';
   static const String booklistDescriptionOptional = 'booklist_description_optional';
   static const String booklistTitle = 'booklist_title';
   static const String booklists = 'booklists';
@@ -292,6 +299,7 @@ abstract final class S {
   static const String searchTrySource = 'search_try_source';
   static const String searchingBooks = 'searching_books';
   static const String selectAll = 'select_all';
+  static const String selectBooklist = 'select_booklist';
   static const String selectFolder = 'select_folder';
   static const String selectNetwork = 'select_network';
   static const String sendCode = 'send_code';
