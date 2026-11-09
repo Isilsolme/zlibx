@@ -29,6 +29,7 @@ import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
 import 'services/booklist_html_cache.dart';
 import 'services/instance_manager.dart';
+import 'services/storage_service.dart';
 import 'services/challenge_html_cache.dart';
 import 'services/webview_challenge_solver.dart';
 import 'screens/challenge_solver/challenge_solver_screen.dart';
@@ -39,6 +40,14 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+
+  // One-time favorites migration: move the legacy shared
+  // 'favorite_books' list to the account signed in right now (see
+  // StorageService.migrateLegacyFavorites). Fire-and-forget and never
+  // throws — if nobody is signed in yet it defers to the first
+  // favorites access after login, and the per-operation guard in the
+  // storage layer covers that path too.
+  unawaited(StorageService().migrateLegacyFavorites());
 
   // Warm the Anna's Archive / LibGen mirror catalogue (open-slum.org) so
   // the first external search does not wait on it. refreshOnStartup is
