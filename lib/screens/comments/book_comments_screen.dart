@@ -128,6 +128,31 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     );
   }
 
+  /// 删自己的评论：先弹确认框（破坏性操作），确认后调 controller
+  /// 乐观删除；失败时 controller 会把评论放回原位并提示。
+  Future<void> _confirmDelete(BookComment comment) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.get(S.commentDeleteConfirm)),
+        content: Text(l10n.get(S.commentDeleteDesc)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.get(S.cancel)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.get(S.delete)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _c.deleteComment(comment);
+  }
+
   @override
   Widget build(BuildContext context) {
     final args =
@@ -218,6 +243,8 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       },
       onAvatarTap: _openProfile,
       onLike: _c.toggleLike,
+      onDelete: _confirmDelete,
+      deleteTooltip: l10n.get(S.delete),
     );
   }
 }

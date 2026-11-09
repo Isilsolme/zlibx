@@ -25,6 +25,7 @@ import 'comment_book_ref_controller.dart';
 /// profile "Comments" tab: which book it was on, the text, when, and
 /// how many likes it has.
 class MyComment {
+  final int id;
   final int bookId;
   final String bookTitle;
   final String text;
@@ -35,6 +36,7 @@ class MyComment {
   final String userHash;
 
   const MyComment({
+    required this.id,
     required this.bookId,
     required this.bookTitle,
     required this.text,
@@ -54,7 +56,8 @@ class MyComment {
 /// opens the book's detail page (the user-comments API carries no book
 /// hash, so it is resolved by a title search first — see
 /// [CommentBookRefController.openBookDetail]).
-/// Deleting is not implemented (delete endpoint unknown).
+/// Deleting is wired: `DELETE /papi/comments/delete/{commentId}`,
+/// confirmed by a packet capture on 2026-11-09.
 class MyCommentsScreen extends ConsumerStatefulWidget {
   const MyCommentsScreen({super.key});
 
@@ -106,6 +109,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       if (response.success && response.data != null) {
         comments = response.data!.entries
             .map((e) => MyComment(
+                  id: e.comment.id,
                   bookId: e.bookId,
                   bookTitle: e.bookTitle,
                   text: e.comment.text,
@@ -186,6 +190,52 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     );
   }
 
+  /// 删自己的评论：先弹确认框（破坏性操作），确认后乐观移除；
+  /// 失败时把评论放回原位并提示。
+  Future<void> _confirmDelete(MyComment comment) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.get(S.commentDeleteConfirm)),
+        content: Text(l10n.get(S.commentDeleteDesc)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.get(S.cancel)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.get(S.delete)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final index = _comments.indexWhere((c) => c.id == comment.id);
+    if (index < 0) return;
+    final removed = _comments[index];
+    setState(() => _comments.removeAt(index));
+    try {
+      final response = await ref
+          .read(zlibraryApiProvider)
+          .deleteBookComment(comment.id);
+      if (!mounted) return;
+      if (!response.success) {
+        setState(
+          () => _comments.insert(index.clamp(0, _comments.length), removed),
+        );
+        _showSnack(l10n.get(S.commentDeleteFailed));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _comments.insert(index.clamp(0, _comments.length), removed),
+      );
+      _showSnack(l10n.get(S.commentDeleteFailed));
+    }
+  }
+
   // --------------------------------------------------------------- 构建
 
   @override
@@ -237,6 +287,8 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                 onCardTap: () => _openComments(comment),
                 onBookTap: () => _openBookDetail(comment),
                 onAvatarTap: () => _openProfile(comment),
+                onDelete: () => _confirmDelete(comment),
+                deleteTooltip: l10n.get(S.delete),
               ),
             );
           },
@@ -267,6 +319,8 @@ class _MyCommentCard extends StatelessWidget {
   final VoidCallback onCardTap;
   final VoidCallback onBookTap;
   final VoidCallback onAvatarTap;
+  final VoidCallback onDelete;
+  final String deleteTooltip;
 
   const _MyCommentCard({
     required this.comment,
@@ -276,6 +330,8 @@ class _MyCommentCard extends StatelessWidget {
     required this.onCardTap,
     required this.onBookTap,
     required this.onAvatarTap,
+    required this.onDelete,
+    required this.deleteTooltip,
   });
 
   @override
@@ -345,6 +401,22 @@ class _MyCommentCard extends StatelessWidget {
                                 icon: Icons.thumb_up_outlined,
                                 count: comment.likeCount,
                                 // 纯展示：我的评论页不支持点赞切换。
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                onPressed: onDelete,
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                ),
+                                iconSize: 20,
+                                tooltip: deleteTooltip,
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                color: cs.onSurfaceVariant,
                               ),
                             ],
                           ),

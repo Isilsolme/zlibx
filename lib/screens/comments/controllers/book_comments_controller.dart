@@ -35,6 +35,7 @@ class BookCommentsController extends ChangeNotifier {
 
   final List<BookComment> comments = [];
   final Set<int> likingIds = {};
+  final Set<int> deletingIds = {};
   Map<int, int> replyCounts = {};
 
   int visibleCount = pageSize;
@@ -265,6 +266,44 @@ class BookCommentsController extends ChangeNotifier {
       final i = comments.indexWhere((c) => c.id == comment.id);
       if (i >= 0) comments[i] = comment;
       _notice(_t(S.likeFailed));
+    }
+    _emit();
+  }
+
+  // ---------------------------------------------------------------- 删除
+
+  /// 删除自己的评论。乐观移除，失败时放回原位并提示；被删评论若是
+  /// 回复，父评论的回复数同步减一（失败时恢复）。
+  Future<void> deleteComment(BookComment comment) async {
+    if (deletingIds.contains(comment.id)) return;
+    final index = comments.indexWhere((c) => c.id == comment.id);
+    if (index < 0) return;
+    deletingIds.add(comment.id);
+    final removed = comments.removeAt(index);
+    final parentId = removed.parentId;
+    final hadReplyCount =
+        parentId != null && (replyCounts[parentId] ?? 0) > 0;
+    if (hadReplyCount) replyCounts[parentId!] = replyCounts[parentId]! - 1;
+    _emit();
+    try {
+      final response = await api.deleteBookComment(comment.id);
+      if (_disposed) return;
+      deletingIds.remove(comment.id);
+      if (!response.success) {
+        comments.insert(index.clamp(0, comments.length), removed);
+        if (hadReplyCount) {
+          replyCounts[parentId!] = (replyCounts[parentId] ?? 0) + 1;
+        }
+        _notice(_t(S.commentDeleteFailed));
+      }
+    } catch (_) {
+      if (_disposed) return;
+      deletingIds.remove(comment.id);
+      comments.insert(index.clamp(0, comments.length), removed);
+      if (hadReplyCount) {
+        replyCounts[parentId!] = (replyCounts[parentId] ?? 0) + 1;
+      }
+      _notice(_t(S.commentDeleteFailed));
     }
     _emit();
   }

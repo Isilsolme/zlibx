@@ -239,6 +239,9 @@ const Map<String, String> en = {
   'send_comment': 'Send comment',
   'comment_failed': 'Failed to post comment',
   'comment_too_short': 'Comment is too short',
+  'comment_delete_confirm': 'Delete this comment?',
+  'comment_delete_desc': 'This cannot be undone.',
+  'comment_delete_failed': 'Failed to delete comment',
   'refresh_failed': 'Failed to refresh',
   'like_failed': 'Failed to update like',
 

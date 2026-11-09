@@ -30,6 +30,12 @@ class CommentList extends StatelessWidget {
   /// 点赞切换（controller 内做乐观更新与回滚）。
   final ValueChanged<BookComment> onLike;
 
+  /// 删除自己的评论（screen 里先弹确认框，再调 controller）。
+  final ValueChanged<BookComment> onDelete;
+
+  /// 删除按钮的 tooltip 文案（screen 里取本地化）。
+  final String deleteTooltip;
+
   const CommentList({
     super.key,
     required this.controller,
@@ -40,6 +46,8 @@ class CommentList extends StatelessWidget {
     required this.onReply,
     required this.onAvatarTap,
     required this.onLike,
+    required this.onDelete,
+    required this.deleteTooltip,
   });
 
   @override
@@ -75,6 +83,9 @@ class CommentList extends StatelessWidget {
               onLike: () => onLike(comment),
               onReply: () => onReply(comment),
               onAvatarTap: () => onAvatarTap(comment),
+              canDelete: comment.isCurrentUser,
+              onDelete: () => onDelete(comment),
+              deleteTooltip: deleteTooltip,
             );
           }
           // 卡片之后的尾部：先分页加载指示器，再“没有更多”收尾。

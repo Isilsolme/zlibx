@@ -229,6 +229,9 @@ const Map<String, String> zh = {
   'send_comment': '发送评论',
   'comment_failed': '评论发布失败',
   'comment_too_short': '评论太短了',
+  'comment_delete_confirm': '删除这条评论？',
+  'comment_delete_desc': '删除后将无法恢复。',
+  'comment_delete_failed': '删除评论失败',
   'refresh_failed': '刷新失败',
   'like_failed': '点赞失败',
 

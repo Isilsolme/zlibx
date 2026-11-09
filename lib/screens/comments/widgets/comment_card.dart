@@ -16,6 +16,11 @@ class CommentCard extends StatelessWidget {
   final VoidCallback onReply;
   final VoidCallback onAvatarTap;
 
+  /// 自己的评论才可删（`comment.isCurrentUser`）；其余评论不显示。
+  final bool canDelete;
+  final VoidCallback onDelete;
+  final String deleteTooltip;
+
   const CommentCard({
     super.key,
     required this.comment,
@@ -24,6 +29,9 @@ class CommentCard extends StatelessWidget {
     required this.onLike,
     required this.onReply,
     required this.onAvatarTap,
+    required this.canDelete,
+    required this.onDelete,
+    required this.deleteTooltip,
   });
 
   @override
@@ -36,6 +44,9 @@ class CommentCard extends StatelessWidget {
       onLike: onLike,
       onReply: onReply,
       onAvatarTap: onAvatarTap,
+      canDelete: canDelete,
+      onDelete: onDelete,
+      deleteTooltip: deleteTooltip,
     );
 
     if (!isReply) {
@@ -73,6 +84,9 @@ class _Body extends StatelessWidget {
   final VoidCallback onLike;
   final VoidCallback onReply;
   final VoidCallback onAvatarTap;
+  final bool canDelete;
+  final VoidCallback onDelete;
+  final String deleteTooltip;
 
   const _Body({
     required this.comment,
@@ -81,6 +95,9 @@ class _Body extends StatelessWidget {
     required this.onLike,
     required this.onReply,
     required this.onAvatarTap,
+    required this.canDelete,
+    required this.onDelete,
+    required this.deleteTooltip,
   });
 
   @override
@@ -152,6 +169,22 @@ class _Body extends StatelessWidget {
                     busy: likePending,
                     onTap: onLike,
                   ),
+                  if (canDelete) ...[
+                    const Spacer(),
+                    IconButton(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline_rounded),
+                      iconSize: 20,
+                      tooltip: deleteTooltip,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ],
                 ],
               ),
             ],

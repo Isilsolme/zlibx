@@ -7,7 +7,8 @@
 /// session cookies the eapi calls already send, so it needs a logged-in
 /// session. Posting, replying and liking are wired too (same capture
 /// series): `POST /papi/comments/add` and
-/// `POST /papi/comments/like/{commentId}/{1|0}`.
+/// `POST /papi/comments/like/{commentId}/{1|0}`. Deleting is wired too
+/// (`DELETE /papi/comments/delete/{commentId}`, capture 2026-11-09).
 class BookComment {
   final int id;
 

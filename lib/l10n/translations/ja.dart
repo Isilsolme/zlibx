@@ -231,6 +231,9 @@ const Map<String, String> ja = {
   'send_comment': 'コメントを送信',
   'comment_failed': 'コメントの投稿に失敗しました',
   'comment_too_short': 'コメントが短すぎます',
+  'comment_delete_confirm': 'このコメントを削除しますか？',
+  'comment_delete_desc': '削除すると元に戻せません。',
+  'comment_delete_failed': 'コメントの削除に失敗しました',
   'refresh_failed': '更新に失敗しました',
   'like_failed': 'いいねに失敗しました',
 

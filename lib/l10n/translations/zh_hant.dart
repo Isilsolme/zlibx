@@ -228,6 +228,9 @@ const Map<String, String> zhHant = {
   'send_comment': '發送評論',
   'comment_failed': '評論發佈失敗',
   'comment_too_short': '評論太短了',
+  'comment_delete_confirm': '刪除這條評論？',
+  'comment_delete_desc': '刪除後將無法恢復。',
+  'comment_delete_failed': '刪除評論失敗',
   'refresh_failed': '刷新失敗',
   'like_failed': '點讚失敗',
 

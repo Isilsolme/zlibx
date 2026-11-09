@@ -48,6 +48,9 @@ abstract final class S {
   static const String clear = 'clear';
   static const String close = 'close';
   static const String codeSent = 'code_sent';
+  static const String commentDeleteConfirm = 'comment_delete_confirm';
+  static const String commentDeleteDesc = 'comment_delete_desc';
+  static const String commentDeleteFailed = 'comment_delete_failed';
   static const String commentFailed = 'comment_failed';
   static const String commentTooShort = 'comment_too_short';
   static const String comments = 'comments';

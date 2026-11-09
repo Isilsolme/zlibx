@@ -272,6 +272,83 @@ class ZLibraryApi {
     return _Raw(status: lastStatus, error: 'too many redirects');
   }
 
+  /// DELETE with no request body, following redirects by hand — same
+  /// pattern as [_postText]: 307/308 are re-sent as DELETE, 301/302/303
+  /// are followed as GET (browser behaviour). The session Cookie is
+  /// only sent to our own host: a hop to another host drops it.
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// caller only handles `ApiResponse.fail`, it does not catch
+  /// [StateError].
+  Future<_Raw> _delete(String path) async {
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    var isDelete = true;
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final Response<String> res;
+        if (isDelete) {
+          res = await _dio.delete<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        } else {
+          res = await _dio.get<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        }
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+        // 301/302/303 turn the follow-up into a GET; 307/308 keep
+        // the original DELETE.
+        isDelete = code == 307 || code == 308;
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
+  }
+
   /// Form encoding with repeated keys for list values, matching how the
   /// Python eapi clients send the same parameters.
   static String _encodeForm(Map<String, dynamic> fields) {
@@ -1204,6 +1281,31 @@ class ZLibraryApi {
           statusCode: raw.status);
     }
     return ApiResponse.ok(result);
+  }
+
+  /// Delete one of the signed-in user's own comments. `DELETE
+  /// /papi/comments/delete/{commentId}` with no request body,
+  /// confirmed by a packet capture on 2026-11-09 (Firefox,
+  /// zh.z-library.sk): HTTP 200 with `{"success": 1}`.
+  ///
+  /// The capture's Payload tab was not shown, so "no body" is an
+  /// assumption from the id-in-path shape and the sibling endpoints
+  /// (like posts an empty JSON body); device testing will confirm it.
+  Future<ApiResponse<bool>> deleteBookComment(int commentId) async {
+    final raw = await _delete('/papi/comments/delete/$commentId');
+    if (raw.json == null) {
+      return ApiResponse.fail(raw.error ?? 'delete comment failed',
+          statusCode: raw.status);
+    }
+    final json = raw.json!;
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        (json['error'] ?? json['message'])?.toString() ??
+            'delete comment failed',
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(true);
   }
 
   // ── Booklists ──────────────────────────────────────────────────────
