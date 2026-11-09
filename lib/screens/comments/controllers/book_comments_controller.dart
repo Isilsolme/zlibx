@@ -283,7 +283,7 @@ class BookCommentsController extends ChangeNotifier {
     final parentId = removed.parentId;
     final hadReplyCount =
         parentId != null && (replyCounts[parentId] ?? 0) > 0;
-    if (hadReplyCount) replyCounts[parentId!] = replyCounts[parentId]! - 1;
+    if (hadReplyCount) replyCounts[parentId] = replyCounts[parentId]! - 1;
     _emit();
     try {
       final response = await api.deleteBookComment(comment.id);
@@ -292,7 +292,7 @@ class BookCommentsController extends ChangeNotifier {
       if (!response.success) {
         comments.insert(index.clamp(0, comments.length), removed);
         if (hadReplyCount) {
-          replyCounts[parentId!] = (replyCounts[parentId] ?? 0) + 1;
+          replyCounts[parentId] = (replyCounts[parentId] ?? 0) + 1;
         }
         _notice(_t(S.commentDeleteFailed));
       }
@@ -301,7 +301,7 @@ class BookCommentsController extends ChangeNotifier {
       deletingIds.remove(comment.id);
       comments.insert(index.clamp(0, comments.length), removed);
       if (hadReplyCount) {
-        replyCounts[parentId!] = (replyCounts[parentId] ?? 0) + 1;
+        replyCounts[parentId] = (replyCounts[parentId] ?? 0) + 1;
       }
       _notice(_t(S.commentDeleteFailed));
     }
