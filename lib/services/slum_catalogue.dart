@@ -3,6 +3,7 @@
 // zlibx is AGPL-3.0 (see LICENSE); upstream MIT attribution for
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 // Dart imports:
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -235,7 +236,7 @@ class SlumCatalogue {
       };
       await store.write(_cacheKey, jsonEncode(json));
     } catch (error) {
-      debugPrint('[slum_catalogue] ignored ${error.runtimeType}');
+      logIgnored('slum_catalogue', error);
       // Persistence is best-effort; the in-memory cache already has it.
     }
   }
@@ -265,7 +266,7 @@ class SlumCatalogue {
         // fallback, not a fresh reading, so the next fetch still runs.
       }
     } catch (error) {
-      debugPrint('[slum_catalogue] ignored ${error.runtimeType}');
+      logIgnored('slum_catalogue', error);
       // A corrupt cache is simply ignored.
     }
   }

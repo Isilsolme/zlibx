@@ -28,6 +28,14 @@ class UpdateManifest {
   final String? minVersion;
   final List<UpdateLink> links;
 
+  /// Names of `名称: 链接` lines that were dropped (non-https, host off
+  /// the allow-list, name too long, or over the link cap). The update
+  /// dialog warns about the count instead of silently dropping them.
+  final List<String> droppedLinkNames;
+
+  /// How many link lines were dropped (see [droppedLinkNames]).
+  int get droppedLinkCount => droppedLinkNames.length;
+
   /// 正文含 `[FORCE]` 标记：比最新版低的客户端一律强制更新
   final bool forceAll;
 
@@ -37,6 +45,7 @@ class UpdateManifest {
   const UpdateManifest({
     this.minVersion,
     this.links = const [],
+    this.droppedLinkNames = const [],
     this.forceAll = false,
     this.notes = '',
   });
@@ -44,12 +53,36 @@ class UpdateManifest {
   static const _blockStart = '<!-- olib-update';
   static const _blockEnd = '-->';
   static const _maxLinks = 8;
+
+  /// Hosts a release-notes link may point to (exact host or a subdomain).
+  /// The manifest is plain text in a GitHub Release body; if the repo or
+  /// the publishing account were ever compromised, an attacker could
+  /// otherwise push ANY https link into the update dialog (and into a
+  /// forced, app-blocking update). Add a netdisk here when you start
+  /// using it in a release — an unknown host is dropped and counted in
+  /// [droppedLinkCount] so the dialog can warn about it.
+  static const allowedLinkHosts = <String>[
+    'pan.baidu.com',
+    'pan.quark.cn',
+    'pan.xunlei.com',
+    'github.com',
+  ];
+
+  /// Whether [url] is https AND on an allow-listed host.
+  static bool isAllowedLink(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) return false;
+    if (uri.userInfo.isNotEmpty) return false; // https://good.com@evil.com
+    final host = uri.host.toLowerCase();
+    return allowedLinkHosts.any((h) => host == h || host.endsWith('.$h'));
+  }
   static const _maxNameChars = 20;
   static final _forceRe = RegExp(r'\[FORCE(_UPDATE)?\]', caseSensitive: false);
 
   factory UpdateManifest.parse(String body) {
     String? minVersion;
     final links = <UpdateLink>[];
+    final droppedLinkNames = <String>[];
     var notes = body;
 
     final start = body.indexOf(_blockStart);
@@ -67,10 +100,17 @@ class UpdateManifest {
           final v = value.startsWith('v') ? value.substring(1) : value;
           if (v.isNotEmpty) minVersion = v;
         } else if (_isHttpsUrl(value) &&
+            isAllowedLink(value) &&
             key.isNotEmpty &&
             key.runes.length <= _maxNameChars &&
             links.length < _maxLinks) {
           links.add(UpdateLink(key, value));
+        } else if (key.isNotEmpty && _looksLikeUrl(value)) {
+          // A link line that was not accepted (non-https, host off the
+          // allow-list, name too long, or over the link cap). Record the
+          // name only — the URL may carry a ?pwd= code — so the update
+          // dialog can warn instead of silently dropping it.
+          droppedLinkNames.add(key);
         }
       }
       notes = body.substring(0, start) + body.substring(blockEnd);
@@ -79,6 +119,7 @@ class UpdateManifest {
     return UpdateManifest(
       minVersion: minVersion,
       links: links,
+      droppedLinkNames: droppedLinkNames,
       forceAll: _forceRe.hasMatch(body),
       notes: notes.replaceAll(_forceRe, '').trim(),
     );
@@ -99,6 +140,14 @@ class UpdateManifest {
   /// by a middlebox onto a malicious download page.
   static bool _isHttpsUrl(String s) =>
       s.startsWith('https://') && !s.contains(RegExp(r'\s'));
+
+  /// Whether [s] looks like a link attempt at all (http or https). Used
+  /// only to decide whether a rejected line counts as a dropped link.
+  static bool _looksLikeUrl(String s) {
+    final lower = s.toLowerCase();
+    return (lower.startsWith('http://') || lower.startsWith('https://')) &&
+        !s.contains(RegExp(r'\s'));
+  }
 }
 
 /// 语义化版本比较：`latest` 是否比 `current` 新（只比较数字段，非数字段按 0）

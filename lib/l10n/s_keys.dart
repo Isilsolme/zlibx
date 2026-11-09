@@ -41,10 +41,8 @@ abstract final class S {
   static const String booklistDeleteFailed = 'booklist_delete_failed';
   static const String booklistDeleted = 'booklist_deleted';
   static const String booklistDescriptionOptional = 'booklist_description_optional';
-  static const String booklistRemoveBookConfirm =
-      'booklist_remove_book_confirm';
-  static const String booklistRemoveBookFailed =
-      'booklist_remove_book_failed';
+  static const String booklistRemoveBookConfirm = 'booklist_remove_book_confirm';
+  static const String booklistRemoveBookFailed = 'booklist_remove_book_failed';
   static const String booklistTitle = 'booklist_title';
   static const String booklists = 'booklists';
   static const String booklistsSubtitle = 'booklists_subtitle';
@@ -209,6 +207,9 @@ abstract final class S {
   static const String mirrorSpeedTest = 'mirror_speed_test';
   static const String mirrorSpeedTestDone = 'mirror_speed_test_done';
   static const String mirrorSpeedTestFailed = 'mirror_speed_test_failed';
+  static const String mirrorTrustBody = 'mirror_trust_body';
+  static const String mirrorTrustConfirm = 'mirror_trust_confirm';
+  static const String mirrorTrustTitle = 'mirror_trust_title';
   static const String mirrors = 'mirrors';
   static const String mirrorsDownHint = 'mirrors_down_hint';
   static const String mirrorsFooterNote = 'mirrors_footer_note';
@@ -375,6 +376,7 @@ abstract final class S {
   static const String upToDateTitle = 'up_to_date_title';
   static const String update = 'update';
   static const String updateCurrentLatest = 'update_current_latest';
+  static const String updateDroppedLinks = 'update_dropped_links';
   static const String updateFoundTitle = 'update_found_title';
   static const String updateRequired = 'update_required';
   static const String updateUnsupported = 'update_unsupported';

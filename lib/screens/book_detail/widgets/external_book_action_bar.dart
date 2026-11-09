@@ -9,6 +9,7 @@
 // branch. The synthesized vendor Book (Option A) is built from the
 // detail page's BookInfoData, so the task id, file name and download
 // history all key on externalBookId(md5).
+import 'package:zlibx/utils/diagnostics.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,15 +52,10 @@ class _ExternalBookActionBarState
     // Same synthetic Book the download engine and the detail page's
     // progress lookup use; cheap to rebuild (pure value mapping).
     final book = synthesizeExternalBook(widget.info);
-    final tasks = ref.watch(downloadProvider);
-
-    DownloadTask? downloadTask;
-    for (final task in tasks) {
-      if (task.id == book.id.toString()) {
-        downloadTask = task;
-        break;
-      }
-    }
+    // Per-book watch: only this book's task rebuilds the bar, not every
+    // progress tick of every other download.
+    final DownloadTask? downloadTask =
+        ref.watch(downloadTaskProvider(book.id.toString()));
 
     final isDownloading = downloadTask?.status == DownloadStatus.downloading;
     final isCompleted = downloadTask?.status == DownloadStatus.completed;
@@ -207,7 +203,7 @@ class _ExternalBookActionBarState
         _toast(context, AppLocalizations.of(context).get(S.downloading));
       }
     } catch (error) {
-      debugPrint('[external_book_action_bar] ignored ${error.runtimeType}');
+      logIgnored('external_book_action_bar', error);
       if (!mounted) return;
       setState(() => _resolving = false);
       if (context.mounted) {
@@ -240,7 +236,7 @@ class _ExternalBookActionBarState
         );
       }
     } catch (error) {
-      debugPrint('[external_book_action_bar] ignored ${error.runtimeType}');
+      logIgnored('external_book_action_bar', error);
       if (context.mounted) {
         _toast(
           context,

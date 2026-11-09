@@ -7,7 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/http_client.dart';
 import '../services/media_store.dart';
+import '../services/resumable_downloader.dart';
 import '../services/storage_service.dart';
+import '../utils/diagnostics.dart';
 import '../utils/file_utils.dart';
 import 'zlibrary_provider.dart';
 
@@ -123,14 +125,25 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       // Entries are independent, so they load in parallel; Future.wait
       // keeps the result order, so the task order matches the old
       // serial loop exactly.
-      final tasks = await Future.wait(
-        history.entries.map(
-          (entry) => _taskFromHistoryEntry(
-            entry.key,
-            entry.value as Map<String, dynamic>,
+      // Bounded batches: every entry costs a MediaStore platform-channel
+      // call, and an unbounded fan-out over a long history floods the
+      // channel and the IO worker at startup. Order is preserved.
+      const batchSize = 8;
+      final entries = history.entries.toList();
+      final tasks = <DownloadTask?>[];
+      for (var i = 0; i < entries.length; i += batchSize) {
+        final batch = entries.skip(i).take(batchSize);
+        tasks.addAll(
+          await Future.wait(
+            batch.map(
+              (entry) => _taskFromHistoryEntry(
+                entry.key,
+                entry.value as Map<String, dynamic>,
+              ),
+            ),
           ),
-        ),
-      );
+        );
+      }
       final loadedTasks = [for (final task in tasks) if (task != null) task];
 
       // Merge by id instead of overwriting: the user may already have
@@ -486,22 +499,16 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       // from it instead of starting over; only an explicit user cancel
       // drops it. On success the file was already renamed away.
       if (temporaryPath != null && cancelToken.isCancelled) {
-        final partial = File(temporaryPath);
-        try {
-          if (await partial.exists()) await partial.delete();
-        } catch (error) {
-          debugPrint('Could not remove partial download: ${error.runtimeType}');
-        }
+        await _deletePartial(temporaryPath);
       }
       if (identical(_cancelTokens[id], cancelToken)) _cancelTokens.remove(id);
     }
   }
 
-  /// Download [url] to [savePath], resuming from the bytes already on
-  /// disk when the server honours Range. A 200 restarts the file from
-  /// zero; a 206 appends; a 416 truncates and restarts once. Progress
-  /// reports the true position against the full size. Redirects are
-  /// followed by Dio (no auth headers travel on this path).
+  /// Download [url] to [savePath] through [ResumableDownloader]: resume
+  /// with `Range` + `If-Range`, reject HTML answers, flag truncated
+  /// streams. Redirects are followed by Dio (no auth headers travel on
+  /// this path).
   Future<void> _downloadResumable(
     Dio dio,
     String url,
@@ -510,30 +517,8 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
   }) async {
-    final file = File(savePath);
-    final start = await file.exists() ? await file.length() : 0;
-    final reqHeaders = <String, String>{...?headers};
-    if (start > 0) reqHeaders['Range'] = 'bytes=$start-';
-    final res = await dio.get<ResponseBody>(
-      url,
-      options: Options(
-        headers: reqHeaders,
-        responseType: ResponseType.stream,
-        followRedirects: true,
-        // 416 is allowed through so the handler below can truncate and
-        // restart; anything else outside 2xx still throws.
-        validateStatus: (status) =>
-            status != null &&
-            ((status >= 200 && status < 300) || (status == 416 && start > 0)),
-      ),
-      cancelToken: cancelToken,
-    );
-    final code = res.statusCode ?? 0;
-    if (code == 416 && start > 0) {
-      // Release the connection: the stream body is otherwise never read.
-      await res.data?.stream.drain<void>();
-      await file.writeAsBytes(const []);
-      return _downloadResumable(
+    try {
+      await ResumableDownloader.download(
         dio,
         url,
         savePath,
@@ -541,23 +526,21 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
         onProgress: onProgress,
         cancelToken: cancelToken,
       );
+    } on DownloadContentException {
+      // Not a book: the partial (if any) is useless, never resume it.
+      await _deletePartial(savePath);
+      rethrow;
     }
-    final contentLength = int.tryParse(
-          res.headers.value(HttpHeaders.contentLengthHeader) ?? '',
-        ) ??
-        -1;
-    final resumed = code == 206 && start > 0;
-    final total = resumed ? start + contentLength : contentLength;
-    final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
-    var received = resumed ? start : 0;
-    try {
-      await for (final chunk in res.data!.stream) {
-        sink.add(chunk);
-        received += chunk.length;
-        onProgress?.call(received, total);
+  }
+
+  Future<void> _deletePartial(String partPath) async {
+    for (final path in [partPath, ResumableDownloader.metaPathFor(partPath)]) {
+      try {
+        final f = File(path);
+        if (await f.exists()) await f.delete();
+      } catch (error) {
+        logIgnored('download_partial', error);
       }
-    } finally {
-      await sink.close();
     }
   }
 
@@ -686,3 +669,20 @@ final downloadProvider =
     NotifierProvider<DownloadNotifier, List<DownloadTask>>(
       DownloadNotifier.new,
     );
+
+/// One download task by id. Watching this instead of [downloadProvider]
+/// rebuilds a widget only when ITS task changes: [_updateTask] keeps the
+/// identity of every untouched task, so `select` sees no change for them.
+/// Use it in per-book widgets (action bars, list tiles) so one progress
+/// tick no longer rebuilds every listener of the whole list.
+final downloadTaskProvider =
+    Provider.autoDispose.family<DownloadTask?, String>((ref, id) {
+  return ref.watch(
+    downloadProvider.select((tasks) {
+      for (final t in tasks) {
+        if (t.id == id) return t;
+      }
+      return null;
+    }),
+  );
+});

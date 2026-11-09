@@ -1,3 +1,4 @@
+import 'mirror_trust_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
@@ -239,7 +240,13 @@ class DomainSelectionDialog extends ConsumerWidget {
         ),
       ),
       trailing: trailing,
-      onTap: () {
+      onTap: () async {
+        final trusted = await confirmMirrorTrust(
+          context,
+          result.domain,
+          builtIn: true,
+        );
+        if (!trusted || !context.mounted) return;
         ref.read(domainProvider.notifier).setDomain(result.domain);
         Navigator.pop(context);
       },

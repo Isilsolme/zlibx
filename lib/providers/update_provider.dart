@@ -31,6 +31,11 @@ class UpdateState {
   final String? releaseUrl;
   final Map<String, String>? changelog;
   final List<UpdateLink> links;
+
+  /// How many manifest link lines were dropped (host off the allow-list,
+  /// non-https, …). The update dialog warns about the count.
+  final int droppedLinkCount;
+
   final bool forceUpdate;
   final bool hasUpdate;
 
@@ -45,6 +50,7 @@ class UpdateState {
     this.releaseUrl,
     this.changelog,
     this.links = const [],
+    this.droppedLinkCount = 0,
     this.forceUpdate = false,
     this.hasUpdate = false,
     this.isBlocked = false,
@@ -57,6 +63,7 @@ class UpdateState {
     String? releaseUrl,
     Map<String, String>? changelog,
     List<UpdateLink>? links,
+    int? droppedLinkCount,
     bool? forceUpdate,
     bool? hasUpdate,
     bool? isBlocked,
@@ -68,6 +75,7 @@ class UpdateState {
       releaseUrl: releaseUrl ?? this.releaseUrl,
       changelog: changelog ?? this.changelog,
       links: links ?? this.links,
+      droppedLinkCount: droppedLinkCount ?? this.droppedLinkCount,
       forceUpdate: forceUpdate ?? this.forceUpdate,
       hasUpdate: hasUpdate ?? this.hasUpdate,
       isBlocked: isBlocked ?? this.isBlocked,
@@ -210,6 +218,7 @@ class UpdateNotifier extends Notifier<UpdateState> {
       releaseUrl: htmlUrl,
       changelog: changelog,
       links: manifest.links,
+      droppedLinkCount: manifest.droppedLinkCount,
       hasUpdate: hasUpdate,
       forceUpdate: forceUpdate,
       isBlocked: forceUpdate,
@@ -217,7 +226,8 @@ class UpdateNotifier extends Notifier<UpdateState> {
 
     debugPrint(
       'UpdateService: Current=$current, Latest=$latest, '
-      'HasUpdate=$hasUpdate, Force=$forceUpdate, Links=${manifest.links.length}',
+      'HasUpdate=$hasUpdate, Force=$forceUpdate, Links=${manifest.links.length}, '
+      'DroppedLinks=${manifest.droppedLinkNames}',
     );
     return hasUpdate;
   }

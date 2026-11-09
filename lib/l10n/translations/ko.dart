@@ -343,6 +343,11 @@ const Map<String, String> ko = {
   'login_to_view_booklists': '로그인하여 책 목록 보기',
 
   // UI strings moved out of inline isZh ternaries
+  'mirror_trust_title': '커뮤니티 미러를 사용하시겠습니까?',
+  'mirror_trust_body':
+      '{host}는 커뮤니티에서 운영하는 미러 사이트이며 공식 사이트가 아닙니다. 로그인 시 이메일과 비밀번호, 이후 로그인 세션이 운영자에게 전송됩니다. 신뢰하는 경우에만 계속하세요.',
+  'mirror_trust_confirm': '신뢰합니다',
+  'update_dropped_links': '{count}개의 다운로드 채널이 호스트가 허용 목록에 없어 무시되었습니다',
   'logout_confirm_title': '로그아웃하시겠어요?',
   'logout_confirm_desc': '로그아웃하면 계정 정보로 다시 로그인해야 합니다.',
   'logout_action': '로그아웃',

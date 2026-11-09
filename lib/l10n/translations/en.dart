@@ -360,6 +360,12 @@ const Map<String, String> en = {
   'login_to_view_booklists': 'Log in to view booklists',
 
   // UI strings moved out of inline isZh ternaries
+  'mirror_trust_title': 'Use a community mirror?',
+  'mirror_trust_body':
+      '{host} is a community-run mirror, not an official site. Your email, password and login session will be sent to its operator. Continue only if you trust it.',
+  'mirror_trust_confirm': 'I trust it',
+  'update_dropped_links':
+      '{count} download channel(s) were ignored: host not on the allow-list',
   'logout_confirm_title': 'Log out?',
   'logout_confirm_desc': 'You will need to log in again with your credentials.',
   'logout_action': 'Log out',

@@ -29,6 +29,7 @@
 //    to false anyway).
 
 // Dart imports:
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
@@ -278,7 +279,7 @@ class WebviewChallengeSolver {
               }
             }
           }
-        } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
+        } catch (error) { logIgnored('webview_challenge_solver', error); }
         await Future.delayed(const Duration(milliseconds: 1000));
       }
 
@@ -292,7 +293,7 @@ class WebviewChallengeSolver {
     } finally {
       try {
         await headless?.dispose();
-      } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
+      } catch (error) { logIgnored('webview_challenge_solver', error); }
     }
   }
 
@@ -316,8 +317,22 @@ class WebviewChallengeSolver {
   static Future<String?> _captureHtml(InAppWebViewController controller) async {
     final ready = await _js(controller, "document.readyState") ?? '';
     if (ready != 'complete') return null;
-    // Settle delay so late XHR content lands in the DOM.
-    await Future.delayed(const Duration(milliseconds: 2000));
+    // Adaptive settle instead of a fixed 2 s sleep: late XHR content must
+    // land in the DOM, but a page that is already stable should not pay
+    // the full delay. Poll the document length every 500 ms and stop
+    // once two consecutive reads agree (never earlier than 1 s, never
+    // later than 3 s — the old fixed delay was 2 s).
+    var previous = -1;
+    for (var i = 0; i < 6; i++) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      final len = int.tryParse(
+            await _js(controller, "document.documentElement.outerHTML.length") ??
+                '',
+          ) ??
+          -1;
+      if (i >= 1 && len > 0 && len == previous) break;
+      previous = len;
+    }
     final html =
         await _js(controller, "document.documentElement.outerHTML");
     return html;
@@ -338,12 +353,12 @@ class WebviewChallengeSolver {
         try {
           final decoded = json.decode(s);
           if (decoded is String) return decoded;
-        } catch (error) { debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}'); }
+        } catch (error) { logIgnored('webview_challenge_solver', error); }
         return s.substring(1, s.length - 1);
       }
       return s;
     } catch (error) {
-      debugPrint('[webview_challenge_solver] ignored ${error.runtimeType}');
+      logIgnored('webview_challenge_solver', error);
       return null;
     }
   }

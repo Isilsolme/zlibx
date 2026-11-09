@@ -1,8 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 
 import 'hive_service.dart';
 
@@ -250,7 +251,7 @@ class BooklistHtmlCache {
       try {
         good.add(Book.fromJson(Map<String, dynamic>.from(item)));
       } catch (error) {
-        debugPrint('[booklist_html_cache] ignored bad entry ${error.runtimeType}');
+        logIgnored('booklist_html_cache', error);
       }
     }
     if (good.isEmpty && books.isNotEmpty) {

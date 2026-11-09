@@ -1,0 +1,147 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:zlibx/services/resumable_downloader.dart';
+
+/// Serves one fixed "remote file" and honours Range / If-Range the way a
+/// real origin does, with knobs to misbehave.
+class _Origin implements HttpClientAdapter {
+  _Origin(this.body, {this.etag = '"v1"'});
+
+  List<int> body;
+  String? etag;
+  String contentType = 'application/epub+zip';
+  bool truncate = false; // advertise full length but send half
+  final List<Map<String, dynamic>> seen = [];
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    seen.add(Map<String, dynamic>.from(options.headers));
+    final range = options.headers['Range'] as String?;
+    final ifRange = options.headers['If-Range'] as String?;
+    final h = <String, List<String>>{
+      Headers.contentTypeHeader: [contentType],
+      if (etag != null) HttpHeaders.etagHeader: [etag!],
+    };
+    int status = 200;
+    List<int> out = body;
+    if (range != null && (ifRange == null || ifRange == etag)) {
+      final start = int.parse(range.substring(6).replaceAll('-', ''));
+      if (start >= body.length) {
+        return ResponseBody.fromBytes(const [], 416, headers: h);
+      }
+      out = body.sublist(start);
+      status = 206;
+    }
+    h[Headers.contentLengthHeader] = ['${out.length}'];
+    final sent = truncate ? out.sublist(0, out.length ~/ 2) : out;
+    return ResponseBody.fromBytes(sent, status, headers: h);
+  }
+}
+
+void main() {
+  late Directory dir;
+  late String path;
+  final book = List<int>.generate(4096, (i) => (i * 7) % 251);
+
+  setUp(() async {
+    dir = await Directory.systemTemp.createTemp('resumable');
+    path = '${dir.path}/book.epub.part';
+  });
+  tearDown(() => dir.delete(recursive: true));
+
+  Dio dioFor(_Origin o) => Dio()..httpClientAdapter = o;
+
+  test('fresh download writes the file and removes the sidecar', () async {
+    final o = _Origin(book);
+    await ResumableDownloader.download(dioFor(o), 'https://x/f', path);
+    expect(await File(path).readAsBytes(), book);
+    expect(File(ResumableDownloader.metaPathFor(path)).existsSync(), isFalse);
+  });
+
+  test('rejects an HTML page labelled text/html and writes nothing', () async {
+    final o = _Origin(utf8.encode('<html>challenge</html>'))
+      ..contentType = 'text/html; charset=utf-8';
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadContentException>()),
+    );
+    expect(File(path).existsSync(), isFalse);
+  });
+
+  test('rejects an HTML body that is mislabelled as octet-stream', () async {
+    final o = _Origin(utf8.encode('  <!DOCTYPE html><title>Just a moment'))
+      ..contentType = 'application/octet-stream';
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadContentException>()),
+    );
+    expect(File(path).existsSync(), isFalse);
+  });
+
+  test('truncated stream throws and keeps the partial file', () async {
+    final o = _Origin(book)..truncate = true;
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadTruncatedException>()),
+    );
+    expect(File(path).lengthSync(), book.length ~/ 2);
+  });
+
+  test('resumes with Range + If-Range when the validator matches', () async {
+    final o = _Origin(book)..truncate = true;
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadTruncatedException>()),
+    );
+    o.truncate = false;
+    await ResumableDownloader.download(dioFor(o), 'https://x/f', path);
+    expect(await File(path).readAsBytes(), book);
+    expect(o.seen.last['If-Range'], '"v1"');
+    expect(o.seen.last['Range'], startsWith('bytes='));
+  });
+
+  test('restarts from zero when the remote file changed', () async {
+    final o = _Origin(book)..truncate = true;
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadTruncatedException>()),
+    );
+    // Remote file replaced: new bytes, new ETag.
+    o
+      ..truncate = false
+      ..body = List<int>.generate(4096, (i) => (i * 3) % 241)
+      ..etag = '"v2"';
+    await ResumableDownloader.download(dioFor(o), 'https://x/f', path);
+    expect(await File(path).readAsBytes(), o.body);
+  });
+
+  test('a partial file without a recorded validator is not appended to',
+      () async {
+    await File(path).writeAsBytes(List<int>.filled(100, 9));
+    final o = _Origin(book);
+    await ResumableDownloader.download(dioFor(o), 'https://x/f', path);
+    expect(await File(path).readAsBytes(), book);
+    expect(o.seen.first.containsKey('Range'), isFalse);
+  });
+
+  test('looksLikeHtml ignores BOM/whitespace and real binaries', () {
+    expect(
+      ResumableDownloader.looksLikeHtml(utf8.encode('\uFEFF \n<HTML>')),
+      isTrue,
+    );
+    expect(ResumableDownloader.looksLikeHtml([0x50, 0x4B, 3, 4]), isFalse);
+    expect(ResumableDownloader.looksLikeHtml(const []), isFalse);
+  });
+}

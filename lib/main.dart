@@ -27,6 +27,7 @@ import 'screens/account/my_comments_screen.dart';
 import 'screens/account/user_profile_screen.dart';
 import 'screens/reader/reader_screen.dart';
 import 'services/hive_service.dart';
+import 'services/mirror_trust.dart';
 import 'services/booklist_html_cache.dart';
 import 'services/instance_manager.dart';
 import 'services/storage_service.dart';
@@ -40,6 +41,8 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+  // Existing installs keep their current line without a trust prompt.
+  await MirrorTrust.grandfatherCurrent();
 
   // One-time favorites migration: move the legacy shared
   // 'favorite_books' list to the account signed in right now (see

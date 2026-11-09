@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 import '../models/display_book.dart';
 import '../services/annas_archieve.dart';
 import '../services/external_search.dart';
@@ -623,7 +623,7 @@ class HistoryCoverNotifier extends Notifier<Map<String, String>> {
     } catch (error) {
       // No usable cover: keep the placeholder. _attempted prevents
       // retry loops when the row rebuilds.
-      debugPrint('[history_cover] ignored ${error.runtimeType}');
+      logIgnored('history_cover', error);
     }
   }
 }

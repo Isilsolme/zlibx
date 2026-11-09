@@ -344,6 +344,11 @@ const Map<String, String> ja = {
   'login_to_view_booklists': 'ログインしてブックリストを見る',
 
   // UI strings moved out of inline isZh ternaries
+  'mirror_trust_title': 'コミュニティミラーを使用しますか？',
+  'mirror_trust_body':
+      '{host} はコミュニティが運営するミラーサイトであり、公式サイトではありません。ログイン時のメールアドレスとパスワード、およびその後のログインセッションは運営者に送信されます。信頼できる場合のみ続行してください。',
+  'mirror_trust_confirm': '信頼する',
+  'update_dropped_links': '{count} 件のダウンロード先が、ホストが許可リストにないため無視されました',
   'logout_confirm_title': 'ログアウトしますか？',
   'logout_confirm_desc': 'ログアウトすると、再度アカウント情報でログインする必要があります。',
   'logout_action': 'ログアウト',

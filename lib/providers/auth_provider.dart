@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 import '../services/auth_storage.dart';
 import '../services/challenge_html_cache.dart';
 import '../services/hive_service.dart';
@@ -243,15 +243,15 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       await CookieManager.instance().deleteAllCookies();
     } catch (error) {
-      debugPrint('[auth_provider] ignored ${error.runtimeType}');
+      logIgnored('auth_provider', error);
       // WebView never initialized — nothing to clear.
     }
     try {
       await WebStorageManager.instance().deleteAllData();
-    } catch (error) { debugPrint('[auth_provider] ignored ${error.runtimeType}'); }
+    } catch (error) { logIgnored('auth_provider', error); }
     try {
       await InAppWebViewController.clearAllCache();
-    } catch (error) { debugPrint('[auth_provider] ignored ${error.runtimeType}'); }
+    } catch (error) { logIgnored('auth_provider', error); }
     state = AuthState();
     // Same account-scoped caches as an account switch: a later login
     // as a different account must not see the old account's data.
@@ -303,7 +303,7 @@ class AuthNotifier extends Notifier<AuthState> {
       // Other errors: leave existing state alone; user can logout manually.
     } catch (error) {
       if (!_isCurrent(epoch)) return;
-      debugPrint('[auth_provider] ignored ${error.runtimeType}');
+      logIgnored('auth_provider', error);
       state = state.copyWith(lineUnavailable: true);
     }
   }

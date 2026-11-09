@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 import 'domain_provider.dart';
 
 enum DomainLatencyStatus { untested, normal, slow, unavailable }
@@ -149,7 +150,7 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
 
         result.latencyMs = isSuccess ? sw.elapsedMilliseconds : -1;
       } catch (error) {
-        debugPrint('[speed_test_provider] ignored ${error.runtimeType}');
+        logIgnored('speed_test_provider', error);
         sw.stop();
         result.latencyMs = -1;
       } finally {
@@ -158,7 +159,7 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
         client.close(force: true);
       }
     } catch (error) {
-      debugPrint('[speed_test_provider] ignored ${error.runtimeType}');
+      logIgnored('speed_test_provider', error);
       sw.stop();
       result.latencyMs = -1;
     }

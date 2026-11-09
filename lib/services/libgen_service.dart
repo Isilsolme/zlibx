@@ -4,8 +4,8 @@
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 
 // Dart imports:
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
-import 'package:flutter/foundation.dart' show debugPrint;
 
 // Package imports:
 import 'package:dio/dio.dart';
@@ -176,7 +176,7 @@ class LibgenService {
             parseAdsCover(response.data.toString(), origin);
         if (cover != null) return cover;
       } catch (error) {
-        debugPrint('[libgen_service] ignored ${error.runtimeType}');
+        logIgnored('libgen_service', error);
         // Next mirror.
       }
     }

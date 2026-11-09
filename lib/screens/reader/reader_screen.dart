@@ -1,3 +1,4 @@
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -128,7 +129,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             );
       }
     } catch (error) {
-      debugPrint('[reader_screen] ignored ${error.runtimeType}');
+      logIgnored('reader_screen', error);
       // 诊断本身失败不打扰阅读。
     }
   }

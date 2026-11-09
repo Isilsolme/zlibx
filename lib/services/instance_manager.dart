@@ -5,14 +5,12 @@
 // Dart imports:
 import 'dart:convert';
 
-// Flutter imports:
-import 'package:flutter/foundation.dart';
-
 // Project imports:
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/preference_store.dart';
 import 'package:zlibx/services/slum_catalogue.dart';
 import 'package:zlibx/services/hive_preference_store.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 
 // MirrorService and the SLUM model live in the catalogue; re-exported so
 // callers keep importing only this file.
@@ -94,7 +92,7 @@ class InstanceManager {
       final value = await _store?.read(_autoModeKey);
       return value == null ? true : value == true || value == 1;
     } catch (error) {
-      debugPrint('[instance_manager] ignored ${error.runtimeType}');
+      logIgnored('instance_manager', error);
       return true;
     }
   }
@@ -132,7 +130,7 @@ class InstanceManager {
       _hostMapCache[key] = map;
       return _copyHostMap(map);
     } catch (error) {
-      debugPrint('[instance_manager] ignored ${error.runtimeType}');
+      logIgnored('instance_manager', error);
       return {};
     }
   }

@@ -40,14 +40,18 @@ There is no code generation in this project: `Book`/`User` and all other models 
 
 ## Tests
 
-`test/widgets/` has 3 widget tests. Note `.gitignore` ignores `test/*` except `!test/widgets/` — new tests belong under `test/widgets/` (or update `.gitignore` first).
+`test/` is organised as `test/parsers/` (HTML/JSON parsers), `test/services/` (providers, caches, storage, downloader, trust) and `test/widgets/` (widget tests). `.gitignore` ignores `test/*` but un-ignores exactly these three directories — a new test directory needs a matching `!test/<dir>/` line, otherwise it is silently not committed.
 
 ## Key Patterns
 
 - `ZLibraryApi` uses lazy async init (`_initFuture`) — all methods await it before proceeding.
 - Domain/mirror switching updates Dio's base URL at runtime; device-side speed testing is in `lib/services/mirror_speed_test.dart`.
 - Multi-account support: `AuthStorage` persists multiple credential sets in secure storage.
-- Downloads are single-stream with resume (`Range` + append to a stable `<final>.part` file). Segmented parallel downloading is deliberately NOT implemented.
+- Downloads are single-stream with resume (`Range` + `If-Range` + append to a stable `<final>.part` file, validator in `<final>.part.meta`). Segmented parallel downloading is deliberately NOT implemented. The external-source / LAN path goes through `lib/services/resumable_downloader.dart` (rejects HTML answers, flags truncated streams); the Z-Library path has its own equivalent checks in `vendor/olib_api_plugin` (`_downloadOnce`) — keep the two in step.
+- Swallowed exceptions must go through `logIgnored(tag, error)` (`lib/utils/diagnostics.dart`), never a bare `debugPrint`: it keeps a bounded in-memory trail (tag + exception type only, no message) that works in release builds.
+- Credentials only go to confirmed hosts: `lib/services/mirror_trust.dart` + `confirmMirrorTrust()` ask once per community mirror before login / line switch, and `DomainNotifier.setDomain` refuses to re-send the session to an unconfirmed host.
+- Update-dialog links are restricted to `UpdateManifest.allowedLinkHosts`; add a host there before using a new netdisk in a release.
+- Widgets that show ONE download should watch `downloadTaskProvider(id)`, not the whole `downloadProvider` list.
 - Anna's Archive fast download needs the user's own donation key, entered by the user in Settings (never ask the user to send it to you).
 
 ## Repo Notes

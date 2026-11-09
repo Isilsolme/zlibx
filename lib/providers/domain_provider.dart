@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/hive_service.dart';
+import '../services/mirror_trust.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'auth_provider.dart';
 import 'cache_invalidation.dart';
@@ -58,11 +59,13 @@ final domainProvider =
     NotifierProvider<DomainNotifier, String>(DomainNotifier.new);
 
 class DomainNotifier extends Notifier<String> {
-  late final ZLibraryApi _api;
+  // Getter, not `late final`: ref.invalidate re-runs build() on the SAME
+  // notifier instance and a second late-final assignment throws
+  // LateInitializationError (same trap documented in DownloadNotifier).
+  ZLibraryApi get _api => ref.read(zlibraryApiProvider);
 
   @override
   String build() {
-    _api = ref.read(zlibraryApiProvider);
     final initial = _initialDomain();
     if (HiveService.settingsBox.get('domain') != initial) {
       HiveService.settingsBox.put('domain', initial);
@@ -88,6 +91,13 @@ class DomainNotifier extends Notifier<String> {
   /// trust the domain.
   void setDomain(String domain, {bool reverifySession = true}) {
     if (domain == state) return;
+    // Defence in depth (the UI normally asked already): the stored
+    // session never follows the user to a community mirror they have
+    // not confirmed — see MirrorTrust.
+    if (reverifySession &&
+        !MirrorTrust.isConfirmed(domain, builtIn: isBuiltInDomain(domain))) {
+      reverifySession = false;
+    }
     state = domain;
     HiveService.settingsBox.put('domain', domain);
     // The in-memory session must not follow the user to a new host; trusted

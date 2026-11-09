@@ -26,15 +26,24 @@ class MainActivity : FlutterActivity() {
     // freezes / ANRs. A single worker keeps them ordered.
     private val ioExecutor: ExecutorService = Executors.newSingleThreadExecutor()
 
+    // Cheap ContentResolver probes (exists / delete) get their own small
+    // pool so they never queue behind a multi-hundred-MB copy.
+    private val lightExecutor: ExecutorService = Executors.newFixedThreadPool(2)
+
     override fun onDestroy() {
         // shutdown() lets a running copy finish; it only rejects new work.
         ioExecutor.shutdown()
+        lightExecutor.shutdown()
         super.onDestroy()
     }
 
     /// Runs [block] on the worker thread and replies on the UI thread.
-    private fun <T> runAsync(result: MethodChannel.Result, block: () -> T?) {
-        ioExecutor.execute {
+    private fun <T> runAsync(
+        result: MethodChannel.Result,
+        executor: ExecutorService = ioExecutor,
+        block: () -> T?,
+    ) {
+        executor.execute {
             val value = try {
                 block()
             } catch (e: Exception) {
@@ -70,8 +79,15 @@ class MainActivity : FlutterActivity() {
                         }
                     }
                     "contentExists" -> {
+                        // openInputStream hits the ContentResolver / disk:
+                        // keep it off the platform thread (the history
+                        // check calls this once per entry at startup).
                         val uri = call.argument<String>("uri")?.let(Uri::parse)
-                        result.success(uri != null && contentExists(uri))
+                        if (uri == null) {
+                            result.success(false)
+                        } else {
+                            runAsync(result, lightExecutor) { contentExists(uri) }
+                        }
                     }
                     "openContent" -> {
                         val uri = call.argument<String>("uri")?.let(Uri::parse)
@@ -79,7 +95,11 @@ class MainActivity : FlutterActivity() {
                     }
                     "deleteContent" -> {
                         val uri = call.argument<String>("uri")?.let(Uri::parse)
-                        result.success(uri != null && deleteContent(uri))
+                        if (uri == null) {
+                            result.success(false)
+                        } else {
+                            runAsync(result, lightExecutor) { deleteContent(uri) }
+                        }
                     }
                     "copyContentToCache" -> {
                         val uri = call.argument<String>("uri")?.let(Uri::parse)

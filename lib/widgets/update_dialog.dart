@@ -83,7 +83,13 @@ class _UpdateDialog extends ConsumerWidget {
 
     final channels = [
       for (final l in update.links)
-        _Channel(l.name, l.url, Icons.cloud_download_outlined),
+        // Show the real host next to the label so a spoofed name cannot
+        // hide where the button goes.
+        _Channel(
+          '${l.name} (${Uri.tryParse(l.url)?.host ?? ''})',
+          l.url,
+          Icons.cloud_download_outlined,
+        ),
       if (update.downloadUrl != null)
         _Channel(
           AppLocalizations.of(context).get(S.websiteDownload),
@@ -154,6 +160,15 @@ class _UpdateDialog extends ConsumerWidget {
               for (var i = 0; i < channels.length; i++) ...[
                 if (i > 0) const SizedBox(height: 8),
                 _ChannelButton(channel: channels[i], primary: i == 0),
+              ],
+              if (update.droppedLinkCount > 0) ...[
+                const SizedBox(height: 12),
+                Text(
+                  AppLocalizations.of(context).get(S.updateDroppedLinks).replaceAll('{count}', '${update.droppedLinkCount}'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
               ],
             ],
           ),

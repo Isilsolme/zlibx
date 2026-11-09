@@ -1,3 +1,4 @@
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -25,7 +26,7 @@ Future<bool> openDownloadFolder() async {
         await intent.launch();
         return true;
       } catch (error) {
-        debugPrint('[file_utils] ignored ${error.runtimeType}');
+        logIgnored('file_utils', error);
         // Fallback: try to open the general Downloads folder
         try {
           final intent = AndroidIntent(
@@ -37,7 +38,7 @@ Future<bool> openDownloadFolder() async {
           await intent.launch();
           return true;
         } catch (error) {
-          debugPrint('[file_utils] ignored ${error.runtimeType}');
+          logIgnored('file_utils', error);
           // Last fallback: open the system file manager app
           try {
             final intent = AndroidIntent(
@@ -48,7 +49,7 @@ Future<bool> openDownloadFolder() async {
             await intent.launch();
             return true;
           } catch (error) {
-            debugPrint('[file_utils] ignored ${error.runtimeType}');
+            logIgnored('file_utils', error);
             return false;
           }
         }

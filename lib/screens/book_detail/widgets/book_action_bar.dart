@@ -1,3 +1,4 @@
+import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -320,7 +321,7 @@ class BookActionBar extends ConsumerWidget {
         );
       }
     } catch (error) {
-      debugPrint('[book_action_bar] ignored ${error.runtimeType}');
+      logIgnored('book_action_bar', error);
       if (context.mounted) {
         _toast(
           context,

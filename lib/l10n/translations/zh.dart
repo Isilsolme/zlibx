@@ -342,6 +342,11 @@ const Map<String, String> zh = {
   'login_to_view_booklists': '登录后查看书单',
 
   // UI strings moved out of inline isZh ternaries
+  'mirror_trust_title': '使用社区镜像？',
+  'mirror_trust_body':
+      '{host} 是社区运营的镜像站，并非官方站点。登录时你的邮箱和密码，以及之后的登录会话，都会发送给它的运营者。仅在你信任它时继续。',
+  'mirror_trust_confirm': '我信任它',
+  'update_dropped_links': '另有 {count} 个下载渠道因域名不在白名单中被忽略',
   'logout_confirm_title': '退出登录？',
   'logout_confirm_desc': '退出后需要重新输入账号密码登录。',
   'logout_action': '退出',

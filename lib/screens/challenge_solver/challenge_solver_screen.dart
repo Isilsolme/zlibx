@@ -15,6 +15,7 @@
 // (`verifying_access` / `verifying_access_hint`).
 
 // Dart imports:
+import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
 
 // Flutter imports:
@@ -96,7 +97,7 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
           if (mounted) Navigator.pop(context, true);
         }
       } catch (error) {
-        debugPrint('[challenge_solver_screen] ignored ${error.runtimeType}');
+        logIgnored('challenge_solver_screen', error);
         // webview might be mid-navigation; keep polling
       }
     });

@@ -1,3 +1,4 @@
+import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
@@ -114,9 +115,7 @@ class CommentBookRefController extends ChangeNotifier {
       onReady(Book(id: bookId, title: title, hash: hash));
       return true;
     } catch (error) {
-      debugPrint(
-        '[comment_book_ref] open detail ignored ${error.runtimeType}',
-      );
+      logIgnored('comment_book_ref', error);
       onFail();
       return false;
     } finally {

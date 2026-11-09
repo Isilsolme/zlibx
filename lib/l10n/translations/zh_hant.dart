@@ -341,6 +341,11 @@ const Map<String, String> zhHant = {
   'login_to_view_booklists': '登入後查看書單',
 
   // UI strings moved out of inline isZh ternaries
+  'mirror_trust_title': '使用社群鏡像？',
+  'mirror_trust_body':
+      '{host} 是社群營運的鏡像站，並非官方站點。登入時你的電子郵件和密碼，以及之後的登入工作階段，都會傳送給它的營運者。僅在你信任它時繼續。',
+  'mirror_trust_confirm': '我信任它',
+  'update_dropped_links': '另有 {count} 個下載渠道因網域名稱不在白名單中被忽略',
   'logout_confirm_title': '登出？',
   'logout_confirm_desc': '登出後需要重新輸入帳號密碼登入。',
   'logout_action': '登出',

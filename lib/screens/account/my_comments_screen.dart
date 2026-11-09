@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zlibx/utils/diagnostics.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
@@ -126,7 +127,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       }
     } catch (error) {
       // 失败按空列表处理，下拉重试
-      debugPrint('[my_comments] ignored ${error.runtimeType}');
+      logIgnored('my_comments', error);
     }
     if (!mounted) return;
     setState(() {

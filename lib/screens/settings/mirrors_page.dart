@@ -10,6 +10,7 @@
 // The app bar uses zlibx's GradientAppBar like the other settings
 // screens, and every user-facing string goes through AppLocalizations.
 
+import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -101,7 +102,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
         _loadError = false;
       });
     } catch (error) {
-      debugPrint('[mirrors_page] ignored ${error.runtimeType}');
+      logIgnored('mirrors_page', error);
       if (!mounted) return;
       setState(() {
         _loading = false;
@@ -129,7 +130,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
         duration: const Duration(seconds: 2),
       );
     } catch (error) {
-      debugPrint('[mirrors_page] ignored ${error.runtimeType}');
+      logIgnored('mirrors_page', error);
       if (!mounted) return;
       showAppSnack(
         context,

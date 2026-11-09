@@ -1,0 +1,23 @@
+# Staged, NOT enforced by CI: a stricter lint profile to triage gradually.
+#
+#   flutter analyze --options analysis_options_strict.yaml
+#
+# It was not run when added (no Flutter SDK was available), so expect a
+# first batch of findings. Fix them per directory, then move the rules you
+# want into analysis_options.yaml so `flutter analyze` in CI enforces them.
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    - unawaited_futures
+    - use_build_context_synchronously
+    - avoid_catches_without_on_clauses
+    - cancel_subscriptions
+    - close_sinks
+    - prefer_final_locals
+    - directives_ordering

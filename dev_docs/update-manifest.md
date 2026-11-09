@@ -1,7 +1,7 @@
 # 更新清单（强制更新 + 下载渠道）
 
 > 2026-10-09 引入，1.4.0 起生效，格式与桌面端 OlibTauri 一致。
-> 实现：`lib/services/update/update_manifest.dart`（解析）、`lib/services/update_service.dart`（检查 + 缓存）、
+> 实现：`lib/services/update/update_manifest.dart`（解析）、`lib/providers/update_provider.dart`（检查 + 缓存）、
 > `lib/widgets/update_dialog.dart`（对话框）。
 
 客户端请求公开仓库最新 Release（`api.github.com/repos/minglaiyo/zlibx/releases/latest`），
@@ -19,11 +19,21 @@ min_version: 1.4.0
 | 行                   | 含义                                                                                     |
 | -------------------- | ---------------------------------------------------------------------------------------- |
 | `min_version: x.y.z` | 当前版本**低于**它 → 强制更新。省略 = 不强制                                             |
-| `名称: 链接`         | 对话框里的下载渠道，按书写顺序排列，第一个为主按钮。仅 http/https，名称 ≤ 20 字，最多 8 个 |
+| `名称: 链接`         | 对话框里的下载渠道，按书写顺序排列，第一个为主按钮。**仅 https 且域名须在白名单内**（见下），名称 ≤ 20 字，最多 8 个 |
 | `[FORCE]`            | 旧标记（≤1.3.0 客户端只认它）：比最新版低的客户端一律强制。新发版优先用 `min_version`    |
 
 - 对话框总会追加「官网下载」（本项目 Releases 页）和「GitHub」（Release 页）两个兜底渠道。
-- 强制更新时：对话框不可关闭，搜索与下载被拦截（`UpdateService.isBlocked`）。
+- 强制更新时：对话框不可关闭，搜索与下载被拦截（`updateProvider.isBlocked`）。
+
+## 链接域名白名单
+
+清单是 Release 正文里的纯文本；为防止仓库/账号被入侵后下发任意链接，只接受
+`UpdateManifest.allowedLinkHosts` 中的域名（及其子域）：`pan.baidu.com`、`pan.quark.cn`、
+`pan.xunlei.com`、`github.com`。含 `user@host` 形式、`http://`、或后缀仿冒（`pan.baidu.com.evil.com`）
+的链接会被丢弃，但不会静默丢：客户端会在更新对话框里提示忽略了几个渠道，被忽略的
+渠道名也会记在更新检查的日志里。**要用新的网盘，先在代码里加域名并发版，再在 Release 里写链接。**
+注意这个循环：需要新网盘的那个版本本身还发不出带它的链接，要等下一个版本才能用上。
+对话框里每个渠道按钮都会显示真实域名。
 
 ## 缓存与检查频率
 

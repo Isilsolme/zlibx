@@ -7,6 +7,7 @@ import '../../routes/app_routes.dart';
 import '../../providers/update_provider.dart';
 import '../../utils/app_snack.dart';
 import '../../widgets/domain_selector.dart';
+import '../../widgets/mirror_trust_dialog.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/update_dialog.dart';
 import '../../l10n/app_localizations.dart';
@@ -116,6 +117,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final currentDomain = ref.read(domainProvider);
+    // Community mirrors see the typed password: confirm once per host.
+    final trusted = await confirmMirrorTrust(
+      context,
+      currentDomain,
+      builtIn: ref.read(domainListProvider).contains(currentDomain),
+    );
+    if (!trusted || !mounted) return;
     final lineIndex = ref.read(domainListProvider).indexOf(currentDomain);
     final lineName = lineIndex >= 0 ? 'Line ${lineIndex + 1}' : 'Custom';
     setState(() => _isLoading = true);
