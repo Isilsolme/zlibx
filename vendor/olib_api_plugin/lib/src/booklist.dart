@@ -76,11 +76,23 @@ class Booklist {
         : _idFromHref(href);
     if (id == null) return null;
     var coverUrl = '';
-    for (final img in el.querySelectorAll('img')) {
-      final src = img.attributes['data-src']?.trim() ?? '';
-      if (src.isNotEmpty) {
-        coverUrl = _resolveUrl(src, baseUrl);
-        break;
+    // The cover is the first carousel image's data-src: prefer the
+    // first <z-cover>'s <img> so an unrelated image elsewhere in the
+    // element (an avatar or icon) cannot win the scan. Fall back to
+    // the whole-element scan only when there is no carousel at all.
+    final firstCover = el.querySelector('z-cover');
+    final firstSrc =
+        firstCover?.querySelector('img')?.attributes['data-src']?.trim() ??
+        '';
+    if (firstSrc.isNotEmpty) {
+      coverUrl = _resolveUrl(firstSrc, baseUrl);
+    } else {
+      for (final img in el.querySelectorAll('img')) {
+        final src = img.attributes['data-src']?.trim() ?? '';
+        if (src.isNotEmpty) {
+          coverUrl = _resolveUrl(src, baseUrl);
+          break;
+        }
       }
     }
     // The carousel already carries every book the list page shows:
@@ -231,7 +243,15 @@ List<Booklist> parseUserProfileBooklists(
 List<Book> parseBooklistDetailBooks(String html, {String? baseUrl}) {
   final doc = html_parser.parse(html);
   final books = <Book>[];
-  for (final card in doc.querySelectorAll('z-bookcard')) {
+  // Cards live in `.readlist-view`; scope the query to it so a card
+  // elsewhere in the document cannot leak into the list. Fall back
+  // to the whole document when the view is absent, so a page-shape
+  // change does not silently return an empty list.
+  final view = doc.querySelector('.readlist-view');
+  final cards = view != null
+      ? view.querySelectorAll('z-bookcard')
+      : doc.querySelectorAll('z-bookcard');
+  for (final card in cards) {
     final id = int.tryParse(card.attributes['id']?.trim() ?? '');
     if (id == null) continue;
     if (card.attributes['deleted']?.trim() == '1') continue;

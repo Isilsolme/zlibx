@@ -206,6 +206,12 @@ class BooklistHtmlCache {
   /// when never cached, stale, or corrupt. The key is the detail URL + page,
   /// with the same account partition as [store]. Stale or corrupt
   /// entries are deleted on read instead of lingering until eviction.
+  ///
+  /// A bad ENTRY and a bad PAGE are different: one entry whose JSON
+  /// fails to parse is skipped and the good books are still returned;
+  /// only a page whose every entry is bad counts as corrupt and is
+  /// deleted. An empty stored list is a valid empty page, not a
+  /// corrupt one.
   static List<Book>? getBooksPage(
     String url,
     int page, {
@@ -229,16 +235,21 @@ class BooklistHtmlCache {
       box.delete(key);
       return null;
     }
-    try {
-      return books
-          .whereType<Map>()
-          .map((item) => Book.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    } catch (error) {
-      debugPrint('[booklist_html_cache] ignored ${error.runtimeType}');
+    final good = <Book>[];
+    for (final item in books) {
+      if (item is! Map) continue;
+      try {
+        good.add(Book.fromJson(Map<String, dynamic>.from(item)));
+      } catch (error) {
+        debugPrint('[booklist_html_cache] ignored bad entry ${error.runtimeType}');
+      }
+    }
+    if (good.isEmpty && books.isNotEmpty) {
+      // Every entry was bad: the page itself is corrupt.
       box.delete(key);
       return null;
     }
+    return good;
   }
 
   static void storeBooksPage(

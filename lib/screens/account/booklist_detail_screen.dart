@@ -285,17 +285,44 @@ class _ExpandableTextState extends State<_ExpandableText> {
   static const int _collapsedLines = 3;
   bool _expanded = false;
 
+  // Memoized overflow measurement: the TextPainter is only rebuilt
+  // when the text, style, text direction, or available width changes.
+  // Rebuilding it on every layout is wasted work — the description
+  // does not change between builds.
+  String? _measuredText;
+  TextStyle? _measuredStyle;
+  TextDirection? _measuredDirection;
+  double? _measuredWidth;
+  bool _overflows = false;
+
+  bool _measureOverflow(BuildContext context, double maxWidth) {
+    final direction = Directionality.of(context);
+    if (_measuredText == widget.text &&
+        _measuredStyle == widget.style &&
+        _measuredDirection == direction &&
+        _measuredWidth == maxWidth) {
+      return _overflows;
+    }
+    final painter = TextPainter(
+      text: TextSpan(text: widget.text, style: widget.style),
+      maxLines: _collapsedLines,
+      textDirection: direction,
+    )..layout(maxWidth: maxWidth);
+    final overflows = painter.didExceedMaxLines;
+    painter.dispose();
+    _measuredText = widget.text;
+    _measuredStyle = widget.style;
+    _measuredDirection = direction;
+    _measuredWidth = maxWidth;
+    _overflows = overflows;
+    return overflows;
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final painter = TextPainter(
-          text: TextSpan(text: widget.text, style: widget.style),
-          maxLines: _collapsedLines,
-          textDirection: Directionality.of(context),
-        )..layout(maxWidth: constraints.maxWidth);
-        final overflows = painter.didExceedMaxLines;
-        painter.dispose();
+        final overflows = _measureOverflow(context, constraints.maxWidth);
         final text = Text(
           widget.text,
           style: widget.style,

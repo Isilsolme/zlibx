@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
@@ -89,6 +90,54 @@ class BooklistDetailController
   // IDs currently represented by the server-rendered first page. On a
   // revalidation, this slice is replaced while page 2+ rows are kept.
   final Set<int> _firstPageIds = <int>{};
+
+  /// The three book structures are only ever mutated through the
+  /// helpers below, so they cannot drift apart silently: [_bookIds]
+  /// is exactly the id set of [_books], and [_firstPageIds] is the
+  /// subset of [_bookIds] on the server-rendered first page.
+  void _clearBooks() {
+    _books.clear();
+    _bookIds.clear();
+    _firstPageIds.clear();
+  }
+
+  /// Adds [book] unless its id is already present. Returns true when
+  /// the book was added.
+  bool _addBook(Book book, {bool firstPage = false}) {
+    if (!_bookIds.add(book.id)) return false;
+    _books.add(book);
+    if (firstPage) _firstPageIds.add(book.id);
+    return true;
+  }
+
+  /// Inserts [book] at [index] unless its id is already present.
+  /// Returns true when the book was inserted.
+  bool _insertBook(Book book, int index, {bool firstPage = false}) {
+    if (!_bookIds.add(book.id)) return false;
+    _books.insert(index.clamp(0, _books.length), book);
+    if (firstPage) _firstPageIds.add(book.id);
+    return true;
+  }
+
+  /// Removes the book at [index] from all three structures and
+  /// returns it.
+  Book _removeBookAt(int index) {
+    final removed = _books.removeAt(index);
+    _bookIds.remove(removed.id);
+    _firstPageIds.remove(removed.id);
+    return removed;
+  }
+
+  /// Debug-only invariant check for tests: the id set matches the
+  /// book list exactly, and the first-page ids are a subset of it.
+  @visibleForTesting
+  bool debugInvariantsHold() {
+    if (_bookIds.length != _books.length) return false;
+    for (final book in _books) {
+      if (!_bookIds.contains(book.id)) return false;
+    }
+    return _bookIds.containsAll(_firstPageIds);
+  }
   // Books with a remove in flight. The same book cannot be removed
   // twice concurrently; without this, two overlapping removes can
   // each resolve the entry id, then remove/restore the wrong row.
@@ -151,9 +200,7 @@ class BooklistDetailController
     final hasLocalSnapshot =
         cachedPage != null || usableHtml != null || preview.isNotEmpty;
 
-    _books.clear();
-    _bookIds.clear();
-    _firstPageIds.clear();
+    _clearBooks();
     state = BooklistDetailState(isLoading: !hasLocalSnapshot);
 
     if (hasLocalSnapshot) {
@@ -356,10 +403,7 @@ class BooklistDetailController
       final successorId = currentIndex + 1 < _books.length
           ? _books[currentIndex + 1].id
           : null;
-      final removed = _books[currentIndex];
-      _books.removeAt(currentIndex);
-      _bookIds.remove(book.id);
-      _firstPageIds.remove(book.id);
+      final removed = _removeBookAt(currentIndex);
       state = state.copyWith(books: List.of(_books));
       final response = await ref
           .read(zlibraryApiProvider)
@@ -379,12 +423,17 @@ class BooklistDetailController
       if (response.success) return response;
       // Restore before the successor (or at the end when it is gone):
       // the captured index may be stale after a concurrent remove.
-      _bookIds.add(book.id);
-      if (wasFirstPage) _firstPageIds.add(book.id);
+      // _insertBook skips the insert when the id is already present
+      // (a concurrent loadMore may have re-added it), so the restore
+      // can never duplicate a row.
       final restoreIndex = successorId == null
           ? _books.length
           : _books.indexWhere((b) => b.id == successorId);
-      _books.insert(restoreIndex < 0 ? _books.length : restoreIndex, removed);
+      _insertBook(
+        removed,
+        restoreIndex < 0 ? _books.length : restoreIndex,
+        firstPage: wasFirstPage,
+      );
       state = state.copyWith(books: List.of(_books));
       return response;
     } finally {
@@ -394,7 +443,7 @@ class BooklistDetailController
 
   void _merge(List<Book> books) {
     for (final book in books) {
-      if (_bookIds.add(book.id)) _books.add(book);
+      _addBook(book);
     }
   }
 
@@ -405,14 +454,9 @@ class BooklistDetailController
     final laterPages = _books
         .where((book) => !_firstPageIds.contains(book.id))
         .toList();
-    _books.clear();
-    _bookIds.clear();
-    _firstPageIds.clear();
+    _clearBooks();
     for (final book in books) {
-      if (_bookIds.add(book.id)) {
-        _books.add(book);
-        _firstPageIds.add(book.id);
-      }
+      _addBook(book, firstPage: true);
     }
     _merge(laterPages);
     state = state.copyWith(
