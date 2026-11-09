@@ -8,7 +8,7 @@ import '../../../providers/domain_provider.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../services/media_store.dart';
-import '../../../services/update_service.dart';
+import '../../../providers/update_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_snack.dart';
 import '../../../widgets/state_transition_switch.dart';
@@ -221,7 +221,7 @@ class BookActionBar extends ConsumerWidget {
 
   void _handleDownload(BuildContext context, WidgetRef ref) async {
     // Check for force update block
-    if (UpdateService.isBlocked && !isCompleted) {
+    if (ref.read(updateProvider).isBlocked && !isCompleted) {
       showUpdateDialog(context);
       return;
     }

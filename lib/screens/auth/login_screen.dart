@@ -4,7 +4,7 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../services/update_service.dart';
+import '../../providers/update_provider.dart';
 import '../../utils/app_snack.dart';
 import '../../widgets/domain_selector.dart';
 import '../../widgets/loading_widget.dart';
@@ -51,12 +51,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkForUpdates() async {
-    final hasUpdate = await UpdateService.checkForUpdate(force: true);
+    final hasUpdate =
+        await ref.read(updateProvider.notifier).checkForUpdate(force: true);
 
     if (!hasUpdate || !mounted) return;
 
 
-    if (UpdateService.forceUpdate) {
+    if (ref.read(updateProvider).forceUpdate) {
       // Force update - non-dismissable dialog with download channels
       showUpdateDialog(context);
     } else {
@@ -70,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 .get(S.newVersionFound)
                 .replaceAll(
                   '{version}',
-                  '${UpdateService.latestVersion}',
+                  '${ref.read(updateProvider).latestVersion}',
                 ),
           ),
           action: SnackBarAction(

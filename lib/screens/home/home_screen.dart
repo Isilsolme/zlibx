@@ -9,7 +9,7 @@ import '../../providers/zlibrary_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../services/booklist_warmup.dart';
-import '../../services/update_service.dart';
+import '../../providers/update_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/keep_alive_page.dart';
@@ -488,15 +488,16 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   }
 
   Future<void> _checkForUpdates() async {
-    final hasUpdate = await UpdateService.checkForUpdate();
+    final updateNotifier = ref.read(updateProvider.notifier);
+    final hasUpdate = await updateNotifier.checkForUpdate();
 
     if (!hasUpdate || !mounted) return;
 
 
-    if (UpdateService.forceUpdate) {
+    if (ref.read(updateProvider).forceUpdate) {
       // Force update - non-dismissable dialog with download channels
       showUpdateDialog(context);
-    } else if (!UpdateService.isVersionDismissed()) {
+    } else if (!updateNotifier.isVersionDismissed()) {
       // Normal update - show snackbar (non-intrusive)
       // 品牌视觉（图标行 + primary 背景 + 自定义 margin/shape）保留
       // 原生 SnackBar，只统一入口。
@@ -513,7 +514,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                       .get(S.newVersionFound)
                       .replaceAll(
                         '{version}',
-                        '${UpdateService.latestVersion}',
+                        '${ref.read(updateProvider).latestVersion}',
                       ),
                 ),
               ),
@@ -536,7 +537,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       );
 
       // Mark as shown (will show again next day)
-      UpdateService.dismissUpdate();
+      updateNotifier.dismissUpdate();
     }
   }
 

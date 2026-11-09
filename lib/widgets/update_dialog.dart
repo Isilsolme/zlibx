@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/app_localizations.dart';
-import '../services/update_service.dart';
+import '../providers/update_provider.dart';
 import '../utils/app_snack.dart';
 import 'loading_widget.dart';
 
@@ -10,7 +11,8 @@ import '../l10n/s_keys.dart';
 ///
 /// 强制更新时不可关闭（返回键 / 点遮罩均无效）。
 Future<void> showUpdateDialog(BuildContext context) {
-  final forced = UpdateService.forceUpdate;
+  final forced =
+      ProviderScope.containerOf(context).read(updateProvider).forceUpdate;
   return showDialog<void>(
     context: context,
     barrierDismissible: !forced,
@@ -34,7 +36,9 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
     ),
   );
 
-  final hasUpdate = await UpdateService.checkForUpdate(force: true);
+  final hasUpdate = await ProviderScope.containerOf(context)
+      .read(updateProvider.notifier)
+      .checkForUpdate(force: true);
   if (!context.mounted) return;
   Navigator.of(context).pop();
 
@@ -65,28 +69,29 @@ class _Channel {
   const _Channel(this.name, this.url, this.icon);
 }
 
-class _UpdateDialog extends StatelessWidget {
+class _UpdateDialog extends ConsumerWidget {
   const _UpdateDialog();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final update = ref.watch(updateProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
-    final forced = UpdateService.forceUpdate;
-    final notes = UpdateService.getChangelog(isZh ? 'zh' : 'en');
+    final forced = update.forceUpdate;
+    final notes = update.getChangelog(isZh ? 'zh' : 'en');
 
     final channels = [
-      for (final l in UpdateService.links)
+      for (final l in update.links)
         _Channel(l.name, l.url, Icons.cloud_download_outlined),
-      if (UpdateService.downloadUrl != null)
+      if (update.downloadUrl != null)
         _Channel(
           AppLocalizations.of(context).get(S.websiteDownload),
-          UpdateService.downloadUrl!,
+          update.downloadUrl!,
           Icons.language,
         ),
-      if (UpdateService.releaseUrl != null)
-        _Channel('GitHub', UpdateService.releaseUrl!, Icons.code),
+      if (update.releaseUrl != null)
+        _Channel('GitHub', update.releaseUrl!, Icons.code),
     ];
 
     return AlertDialog(
@@ -94,7 +99,7 @@ class _UpdateDialog extends StatelessWidget {
       title: Text(
         forced
             ? (AppLocalizations.of(context).get(S.updateRequired))
-            : (AppLocalizations.of(context).get(S.updateFoundTitle).replaceAll('{version}', '${UpdateService.latestVersion}')),
+            : (AppLocalizations.of(context).get(S.updateFoundTitle).replaceAll('{version}', '${update.latestVersion}')),
         textAlign: TextAlign.center,
       ),
       content: SizedBox(
@@ -105,7 +110,7 @@ class _UpdateDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context).get(S.updateCurrentLatest).replaceAll('{current}', '${UpdateService.currentVersion}').replaceAll('{latest}', '${UpdateService.latestVersion}'),
+                AppLocalizations.of(context).get(S.updateCurrentLatest).replaceAll('{current}', '${update.currentVersion}').replaceAll('{latest}', '${update.latestVersion}'),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: cs.onSurfaceVariant,
@@ -158,7 +163,7 @@ class _UpdateDialog extends StatelessWidget {
         if (!forced)
           TextButton(
             onPressed: () {
-              UpdateService.dismissUpdate();
+              ref.read(updateProvider.notifier).dismissUpdate();
               Navigator.of(context).pop();
             },
             child: Text(AppLocalizations.of(context).get(S.later)),

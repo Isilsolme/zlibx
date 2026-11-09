@@ -18,7 +18,7 @@ import '../../l10n/app_localizations.dart';
 import '../../constants/search_filters.dart';
 import '../../services/google_suggest_api.dart';
 import '../../services/open_library.dart';
-import '../../services/update_service.dart';
+import '../../providers/update_provider.dart';
 import '../../services/hive_service.dart';
 
 import '../../utils/app_snack.dart';
@@ -339,7 +339,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   bool _runSearch() {
-    if (UpdateService.isBlocked) {
+    if (ref.read(updateProvider).isBlocked) {
       showUpdateDialog(context);
       return false;
     }
