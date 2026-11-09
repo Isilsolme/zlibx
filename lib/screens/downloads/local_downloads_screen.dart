@@ -21,18 +21,13 @@ class LocalDownloadsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final tasks = ref.watch(downloadProvider);
-    final ongoing = tasks
-        .where((task) => task.status != DownloadStatus.completed)
-        .toList();
-    final completed =
-        tasks.where((task) => task.status == DownloadStatus.completed).toList()
-          ..sort(
-            (a, b) => (b.downloadedAt ?? DateTime(0)).compareTo(
-              a.downloadedAt ?? DateTime(0),
-            ),
-          );
-    ongoing.sort((a, b) => _priority(a.status).compareTo(_priority(b.status)));
+    // Structural watch only: the id lists (and so the tab counts and
+    // order) change only when a task is added/removed, changes status,
+    // or completes. Progress ticks do not rebuild this screen; each
+    // row watches downloadTaskProvider for its own live task.
+    final structure = ref.watch(downloadListStructureProvider);
+    final ongoingIds = structure.ongoingIds;
+    final completedIds = structure.completedIds;
 
     // No nested Scaffold: like the recommendation tab this page sits
     // under the home Scaffold (extendBody: true), so the lists can run
@@ -61,8 +56,8 @@ class LocalDownloadsScreen extends ConsumerWidget {
         indicatorColor: Theme.of(context).colorScheme.primary,
         labelColor: Theme.of(context).colorScheme.primary,
         tabs: [
-          Tab(text: '${l.get(S.ongoing)} (${ongoing.length})'),
-          Tab(text: '${l.get(S.completed)} (${completed.length})'),
+          Tab(text: '${l.get(S.ongoing)} (${ongoingIds.length})'),
+          Tab(text: '${l.get(S.completed)} (${completedIds.length})'),
         ],
       ),
     );
@@ -82,13 +77,13 @@ class LocalDownloadsScreen extends ConsumerWidget {
               child: TabBarView(
                 children: [
                   _DownloadList(
-                    tasks: ongoing,
+                    taskIds: ongoingIds,
                     emptyIcon: Icons.downloading_rounded,
                     emptyTitle: l.get(S.noActiveDownloads),
                     emptyMessage: l.get(S.downloadsAppearHere),
                   ),
                   _DownloadList(
-                    tasks: completed,
+                    taskIds: completedIds,
                     emptyIcon: Icons.check_circle_outline_rounded,
                     emptyTitle: l.get(S.noCompletedDownloads),
                     emptyMessage: l.get(S.downloadedBooksHere),
@@ -101,32 +96,24 @@ class LocalDownloadsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  static int _priority(DownloadStatus status) => switch (status) {
-    DownloadStatus.downloading => 0,
-    DownloadStatus.pending => 1,
-    DownloadStatus.error => 2,
-    DownloadStatus.cancelled => 3,
-    DownloadStatus.completed => 4,
-  };
 }
 
 class _DownloadList extends StatelessWidget {
   const _DownloadList({
-    required this.tasks,
+    required this.taskIds,
     required this.emptyIcon,
     required this.emptyTitle,
     required this.emptyMessage,
   });
 
-  final List<DownloadTask> tasks;
+  final List<String> taskIds;
   final IconData emptyIcon;
   final String emptyTitle;
   final String emptyMessage;
 
   @override
   Widget build(BuildContext context) {
-    if (tasks.isEmpty) {
+    if (taskIds.isEmpty) {
       return EmptyState(
         icon: emptyIcon,
         title: emptyTitle,
@@ -138,20 +125,25 @@ class _DownloadList extends StatelessWidget {
       // inside the list so items scroll behind the pill (like the
       // home grid).
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 124),
-      itemCount: tasks.length,
+      itemCount: taskIds.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, index) => _DownloadItem(task: tasks[index]),
+      itemBuilder: (_, index) => _DownloadItem(id: taskIds[index]),
     );
   }
 }
 
 class _DownloadItem extends ConsumerWidget {
-  const _DownloadItem({required this.task});
+  const _DownloadItem({required this.id});
 
-  final DownloadTask task;
+  final String id;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Per-task watch: only this task's changes rebuild this row.
+    // A null task means the record was removed after the list was
+    // built; render nothing rather than a stale snapshot.
+    final task = ref.watch(downloadTaskProvider(id));
+    if (task == null) return const SizedBox.shrink();
     final l = AppLocalizations.of(context);
     final cs = Theme.of(context).colorScheme;
     final isActive =
@@ -227,7 +219,7 @@ class _DownloadItem extends ConsumerWidget {
                         ),
                       ],
                       const SizedBox(height: 9),
-                      _statusLabel(context, l),
+                      _statusLabel(context, l, task),
                     ],
                   ),
                 ),
@@ -281,7 +273,7 @@ class _DownloadItem extends ConsumerWidget {
               children: [
                 if (isComplete)
                   FilledButton.tonalIcon(
-                    onPressed: () => _openFile(context, ref),
+                    onPressed: () => _openFile(context, ref, task),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     label: Text(l.get(S.openFile)),
                   )
@@ -304,7 +296,7 @@ class _DownloadItem extends ConsumerWidget {
                 const Spacer(),
                 PopupMenuButton<String>(
                   tooltip: l.get(S.more),
-                  onSelected: (value) => _onMenu(context, ref, value),
+                  onSelected: (value) => _onMenu(context, ref, task, value),
                   itemBuilder: (_) => [
                     if (isComplete) ...[
                       PopupMenuItem(
@@ -341,7 +333,11 @@ class _DownloadItem extends ConsumerWidget {
     child: Icon(Icons.menu_book_rounded, color: cs.onSurfaceVariant),
   );
 
-  Widget _statusLabel(BuildContext context, AppLocalizations l) {
+  Widget _statusLabel(
+    BuildContext context,
+    AppLocalizations l,
+    DownloadTask task,
+  ) {
     final (label, color) = switch (task.status) {
       DownloadStatus.pending => (
         l.get(S.downloadPreparing),
@@ -382,7 +378,11 @@ class _DownloadItem extends ConsumerWidget {
     return '$bytes B';
   }
 
-  Future<bool> _fileExists(BuildContext context, WidgetRef ref) async {
+  Future<bool> _fileExists(
+    BuildContext context,
+    WidgetRef ref,
+    DownloadTask task,
+  ) async {
     final path = task.filePath;
     if (path != null && await MediaStoreFiles.exists(path)) return true;
     ref.read(downloadProvider.notifier).markMissingFile(task.id);
@@ -394,8 +394,12 @@ class _DownloadItem extends ConsumerWidget {
     return false;
   }
 
-  Future<void> _openFile(BuildContext context, WidgetRef ref) async {
-    if (!await _fileExists(context, ref)) return;
+  Future<void> _openFile(
+    BuildContext context,
+    WidgetRef ref,
+    DownloadTask task,
+  ) async {
+    if (!await _fileExists(context, ref, task)) return;
     try {
       // MediaStore-published downloads live at a content:// URI, which
       // OpenFilex cannot open — those go through the platform channel.
@@ -422,6 +426,7 @@ class _DownloadItem extends ConsumerWidget {
   Future<void> _onMenu(
     BuildContext context,
     WidgetRef ref,
+    DownloadTask task,
     String action,
   ) async {
     final l = AppLocalizations.of(context);
@@ -455,7 +460,7 @@ class _DownloadItem extends ConsumerWidget {
         );
         return;
       case 'share':
-        if (!await _fileExists(context, ref)) return;
+        if (!await _fileExists(context, ref, task)) return;
         // MediaStore-published downloads live at a content:// URI,
         // which share_plus cannot share as a file path — those are
         // copied to a temp file in the app cache dir first.
@@ -479,12 +484,16 @@ class _DownloadItem extends ConsumerWidget {
         }
         return;
       case 'delete':
-        await _confirmDelete(context, ref);
+        await _confirmDelete(context, ref, task);
         return;
     }
   }
 
-  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    DownloadTask task,
+  ) async {
     final l = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,

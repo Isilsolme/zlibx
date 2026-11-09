@@ -57,18 +57,15 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final shelf = ref.watch(unifiedShelfProvider);
     final library = ref.watch(savedBooksProvider);
     final categories = ref.watch(shelfCategoriesProvider);
-    final downloads = ref.watch(downloadProvider);
     final hasSourceError = _sourceError(library);
 
     final allItems = shelf.valueOrNull ?? <UnifiedShelfItem>[];
     final visible = _filteredItems(allItems, categories);
-    // Indexes built once per build so every item is an O(1) lookup
-    // instead of a linear scan over all downloads / categories.
-    final completedById = <String, DownloadTask>{
-      for (final task in downloads)
-        if (task.status == DownloadStatus.completed && task.filePath != null)
-          task.id: task,
-    };
+    // Index built once per build so every item is an O(1) lookup
+    // instead of a linear scan over all categories. Download state is
+    // deliberately not read here: each tile watches
+    // downloadTaskProvider for its own book id, so one progress tick
+    // rebuilds only that tile instead of the whole shelf.
     final categoryNameById = <String, String>{
       for (final category in categories.categories)
         category.id: category.name,
@@ -114,12 +111,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       child: _emptyState(l, hasSourceError),
                     )
                   else ...[
-                    _bookSliver(
-                      visible,
-                      categories,
-                      completedById,
-                      categoryNameById,
-                    ),
+                    _bookSliver(visible, categories, categoryNameById),
                     const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
                   ],
                 ],
@@ -390,7 +382,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   Widget _bookSliver(
     List<UnifiedShelfItem> items,
     ShelfCategoriesState categories,
-    Map<String, DownloadTask> completedById,
     Map<String, String> categoryNameById,
   ) {
     final columns = _shelfColumns;
@@ -408,7 +399,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               itemBuilder: (_, index) => _listItem(
                 items[index],
                 categories,
-                completedById,
                 categoryNameById,
               ),
             )
@@ -425,7 +415,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               itemBuilder: (_, index) => _gridItem(
                 items[index],
                 categories,
-                completedById,
                 categoryNameById,
               ),
             ),
@@ -447,53 +436,49 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return categoryNameById[id];
   }
 
-  DownloadTask? _localDownload(
-    UnifiedShelfItem item,
-    Map<String, DownloadTask> completedById,
-  ) {
-    if (item.source != ShelfSource.library) return null;
-    return completedById[item.rawBookId];
-  }
-
   Widget _gridItem(
     UnifiedShelfItem item,
     ShelfCategoriesState categories,
-    Map<String, DownloadTask> completedById,
     Map<String, String> categoryNameById,
   ) {
     final id = _libraryId(item);
-    final local = _localDownload(item, completedById);
-    return ShelfGridItem(
+    return _ShelfItemTile(
       item: item,
+      isListView: false,
       isSelectMode: _isSelectMode,
       isSelected: id != null && _selectedBookIds.contains(id),
       categoryName: _categoryName(item, categories, categoryNameById),
-      isDownloaded: local != null,
       onTap: () => _onItemTap(item),
-      onLongPress: id == null
-          ? () => _showSingleBookActions(item, local)
-          : () => _enterSelectMode(id),
+      onLongPress: (it, local) {
+        if (id == null) {
+          _showSingleBookActions(it, local);
+        } else {
+          _enterSelectMode(id);
+        }
+      },
     );
   }
 
   Widget _listItem(
     UnifiedShelfItem item,
     ShelfCategoriesState categories,
-    Map<String, DownloadTask> completedById,
     Map<String, String> categoryNameById,
   ) {
     final id = _libraryId(item);
-    final local = _localDownload(item, completedById);
-    return ShelfListItem(
+    return _ShelfItemTile(
       item: item,
+      isListView: true,
       isSelectMode: _isSelectMode,
       isSelected: id != null && _selectedBookIds.contains(id),
       categoryName: _categoryName(item, categories, categoryNameById),
-      isDownloaded: local != null,
       onTap: () => _onItemTap(item),
-      onLongPress: id == null
-          ? () => _showSingleBookActions(item, local)
-          : () => _enterSelectMode(id),
+      onLongPress: (it, local) {
+        if (id == null) {
+          _showSingleBookActions(it, local);
+        } else {
+          _enterSelectMode(id);
+        }
+      },
     );
   }
 
@@ -1012,4 +997,66 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   }
 
   void _message(String message) => showAppSnack(context, message);
+}
+
+/// One shelf row that watches only its own download task. A progress
+/// tick for another book rebuilds neither this tile nor the shelf
+/// above it — the parent never watches the download list at all.
+/// The completed-only filter replicates the old completedById map:
+/// only a finished task with a file counts as downloaded, and only
+/// that task is handed to the action sheet / quick-open.
+class _ShelfItemTile extends ConsumerWidget {
+  const _ShelfItemTile({
+    required this.item,
+    required this.isListView,
+    required this.isSelectMode,
+    required this.isSelected,
+    required this.categoryName,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final UnifiedShelfItem item;
+  final bool isListView;
+  final bool isSelectMode;
+  final bool isSelected;
+  final String? categoryName;
+  final VoidCallback onTap;
+
+  /// Called with the item and its completed download task (null when
+  /// the book has no finished download).
+  final void Function(UnifiedShelfItem, DownloadTask?) onLongPress;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Only library items have a download task; the task id is the
+    // book id string. Non-library items never watch a task.
+    final DownloadTask? task = item.source == ShelfSource.library
+        ? ref.watch(downloadTaskProvider(item.rawBookId))
+        : null;
+    final DownloadTask? local =
+        (task?.status == DownloadStatus.completed && task?.filePath != null)
+        ? task
+        : null;
+    if (isListView) {
+      return ShelfListItem(
+        item: item,
+        isSelectMode: isSelectMode,
+        isSelected: isSelected,
+        categoryName: categoryName,
+        isDownloaded: local != null,
+        onTap: onTap,
+        onLongPress: () => onLongPress(item, local),
+      );
+    }
+    return ShelfGridItem(
+      item: item,
+      isSelectMode: isSelectMode,
+      isSelected: isSelected,
+      categoryName: categoryName,
+      isDownloaded: local != null,
+      onTap: onTap,
+      onLongPress: () => onLongPress(item, local),
+    );
+  }
 }
