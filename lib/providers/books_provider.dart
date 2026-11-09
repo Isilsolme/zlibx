@@ -350,8 +350,10 @@ final annasArchieveProvider =
 // [link] is the BookData.link from a search result (relative "/md5/…"
 // URL). AnnasArchieve.bookInfo throws on failure (Cloudflare block, no
 // mirror, parse failure), so the provider surfaces the error as-is.
+/// autoDispose：详情页关掉后无人 watch 即释放缓存；每条 link 各占一
+/// 个缓存项，重度浏览否则无界增长。
 final annasBookDetailsProvider =
-    FutureProvider.family<BookInfoData, String>((ref, link) async {
+    FutureProvider.autoDispose.family<BookInfoData, String>((ref, link) async {
       final archive = ref.watch(annasArchieveProvider);
       return archive.bookInfo(url: link);
     });
@@ -369,8 +371,9 @@ final libgenServiceProvider =
 // "ads.php?md5=…" URL). LibgenService.bookInfo returns null on failure
 // (no mirror, non-200, parse failure), so the provider turns that into
 // a StateError for the detail page's error UI.
+/// autoDispose：与 [annasBookDetailsProvider] 同理，详情页关掉即释放。
 final libgenBookDetailsProvider =
-    FutureProvider.family<BookInfoData, String>((ref, link) async {
+    FutureProvider.autoDispose.family<BookInfoData, String>((ref, link) async {
       final info = await ref.watch(libgenServiceProvider).bookInfo(link);
       if (info == null) throw StateError('Failed to load book details');
       return info;
@@ -582,7 +585,9 @@ final historyCoverProvider =
 
 // ── Favorites Check ─────────────────────────────────────────────────
 
-final isBookFavoritedProvider = FutureProvider.family<bool, String>((
+/// autoDispose：每本书一个缓存项；详情页关掉即释放，切换账号时
+/// [invalidateAccountScopedProviders] 本来就会整体失效它。
+final isBookFavoritedProvider = FutureProvider.autoDispose.family<bool, String>((
   ref,
   bookId,
 ) async {
