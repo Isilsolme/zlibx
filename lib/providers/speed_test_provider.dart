@@ -134,20 +134,18 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
 
       try {
         final request = await client.getUrl(uri);
+        // Headers are enough: the ranking only needs time-to-first-byte,
+        // not the whole languages page. (Previously the full body was
+        // read and a non-2xx page counted as success when its body
+        // contained '"success":1'; that exotic case no longer counts —
+        // a healthy mirror answers this endpoint 2xx.)
         final response = await request.close().timeout(
           const Duration(seconds: 8),
         );
-        final bodyBytes = await response
-            .expand((chunk) => chunk)
-            .toList()
-            .timeout(const Duration(seconds: 5));
-        final body = String.fromCharCodes(bodyBytes);
         sw.stop();
 
         final isSuccess =
-            body.contains('"success":1') ||
-            body.contains('"success": 1') ||
-            (response.statusCode >= 200 && response.statusCode < 300);
+            response.statusCode >= 200 && response.statusCode < 300;
 
         result.latencyMs = isSuccess ? sw.elapsedMilliseconds : -1;
       } catch (error) {
@@ -155,7 +153,9 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
         sw.stop();
         result.latencyMs = -1;
       } finally {
-        client.close();
+        // force: the response body was never read — drop the connection
+        // now instead of waiting for the server to finish sending it.
+        client.close(force: true);
       }
     } catch (error) {
       debugPrint('[speed_test_provider] ignored ${error.runtimeType}');
