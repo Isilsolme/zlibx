@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,7 +31,7 @@ const _user = User(
   remixUserkey: 'key',
 );
 
-class _FakeAuthNotifier extends Notifier<AuthState> {
+class _FakeAuthNotifier extends AuthNotifier {
   _FakeAuthNotifier(this._state);
   final AuthState _state;
   @override

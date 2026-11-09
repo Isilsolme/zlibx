@@ -36,7 +36,7 @@ const _user = User(
   remixUserkey: 'key',
 );
 
-class _FakeAuthNotifier extends Notifier<AuthState> {
+class _FakeAuthNotifier extends AuthNotifier {
   _FakeAuthNotifier(this._state);
   final AuthState _state;
   @override
