@@ -5,23 +5,6 @@ import 'auth_provider.dart';
 import 'cache_invalidation.dart';
 import 'zlibrary_provider.dart';
 
-const defaultDomain = 'bookroom.lifestyle';
-const _retiredBuiltInDomains = {
-  'zlibraryf.online',
-  'zlibraryh.online',
-  'zlibraryd.online',
-  'zlibrary6.online',
-  'zlibraryg.online',
-  '777495.best',
-  'freezlib.me',
-  'sibaihua.pro',
-  'pkuedu.online',
-  '101intj.ru',
-  '101w.online',
-  'zlibraryj.online',
-  'biblioteca.pro',
-};
-
 /// All available mirror domains (flat list).
 const kBuiltInDomains = [
   'bookroom.lifestyle',
@@ -90,13 +73,10 @@ class DomainNotifier extends Notifier<String> {
     return initial;
   }
 
-  static String _initialDomain() {
-    final saved = HiveService.settingsBox.get('domain') as String?;
-    if (saved == null || _retiredBuiltInDomains.contains(saved)) {
-      return defaultDomain;
-    }
-    return saved;
-  }
+  // The API instance is already on the persisted domain (see
+  // resolveInitialDomain): setDomain here is idempotent, and the
+  // Hive write-back normalizes a retired saved value to default.
+  static String _initialDomain() => resolveInitialDomain();
 
   /// Switch to a new line. Fire-and-forget: callers don't need to await.
   /// Internally we re-establish cookies on the new domain (reverify) and
