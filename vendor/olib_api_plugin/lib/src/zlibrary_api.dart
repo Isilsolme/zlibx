@@ -188,28 +188,88 @@ class ZLibraryApi {
     }
   }
 
-  /// POST a raw string body as `text/plain` and follow redirects. The
-  /// site's `papi/comments/*` endpoints answer the first POST with 307
-  /// to the same URL; Dio follows it, and because the target is the
-  /// same host the Cookie header stays on our own domain (unlike the
-  /// download path, where redirects are followed by hand for exactly
-  /// this reason).
+  /// POST a raw string body as `text/plain`, following redirects by
+  /// hand — same pattern as the download path ([downloadBook]).
+  ///
+  /// The site's `papi/comments/*` endpoints answer the first POST with
+  /// 307 to the same URL; 307/308 are re-POSTed with the same body,
+  /// 301/302/303 are followed as GET (browser behaviour). The session
+  /// Cookie is only sent to our own host: a hop to another host drops
+  /// it (Dio's automatic following would re-send it to whatever host
+  /// a 302 points at).
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// three callers only handle `ApiResponse.fail`, they do not catch
+  /// [StateError].
   Future<_Raw> _postText(String path, String body) async {
-    try {
-      final res = await _dio.post<String>(
-        '$_base$path',
-        data: body,
-        options: Options(
-          headers: _headers,
-          contentType: 'text/plain;charset=UTF-8',
-          responseType: ResponseType.plain,
-          followRedirects: true,
-        ),
-      );
-      return _fromResponse(res);
-    } on DioException catch (e) {
-      return _fromError(e);
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
     }
+    var isPost = true;
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final Response<String> res;
+        if (isPost) {
+          res = await _dio.post<String>(
+            url,
+            data: body,
+            options: Options(
+              headers: headers,
+              contentType: 'text/plain;charset=UTF-8',
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        } else {
+          res = await _dio.get<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        }
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+        // 301/302/303 turn the follow-up into a GET; 307/308 keep
+        // the original POST (same URL, same body).
+        isPost = code == 307 || code == 308;
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
   }
 
   /// Form encoding with repeated keys for list values, matching how the
