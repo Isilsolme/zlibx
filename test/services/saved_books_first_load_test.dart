@@ -77,7 +77,10 @@ void main() {
     );
 
     // 模拟切账号：invalidate 让 build() 在已初始化的实例上重跑。
+    // 注意：没有监听器时 invalidate 不会立即重建，要等下一次 read
+    // 才触发 build()；所以先 read 触发重建，再等拉取完成。
     container.invalidate(savedBooksProvider);
+    container.read(savedBooksProvider);
     await Future<void>.delayed(const Duration(milliseconds: 100));
 
     final state = container.read(savedBooksProvider);
