@@ -1,184 +1,116 @@
 /// Search filter constants for book search API
 library;
 
-/// Language options for book search
-const searchLanguages = {
-  'all': null,
-  'chinese': 'chinese',
-  'traditional_chinese': 'traditional chinese',
-  'english': 'english',
-  'russian': 'russian',
-  'german': 'german',
-  'spanish': 'spanish',
-  'dutch': 'dutch',
-  'french': 'french',
-  'italian': 'italian',
-  'portuguese': 'portuguese',
-  'brazilian': 'brazilian',
-  'polish': 'polish',
-  'ukrainian': 'ukrainian',
-  'bulgarian': 'bulgarian',
-  'greek': 'greek',
-  'romanian': 'romanian',
-  'moldavian': 'moldavian',
-  'turkish': 'turkish',
-  'persian': 'persian',
-  'arabic': 'arabic',
-  'japanese': 'japanese',
-  'swedish': 'swedish',
-  'hungarian': 'hungarian',
-  'serbian': 'serbian',
-  'latin': 'latin',
-  'croatian': 'croatian',
-  'czech': 'czech',
-  'kazakh': 'kazakh',
-  'belarusian': 'belarusian',
-  'indonesian': 'indonesian',
-  'malaysian': 'malaysian',
-  'lithuanian': 'lithuanian',
-  'catalan': 'catalan',
-  'finnish': 'finnish',
-  'azerbaijani': 'azerbaijani',
-  'korean': 'korean',
-  'bengali': 'bengali',
-  'esperanto': 'esperanto',
-  'hindi': 'hindi',
-  'urdu': 'urdu',
-  'danish': 'danish',
-  'uzbek': 'uzbek',
-  'slovak': 'slovak',
-  'norwegian': 'norwegian',
-  'vietnamese': 'vietnamese',
-  'thai': 'thai',
-  'hebrew': 'hebrew',
+/// One language entry in the search filter: the API value sent to
+/// Z-Library plus its display name in each shipped locale.
+///
+/// Single source of truth for the language filter (previously two
+/// parallel tables: [searchLanguages] with 48 API values and the
+/// 34-entry display-name tables in [getLanguageDisplayNames] — 14
+/// languages were unreachable in the filter UI because they had no
+/// display name; they are now listed with standard translations).
+class SearchLanguage {
+  /// Value sent to the API (`null` = all languages).
+  final String? apiValue;
+
+  /// Display names: Simplified Chinese / Traditional Chinese / English.
+  final String zh;
+  final String zhHant;
+  final String en;
+
+  const SearchLanguage({
+    required this.apiValue,
+    required this.zh,
+    required this.zhHant,
+    required this.en,
+  });
+
+  /// Display name for [locale], using the same matching as the old
+  /// display-name tables: zh_Hant (incl. zh_TW / zh_HK / zh_MO)
+  /// first, then generic zh, otherwise English.
+  String displayName(String locale) {
+    final lowerLocale = locale.toLowerCase();
+    if (lowerLocale.startsWith('zh_hant') ||
+        lowerLocale.startsWith('zh-hant') ||
+        lowerLocale == 'zh_tw' ||
+        lowerLocale.startsWith('zh_tw') ||
+        lowerLocale == 'zh_hk' ||
+        lowerLocale.startsWith('zh_hk') ||
+        lowerLocale == 'zh_mo') {
+      return zhHant;
+    }
+    if (locale.startsWith('zh')) return zh;
+    return en;
+  }
+}
+
+/// All search languages, in filter-sheet order: the 34 previously
+/// displayed languages first (unchanged order), then the 14 that
+/// were API-only and never shown in the UI.
+const searchLanguageOptions = <String, SearchLanguage>{
+  'all': SearchLanguage(apiValue: null, zh: '所有語言', zhHant: '所有語言', en: '所有語言'),
+  'chinese': SearchLanguage(apiValue: 'chinese', zh: '簡體中文', zhHant: '簡體中文', en: '簡體中文'),
+  'traditional_chinese': SearchLanguage(apiValue: 'traditional chinese', zh: '繁體中文', zhHant: '繁體中文', en: '繁體中文'),
+  'english': SearchLanguage(apiValue: 'english', zh: '英語', zhHant: '英語', en: '英語'),
+  'russian': SearchLanguage(apiValue: 'russian', zh: '俄語', zhHant: '俄語', en: '俄語'),
+  'german': SearchLanguage(apiValue: 'german', zh: '德語', zhHant: '德語', en: '德語'),
+  'spanish': SearchLanguage(apiValue: 'spanish', zh: '西班牙語', zhHant: '西班牙語', en: '西班牙語'),
+  'french': SearchLanguage(apiValue: 'french', zh: '法語', zhHant: '法語', en: '法語'),
+  'italian': SearchLanguage(apiValue: 'italian', zh: '意大利語', zhHant: '意大利語', en: '意大利語'),
+  'portuguese': SearchLanguage(apiValue: 'portuguese', zh: '葡萄牙語', zhHant: '葡萄牙語', en: '葡萄牙語'),
+  'brazilian': SearchLanguage(apiValue: 'brazilian', zh: '巴西葡萄牙語', zhHant: '巴西葡萄牙語', en: '巴西葡萄牙語'),
+  'japanese': SearchLanguage(apiValue: 'japanese', zh: '日語', zhHant: '日語', en: '日語'),
+  'korean': SearchLanguage(apiValue: 'korean', zh: '韓語', zhHant: '韓語', en: '韓語'),
+  'arabic': SearchLanguage(apiValue: 'arabic', zh: '阿拉伯語', zhHant: '阿拉伯語', en: '阿拉伯語'),
+  'turkish': SearchLanguage(apiValue: 'turkish', zh: '土耳其語', zhHant: '土耳其語', en: '土耳其語'),
+  'vietnamese': SearchLanguage(apiValue: 'vietnamese', zh: '越南語', zhHant: '越南語', en: '越南語'),
+  'thai': SearchLanguage(apiValue: 'thai', zh: '泰語', zhHant: '泰語', en: '泰語'),
+  'indonesian': SearchLanguage(apiValue: 'indonesian', zh: '印度尼西亞語', zhHant: '印度尼西亞語', en: '印度尼西亞語'),
+  'polish': SearchLanguage(apiValue: 'polish', zh: '波蘭語', zhHant: '波蘭語', en: '波蘭語'),
+  'ukrainian': SearchLanguage(apiValue: 'ukrainian', zh: '烏克蘭語', zhHant: '烏克蘭語', en: '烏克蘭語'),
+  'dutch': SearchLanguage(apiValue: 'dutch', zh: '荷蘭語', zhHant: '荷蘭語', en: '荷蘭語'),
+  'swedish': SearchLanguage(apiValue: 'swedish', zh: '瑞典語', zhHant: '瑞典語', en: '瑞典語'),
+  'danish': SearchLanguage(apiValue: 'danish', zh: '丹麥語', zhHant: '丹麥語', en: '丹麥語'),
+  'norwegian': SearchLanguage(apiValue: 'norwegian', zh: '挪威語', zhHant: '挪威語', en: '挪威語'),
+  'finnish': SearchLanguage(apiValue: 'finnish', zh: '芬蘭語', zhHant: '芬蘭語', en: '芬蘭語'),
+  'greek': SearchLanguage(apiValue: 'greek', zh: '希臘語', zhHant: '希臘語', en: '希臘語'),
+  'czech': SearchLanguage(apiValue: 'czech', zh: '捷克語', zhHant: '捷克語', en: '捷克語'),
+  'romanian': SearchLanguage(apiValue: 'romanian', zh: '羅馬尼亞語', zhHant: '羅馬尼亞語', en: '羅馬尼亞語'),
+  'hungarian': SearchLanguage(apiValue: 'hungarian', zh: '匈牙利語', zhHant: '匈牙利語', en: '匈牙利語'),
+  'persian': SearchLanguage(apiValue: 'persian', zh: '波斯語', zhHant: '波斯語', en: '波斯語'),
+  'hindi': SearchLanguage(apiValue: 'hindi', zh: '印地語', zhHant: '印地語', en: '印地語'),
+  'bengali': SearchLanguage(apiValue: 'bengali', zh: '孟加拉語', zhHant: '孟加拉語', en: '孟加拉語'),
+  'hebrew': SearchLanguage(apiValue: 'hebrew', zh: '希伯來語', zhHant: '希伯來語', en: '希伯來語'),
+  'latin': SearchLanguage(apiValue: 'latin', zh: '拉丁語', zhHant: '拉丁語', en: '拉丁語'),
+  'bulgarian': SearchLanguage(apiValue: 'bulgarian', zh: '保加利亚语', zhHant: '保加利亞語', en: 'Bulgarian'),
+  'moldavian': SearchLanguage(apiValue: 'moldavian', zh: '摩尔多瓦语', zhHant: '摩爾多瓦語', en: 'Moldavian'),
+  'serbian': SearchLanguage(apiValue: 'serbian', zh: '塞尔维亚语', zhHant: '塞爾維亞語', en: 'Serbian'),
+  'croatian': SearchLanguage(apiValue: 'croatian', zh: '克罗地亚语', zhHant: '克羅地亞語', en: 'Croatian'),
+  'kazakh': SearchLanguage(apiValue: 'kazakh', zh: '哈萨克语', zhHant: '哈薩克語', en: 'Kazakh'),
+  'belarusian': SearchLanguage(apiValue: 'belarusian', zh: '白俄罗斯语', zhHant: '白俄羅斯語', en: 'Belarusian'),
+  'malaysian': SearchLanguage(apiValue: 'malaysian', zh: '马来语', zhHant: '馬來語', en: 'Malay'),
+  'lithuanian': SearchLanguage(apiValue: 'lithuanian', zh: '立陶宛语', zhHant: '立陶宛語', en: 'Lithuanian'),
+  'catalan': SearchLanguage(apiValue: 'catalan', zh: '加泰罗尼亚语', zhHant: '加泰隆尼亞語', en: 'Catalan'),
+  'azerbaijani': SearchLanguage(apiValue: 'azerbaijani', zh: '阿塞拜疆语', zhHant: '亞塞拜然語', en: 'Azerbaijani'),
+  'esperanto': SearchLanguage(apiValue: 'esperanto', zh: '世界语', zhHant: '世界語', en: 'Esperanto'),
+  'urdu': SearchLanguage(apiValue: 'urdu', zh: '乌尔都语', zhHant: '烏爾都語', en: 'Urdu'),
+  'uzbek': SearchLanguage(apiValue: 'uzbek', zh: '乌兹别克语', zhHant: '烏茲別克語', en: 'Uzbek'),
+  'slovak': SearchLanguage(apiValue: 'slovak', zh: '斯洛伐克语', zhHant: '斯洛伐克語', en: 'Slovak'),
 };
 
-/// Localized language display names (key: api_value)
+/// Language options for book search (API values, derived from
+/// [searchLanguageOptions]; `null` = all languages).
+final searchLanguages = <String, String?>{
+  for (final entry in searchLanguageOptions.entries)
+    entry.key: entry.value.apiValue,
+};
+
+/// Localized language display names (key: api_value), derived from
+/// [searchLanguageOptions].
 Map<String, String> getLanguageDisplayNames(String locale) {
-  // Common languages with localized names.
-  // zh_Hant must be matched BEFORE the generic 'zh' prefix check:
-  // traditional-Chinese users otherwise get the simplified table even
-  // though the app ships a zh_Hant translation.
-  final lowerLocale = locale.toLowerCase();
-  if (lowerLocale.startsWith('zh_hant') ||
-      lowerLocale.startsWith('zh-hant') ||
-      lowerLocale == 'zh_tw' ||
-      lowerLocale.startsWith('zh_tw') ||
-      lowerLocale == 'zh_hk' ||
-      lowerLocale.startsWith('zh_hk') ||
-      lowerLocale == 'zh_mo') {
-    return {
-      'all': '所有語言',
-      'chinese': '簡體中文',
-      'traditional_chinese': '繁體中文',
-      'english': '英語',
-      'russian': '俄語',
-      'german': '德語',
-      'spanish': '西班牙語',
-      'french': '法語',
-      'italian': '意大利語',
-      'portuguese': '葡萄牙語',
-      'brazilian': '巴西葡萄牙語',
-      'japanese': '日語',
-      'korean': '韓語',
-      'arabic': '阿拉伯語',
-      'turkish': '土耳其語',
-      'vietnamese': '越南語',
-      'thai': '泰語',
-      'indonesian': '印度尼西亞語',
-      'polish': '波蘭語',
-      'ukrainian': '烏克蘭語',
-      'dutch': '荷蘭語',
-      'swedish': '瑞典語',
-      'danish': '丹麥語',
-      'norwegian': '挪威語',
-      'finnish': '芬蘭語',
-      'greek': '希臘語',
-      'czech': '捷克語',
-      'romanian': '羅馬尼亞語',
-      'hungarian': '匈牙利語',
-      'persian': '波斯語',
-      'hindi': '印地語',
-      'bengali': '孟加拉語',
-      'hebrew': '希伯來語',
-      'latin': '拉丁語',
-    };
-  }
-  if (locale.startsWith('zh')) {
-    return {
-      'all': '所有语言',
-      'chinese': '简体中文',
-      'traditional_chinese': '繁体中文',
-      'english': '英语',
-      'russian': '俄语',
-      'german': '德语',
-      'spanish': '西班牙语',
-      'french': '法语',
-      'italian': '意大利语',
-      'portuguese': '葡萄牙语',
-      'brazilian': '巴西葡萄牙语',
-      'japanese': '日语',
-      'korean': '韩语',
-      'arabic': '阿拉伯语',
-      'turkish': '土耳其语',
-      'vietnamese': '越南语',
-      'thai': '泰语',
-      'indonesian': '印度尼西亚语',
-      'polish': '波兰语',
-      'ukrainian': '乌克兰语',
-      'dutch': '荷兰语',
-      'swedish': '瑞典语',
-      'danish': '丹麦语',
-      'norwegian': '挪威语',
-      'finnish': '芬兰语',
-      'greek': '希腊语',
-      'czech': '捷克语',
-      'romanian': '罗马尼亚语',
-      'hungarian': '匈牙利语',
-      'persian': '波斯语',
-      'hindi': '印地语',
-      'bengali': '孟加拉语',
-      'hebrew': '希伯来语',
-      // Was left as the raw key 'latin' — every other entry is translated.
-      'latin': '拉丁语',
-    };
-  }
-  // Default: English names
   return {
-    'all': 'All Languages',
-    'chinese': 'Chinese',
-    'traditional_chinese': 'Traditional Chinese',
-    'english': 'English',
-    'russian': 'Russian',
-    'german': 'German',
-    'spanish': 'Spanish',
-    'french': 'French',
-    'italian': 'Italian',
-    'portuguese': 'Portuguese',
-    'brazilian': 'Brazilian Portuguese',
-    'japanese': 'Japanese',
-    'korean': 'Korean',
-    'arabic': 'Arabic',
-    'turkish': 'Turkish',
-    'vietnamese': 'Vietnamese',
-    'thai': 'Thai',
-    'indonesian': 'Indonesian',
-    'polish': 'Polish',
-    'ukrainian': 'Ukrainian',
-    'dutch': 'Dutch',
-    'swedish': 'Swedish',
-    'danish': 'Danish',
-    'norwegian': 'Norwegian',
-    'finnish': 'Finnish',
-    'greek': 'Greek',
-    'czech': 'Czech',
-    'romanian': 'Romanian',
-    'hungarian': 'Hungarian',
-    'persian': 'Persian',
-    'hindi': 'Hindi',
-    'bengali': 'Bengali',
-    'hebrew': 'Hebrew',
-    'latin': 'Latin',
+    for (final entry in searchLanguageOptions.entries)
+      entry.key: entry.value.displayName(locale),
   };
 }
 
