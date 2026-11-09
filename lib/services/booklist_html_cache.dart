@@ -65,7 +65,16 @@ class BooklistHtmlCache {
       if (value is Map &&
           value['html'] is String &&
           (value['html'] as String).contains('user_token=')) {
-        unawaited(box.clear());
+        // Purge synchronously in memory: Box.clear() only empties
+        // the in-memory store AFTER awaiting the disk write, so a
+        // read in the same synchronous flow (e.g. the get() that
+        // triggered this sweep) would still see the stale entries
+        // — including the token-bearing HTML this sweep exists to
+        // drop. deleteAll applies the deletions to the in-memory
+        // store synchronously (Hive 2.2.3 _writeFrames begins the
+        // transaction before the disk write); the returned Future
+        // only covers the disk flush.
+        unawaited(box.deleteAll(box.keys.toList()));
         return;
       }
     }
