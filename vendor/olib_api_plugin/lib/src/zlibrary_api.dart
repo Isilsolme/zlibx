@@ -1756,9 +1756,10 @@ class ZLibraryApi {
   /// by a packet capture on 2026-11-09 (Firefox, zh.z-library.sk):
   /// HTTP 200 with `{"success": 1, "book": {"readlist_id": 4090055, "book_id": "18337950", "date": "2026-11-09T08:04:24.000000Z"}}`.
   /// No request body (GET). The site's submenu shows a filled bookmark
-  /// when the book is already in a list, so this endpoint is likely
-  /// a toggle (clicking again removes the book) — removing a book
-  /// from a list is NOT implemented; its response shape is unknown.
+  /// when the book is already in a list, so this endpoint may be
+  /// a toggle (clicking again removes the book). Removal is also
+  /// available as a separate endpoint; see [removeBookFromBooklist],
+  /// which takes the readlist entry id from [getReadlistBookId].
   Future<ApiResponse<bool>> addBookToBooklist({
     required int booklistId,
     required int bookId,
