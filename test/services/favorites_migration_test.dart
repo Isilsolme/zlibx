@@ -5,7 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:zlibx/services/hive_service.dart';
 import 'package:zlibx/services/storage_service.dart';
 
-/// Favorites are namespaced per account ('favorite_books_<accountId>')
+/// Favorites are namespaced per account (`favorite_books_<accountId>`)
 /// and the legacy shared 'favorite_books' list is migrated once to
 /// the signed-in account. These tests drive the explicit-account
 /// migration entry point so they do not need a signed-in account
@@ -14,6 +14,7 @@ import 'package:zlibx/services/storage_service.dart';
 void main() {
   late Directory tempDir;
   late StorageService storage;
+  late Box box;
 
   setUpAll(() async {
     tempDir = await Directory.systemTemp.createTemp('favorites_migration');
@@ -29,14 +30,13 @@ void main() {
     await Hive.box(HiveService.settingsBoxName).clear();
     await Hive.box(HiveService.authBoxName).clear();
     storage = StorageService();
+    box = Hive.box(HiveService.settingsBoxName);
   });
 
   tearDownAll(() async {
     await Hive.close();
     await tempDir.delete(recursive: true);
   });
-
-  Box get box => Hive.box(HiveService.settingsBoxName);
 
   test('per-account key format', () {
     expect(StorageService.favoritesKeyFor('123'), 'favorite_books_123');

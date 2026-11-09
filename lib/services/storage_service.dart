@@ -22,7 +22,7 @@ class StorageService {
   static const String _keyDownloadPath = 'download_path';
   static const String _keyDownloadHistory = 'download_history';
 
-  /// Per-account favorites key: 'favorite_books_<accountId>'.
+  /// Per-account favorites key: `favorite_books_<accountId>`.
   /// The account id is the Z-Library user id (a String — see User.id),
   /// the same value stored as the `remix_userid` credential, so the
   /// key follows the signed-in account and never a display name or
