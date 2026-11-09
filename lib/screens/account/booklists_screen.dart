@@ -295,7 +295,10 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 list: list,
                 onTap: () => Navigator.of(context).pushNamed(
                   AppRoutes.booklistDetail,
-                  arguments: BooklistDetailArgs(booklist: list),
+                  arguments: BooklistDetailArgs(
+                    booklist: list,
+                    canEdit: state.tab == BooklistTab.mine,
+                  ),
                 ),
                 onLongPress: state.tab == BooklistTab.mine
                     ? () => _confirmDelete(list)

@@ -6,11 +6,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-// Booklist add/delete endpoint tests, both confirmed by packet captures
-// on 2026-11-09 (Firefox, zh.z-library.sk):
+// Booklist add/remove/delete endpoint tests, all confirmed by packet
+// captures on 2026-11-09 (Firefox, zh.z-library.sk):
 // - Add: `GET /papi/booklist/{booklistId}/add-book/{bookId}`, HTTP 200
 //   with `{"success": 1, "book": {"readlist_id": <booklistId>,
 //   "book_id": "<bookId>", "date": "..."}}`. No request body (GET).
+// - Remove: `GET /papi/booklist/{booklistId}/remove-book/{bookId}`,
+//   HTTP 200 with `{"success": 1}`. No request body (GET). A separate
+//   endpoint, NOT a toggle of add-book.
 // - Delete: `GET /papi/booklist/{booklistId}/delete`. The first
 //   response is 307 to the same URL with a `__diamwall` set-cookie
 //   (the DDoS-Guard challenge); the list was gone from the profile
@@ -18,12 +21,13 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 //   observed, so the implementation counts a final 2xx with an empty
 //   body as success (same precedent as createBooklist) and a final
 //   JSON body must carry success: 1.
-// Removing a book from a list is NOT covered here: its response shape
-// was never captured.
 
 const _booklistId = 4090055;
 const _bookId = 18337950;
 const _addPath = '/papi/booklist/$_booklistId/add-book/$_bookId';
+const _removeListId = 4096101;
+const _removeBookId = 161286730;
+const _removePath = '/papi/booklist/$_removeListId/remove-book/$_removeBookId';
 const _deleteListId = 4095945;
 const _deletePath = '/papi/booklist/$_deleteListId/delete';
 
@@ -40,15 +44,21 @@ class _FakeAdapter implements HttpClientAdapter {
       },
     },
     this.deletePayload = const {'success': 1},
+    this.removePayload = const {'success': 1},
   });
 
   Map<String, dynamic> addPayload;
   Map<String, dynamic> deletePayload;
+  Map<String, dynamic> removePayload;
   int addStatusCode = 200;
   int deleteStatusCode = 200;
+  int removeStatusCode = 200;
   bool deleteRedirectFirst = false;
   bool deleteRedirectAlways = false;
   bool deleteEmptyBody = false;
+  bool removeRedirectFirst = false;
+  bool removeRedirectAlways = false;
+  bool removeEmptyBody = false;
   bool addEmptyBody = false;
 
   final List<String> requestedMethods = [];
@@ -56,6 +66,7 @@ class _FakeAdapter implements HttpClientAdapter {
   final List<Object?> requestedBodies = [];
   int addCalls = 0;
   int deleteCalls = 0;
+  int removeCalls = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -77,6 +88,28 @@ class _FakeAdapter implements HttpClientAdapter {
         );
       }
       return _json(addPayload, statusCode: addStatusCode);
+    }
+    if (path == _removePath) {
+      removeCalls++;
+      if (removeRedirectAlways || (removeRedirectFirst && removeCalls == 1)) {
+        return ResponseBody.fromString(
+          '',
+          307,
+          headers: {
+            HttpHeaders.locationHeader: [
+              'https://zh.z-library.sk$_removePath',
+            ],
+          },
+        );
+      }
+      if (removeEmptyBody) {
+        return ResponseBody.fromString(
+          '',
+          removeStatusCode,
+          headers: {Headers.contentTypeHeader: ['application/json']},
+        );
+      }
+      return _json(removePayload, statusCode: removeStatusCode);
     }
     if (path == _deletePath) {
       deleteCalls++;
@@ -223,5 +256,65 @@ void main() {
     expect(response.success, isFalse);
     expect(response.error, 'too many redirects');
     expect(adapter.deleteCalls, 5);
+  });
+
+  test('remove sends a body-less GET to the remove-book URL', () async {
+    final adapter = _FakeAdapter();
+    final api = _apiWith(adapter);
+
+    final response = await api.removeBookFromBooklist(
+      booklistId: _removeListId,
+      bookId: _removeBookId,
+    );
+
+    expect(response.success, isTrue);
+    expect(response.data, isTrue);
+    expect(adapter.removeCalls, 1);
+    expect(adapter.requestedMethods, ['GET']);
+    expect(adapter.requestedPaths, [_removePath]);
+    expect(adapter.requestedBodies, [isNull]);
+  });
+
+  test('remove success:0 fails with the server error', () async {
+    final adapter = _FakeAdapter(
+      removePayload: {'success': 0, 'error': 'book not in list'},
+    );
+    final api = _apiWith(adapter);
+
+    final response = await api.removeBookFromBooklist(
+      booklistId: _removeListId,
+      bookId: _removeBookId,
+    );
+
+    expect(response.success, isFalse);
+    expect(response.error, 'book not in list');
+  });
+
+  test('remove final 2xx with an empty body counts as removed', () async {
+    final adapter = _FakeAdapter()..removeEmptyBody = true;
+    final api = _apiWith(adapter);
+
+    final response = await api.removeBookFromBooklist(
+      booklistId: _removeListId,
+      bookId: _removeBookId,
+    );
+
+    expect(response.success, isTrue);
+    expect(adapter.removeCalls, 1);
+  });
+
+  test('remove follows the 307 to the same URL, then succeeds', () async {
+    final adapter = _FakeAdapter()..removeRedirectFirst = true;
+    final api = _apiWith(adapter);
+
+    final response = await api.removeBookFromBooklist(
+      booklistId: _removeListId,
+      bookId: _removeBookId,
+    );
+
+    expect(response.success, isTrue);
+    expect(adapter.removeCalls, 2);
+    expect(adapter.requestedMethods, ['GET', 'GET']);
+    expect(adapter.requestedPaths, [_removePath, _removePath]);
   });
 }

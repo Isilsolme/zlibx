@@ -13,7 +13,12 @@ import 'zlibrary_provider.dart';
 class BooklistDetailArgs {
   final Booklist booklist;
 
-  const BooklistDetailArgs({required this.booklist});
+  /// True only when the signed-in user owns this list (opened from the
+  /// mine tab of the booklists screen). Only then is removing a book
+  /// offered; other users' lists are read-only here.
+  final bool canEdit;
+
+  const BooklistDetailArgs({required this.booklist, this.canEdit = false});
 
   @override
   bool operator ==(Object other) =>
@@ -287,6 +292,47 @@ class BooklistDetailController
       // Same as above: keep the list resumable instead of truncating it.
       state = state.copyWith(isLoadingMore: false);
     }
+  }
+
+  /// Remove one book from this list: optimistic removal; on failure
+  /// the book is restored at its original position. On success the
+  /// cached first page is rewritten from the remaining first-page
+  /// rows so the book does not flash back on the next open before
+  /// the background refresh.
+  Future<ApiResponse<bool>> removeBook(Book book) async {
+    if (!_alive) return ApiResponse.fail('remove book failed');
+    final listId = int.tryParse(_list.id);
+    if (listId == null) {
+      return ApiResponse.fail('remove book not available');
+    }
+    final index = _books.indexWhere((b) => b.id == book.id);
+    if (index < 0) return ApiResponse.fail('book not in list');
+    final wasFirstPage = _firstPageIds.contains(book.id);
+    final removed = _books[index];
+    _books.removeAt(index);
+    _bookIds.remove(book.id);
+    _firstPageIds.remove(book.id);
+    state = state.copyWith(books: List.of(_books));
+    final response = await ref
+        .read(zlibraryApiProvider)
+        .removeBookFromBooklist(booklistId: listId, bookId: book.id);
+    if (!_alive) return response;
+    if (response.success) {
+      final firstPage =
+          _books.where((b) => _firstPageIds.contains(b.id)).toList();
+      BooklistHtmlCache.storeBooksPage(
+        _list.url,
+        1,
+        firstPage,
+        accountId: _accountId,
+      );
+      return response;
+    }
+    _books.insert(index, removed);
+    _bookIds.add(book.id);
+    if (wasFirstPage) _firstPageIds.add(book.id);
+    state = state.copyWith(books: List.of(_books));
+    return response;
   }
 
   void _merge(List<Book> books) {

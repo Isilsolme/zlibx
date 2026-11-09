@@ -337,6 +337,9 @@ const Map<String, String> ko = {
   'booklist_delete_desc': '삭제하면 복구할 수 없습니다.',
   'booklist_delete_failed': '북리스트를 삭제하지 못했습니다: {error}',
   'booklist_deleted': '북리스트를 삭제했습니다',
+  'booklist_book_removed': '북리스트에서 제거했습니다',
+  'booklist_remove_book_confirm': '이 책을 북리스트에서 제거하시겠습니까?',
+  'booklist_remove_book_failed': '북리스트에서 제거하지 못했습니다: {error}',
   'login_to_view_booklists': '로그인하여 책 목록 보기',
 
   // UI strings moved out of inline isZh ternaries

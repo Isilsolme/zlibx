@@ -336,6 +336,9 @@ const Map<String, String> zh = {
   'booklist_delete_desc': '删除后将无法恢复。',
   'booklist_delete_failed': '删除书单失败：{error}',
   'booklist_deleted': '书单已删除',
+  'booklist_book_removed': '已从书单移除',
+  'booklist_remove_book_confirm': '从书单中移除这本书？',
+  'booklist_remove_book_failed': '从书单移除失败：{error}',
   'login_to_view_booklists': '登录后查看书单',
 
   // UI strings moved out of inline isZh ternaries

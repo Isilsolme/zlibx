@@ -12,6 +12,7 @@ import '../../widgets/empty_state.dart';
 import '../../widgets/loading_widget.dart';
 
 import '../../l10n/s_keys.dart';
+import '../../utils/app_snack.dart';
 // Existing callers (main.dart routes, the profile page) import the args
 // class from this screen's library.
 export '../../providers/booklist_detail_provider.dart' show BooklistDetailArgs;
@@ -51,6 +52,44 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   void _onScroll() {
     if (_scrollController.position.extentAfter < 300) {
       ref.read(_provider.notifier).loadMore();
+    }
+  }
+
+  /// Remove one book from this (own) list: confirm first, then the
+  /// controller's optimistic removal; on failure the book is restored
+  /// and the error is shown.
+  Future<void> _confirmRemove(Book book) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.get(S.booklistRemoveBookConfirm)),
+        content: Text(book.title),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.get(S.cancel)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.get(S.remove)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final response = await ref.read(_provider.notifier).removeBook(book);
+    if (!mounted) return;
+    if (response.success) {
+      showAppSnackOn(messenger, l10n.get(S.booklistBookRemoved));
+    } else {
+      showAppSnackOn(
+        messenger,
+        l10n
+            .get(S.booklistRemoveBookFailed)
+            .replaceAll('{error}', response.error ?? ''),
+      );
     }
   }
 
@@ -137,6 +176,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
                 AppRoutes.bookDetail,
                 arguments: book,
               ),
+              onLongPress: widget.args.canEdit
+                  ? () => _confirmRemove(book)
+                  : null,
             );
           },
         ),

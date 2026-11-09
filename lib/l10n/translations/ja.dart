@@ -338,6 +338,9 @@ const Map<String, String> ja = {
   'booklist_delete_desc': '削除すると元に戻せません。',
   'booklist_delete_failed': 'ブックリストの削除に失敗しました：{error}',
   'booklist_deleted': 'ブックリストを削除しました',
+  'booklist_book_removed': 'ブックリストから削除しました',
+  'booklist_remove_book_confirm': 'この本をブックリストから削除しますか？',
+  'booklist_remove_book_failed': 'ブックリストからの削除に失敗しました：{error}',
   'login_to_view_booklists': 'ログインしてブックリストを見る',
 
   // UI strings moved out of inline isZh ternaries

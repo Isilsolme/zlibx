@@ -1775,6 +1775,49 @@ class ZLibraryApi {
     return ApiResponse.ok(true);
   }
 
+  /// Remove a book from one of the signed-in user's booklists:
+  /// `GET /papi/booklist/{booklistId}/remove-book/{bookId}`, confirmed
+  /// by a packet capture on 2026-11-09 (Firefox, zh.z-library.sk):
+  /// list 4096101, book 161286730, HTTP 200 with `{"success": 1}`.
+  /// No request body (GET). This is a separate endpoint, NOT a toggle
+  /// of [addBookToBooklist] — the site calls it when the filled
+  /// bookmark in a list's submenu is clicked again.
+  Future<ApiResponse<bool>> removeBookFromBooklist({
+    required int booklistId,
+    required int bookId,
+  }) async {
+    final raw = await _getWithRedirects(
+      '/papi/booklist/$booklistId/remove-book/$bookId',
+    );
+    final status = raw.status;
+    final json = raw.json;
+    if (json == null) {
+      // Same precedent as [deleteBooklist]: a final 2xx with an empty
+      // body counts as removed; anything else without JSON (a wall, a
+      // transport error, a non-2xx status) is a failure.
+      final is2xx = status != null && status >= 200 && status < 300;
+      final emptyBody = raw.body == null &&
+          (raw.error?.startsWith('empty response') ?? false);
+      if (is2xx && emptyBody) {
+        return ApiResponse.ok(true);
+      }
+      return ApiResponse.fail(
+        raw.error ?? 'remove from booklist failed',
+        statusCode: status,
+      );
+    }
+    if (!_isSuccess(json)) {
+      return ApiResponse.fail(
+        _plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'remove from booklist failed',
+        ),
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(true);
+  }
+
   /// Delete one of the signed-in user's booklists:
   /// `GET /papi/booklist/{booklistId}/delete`, confirmed by a packet
   /// capture on 2026-11-09 (Firefox, zh.z-library.sk). The first

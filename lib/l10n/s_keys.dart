@@ -33,6 +33,7 @@ abstract final class S {
   static const String bookDetails = 'book_details';
   static const String bookName = 'book_name';
   static const String booklistBookCount = 'booklist_book_count';
+  static const String booklistBookRemoved = 'booklist_book_removed';
   static const String booklistCreateFailed = 'booklist_create_failed';
   static const String booklistCreated = 'booklist_created';
   static const String booklistDeleteConfirm = 'booklist_delete_confirm';
@@ -40,6 +41,10 @@ abstract final class S {
   static const String booklistDeleteFailed = 'booklist_delete_failed';
   static const String booklistDeleted = 'booklist_deleted';
   static const String booklistDescriptionOptional = 'booklist_description_optional';
+  static const String booklistRemoveBookConfirm =
+      'booklist_remove_book_confirm';
+  static const String booklistRemoveBookFailed =
+      'booklist_remove_book_failed';
   static const String booklistTitle = 'booklist_title';
   static const String booklists = 'booklists';
   static const String booklistsSubtitle = 'booklists_subtitle';

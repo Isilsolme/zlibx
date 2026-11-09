@@ -8,6 +8,7 @@ import 'cover_placeholder.dart';
 class BookListTile extends StatelessWidget {
   final DisplayBook book;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool showCover;
   final Widget? trailing;
   final String? extraLabel;
@@ -16,6 +17,7 @@ class BookListTile extends StatelessWidget {
     super.key,
     required this.book,
     this.onTap,
+    this.onLongPress,
     this.showCover = false,
     this.trailing,
     this.extraLabel,
@@ -156,6 +158,7 @@ class BookListTile extends StatelessWidget {
         trailing:
             trailing ?? Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
         onTap: onTap,
+        onLongPress: onLongPress,
       ),
     );
   }

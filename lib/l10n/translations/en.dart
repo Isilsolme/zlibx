@@ -353,6 +353,10 @@ const Map<String, String> en = {
   'booklist_delete_desc': 'This cannot be undone.',
   'booklist_delete_failed': 'Could not delete booklist: {error}',
   'booklist_deleted': 'Booklist deleted',
+  'booklist_book_removed': 'Book removed from booklist',
+  'booklist_remove_book_confirm': 'Remove this book from the booklist?',
+  'booklist_remove_book_failed':
+      'Could not remove book from booklist: {error}',
   'login_to_view_booklists': 'Log in to view booklists',
 
   // UI strings moved out of inline isZh ternaries
