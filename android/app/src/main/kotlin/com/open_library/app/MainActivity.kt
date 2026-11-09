@@ -178,6 +178,34 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /// Delete stale `share_*` temp files from previous shares. Called
+    /// before each new copy; only regular files older than 24 hours are
+    /// removed, and only the `share_` prefix this class creates — nothing
+    /// else in the cache dir is touched. Best-effort: failures are logged
+    /// and never fail the copy. Runs on the IO worker (see [runAsync]),
+    /// never on the platform thread.
+    private fun cleanupStaleShareFiles() {
+        val cutoff = System.currentTimeMillis() - 24L * 60L * 60L * 1000L
+        val files = try {
+            cacheDir.listFiles()
+        } catch (e: Exception) {
+            Log.w(TAG, "Share cleanup: cannot list cache dir", e)
+            return
+        } ?: return
+        for (file in files) {
+            if (!file.isFile) continue
+            if (!file.name.startsWith("share_")) continue
+            if (file.lastModified() >= cutoff) continue
+            try {
+                if (!file.delete()) {
+                    Log.w(TAG, "Share cleanup: could not delete ${file.name}")
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Share cleanup: delete failed", e)
+            }
+        }
+    }
+
     /// Copy the file behind [uri] into the app cache dir so it can be
     /// handed to share_plus as a plain file path (share_plus cannot
     /// share a content:// URI directly). Returns the temp file's
@@ -187,6 +215,7 @@ class MainActivity : FlutterActivity() {
     /// the OS to reclaim (deleting it right after sharing could
     /// break the receiving app's read).
     private fun copyContentToCache(uri: Uri): String? {
+        cleanupStaleShareFiles()
         return try {
             val input = contentResolver.openInputStream(uri) ?: return null
             val displayName = contentResolver.query(
