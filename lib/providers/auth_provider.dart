@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,9 +57,21 @@ class AuthNotifier extends Notifier<AuthState> {
   int _epoch = 0;
   bool _isCurrent(int epoch) => epoch == _epoch;
 
+  /// Completes when the [_init] started by the current build() settles
+  /// (success, auth failure, or line error — every path). Splash awaits
+  /// this instead of polling `isLoading` every 500ms with a 10s cap,
+  /// which misrouted logged-in users on slow lines to the login page.
+  /// A fresh completer per build(): invalidate() re-runs build() on the
+  /// same notifier instance, so the old (already completed) one must
+  /// not be reused. [_init] captures its own completer, so a stale
+  /// _init superseded by logout/login can never settle the new one.
+  Completer<void> _readyCompleter = Completer<void>();
+  Future<void> get ready => _readyCompleter.future;
+
   @override
   AuthState build() {
     _api = ref.read(zlibraryApiProvider);
+    _readyCompleter = Completer<void>();
     _init();
     return AuthState(isLoading: true);
   }
@@ -67,6 +81,7 @@ class AuthNotifier extends Notifier<AuthState> {
     // returns AuthState(isLoading: true) as the initial state, and reading
     // state inside build() would throw (not yet initialized).
     final epoch = _epoch;
+    final completer = _readyCompleter;
     try {
       final credentials = await _storage.getCredentials();
       if (!_isCurrent(epoch)) return;
@@ -125,6 +140,11 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e) {
       if (!_isCurrent(epoch)) return;
       state = AuthState(error: e.toString());
+    } finally {
+      // Every path settles `ready`, including early returns above
+      // (finally runs on return too) and the epoch guard: a stale _init
+      // completes only the completer it captured, never the current one.
+      if (!completer.isCompleted) completer.complete();
     }
   }
 

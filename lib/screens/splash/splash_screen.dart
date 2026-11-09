@@ -260,26 +260,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _waitForAuth() async {
-    // Wait for auth state to finish loading (max 10 seconds)
-    int attempts = 0;
-    while (mounted && attempts < 20) {
-      final authState = ref.read(authProvider);
-      if (!authState.isLoading) {
-        // Auth finished loading
-        if (!mounted) return;
-        if (authState.isAuthenticated) {
-          _goHome();
-        } else {
-          _goLogin();
-        }
-        return;
-      }
-      await Future.delayed(const Duration(milliseconds: 500));
-      attempts++;
-    }
-
-    // Timeout - go to login
-    if (mounted) {
+    // Await the auth init directly: the old 500ms poll capped the wait
+    // at 10s, so a logged-in user on a slow line was misrouted to login.
+    // `ready` settles on every _init path (success / auth failure /
+    // line error); the wait is bounded by the API client's own timeouts.
+    await ref.read(authProvider.notifier).ready;
+    if (!mounted) return;
+    if (ref.read(authProvider).isAuthenticated) {
+      _goHome();
+    } else {
       _goLogin();
     }
   }
