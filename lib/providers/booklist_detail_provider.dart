@@ -299,6 +299,14 @@ class BooklistDetailController
   /// cached first page is rewritten from the remaining first-page
   /// rows so the book does not flash back on the next open before
   /// the background refresh.
+  ///
+  /// remove-book takes the readlist ENTRY id (the per-(book, list)
+  /// membership-row id from `current-user`), NOT the book id — the
+  /// entry id is resolved first and the remove call is only made
+  /// with it. A null entry id (book not in this list) or a failed
+  /// resolve fails here without calling remove-book at all: falling
+  /// back to the book id is the bug that made the server 500 every
+  /// app remove.
   Future<ApiResponse<bool>> removeBook(Book book) async {
     if (!_alive) return ApiResponse.fail('remove book failed');
     final listId = int.tryParse(_list.id);
@@ -307,6 +315,19 @@ class BooklistDetailController
     }
     final index = _books.indexWhere((b) => b.id == book.id);
     if (index < 0) return ApiResponse.fail('book not in list');
+    final entry = await ref.read(zlibraryApiProvider).getReadlistBookId(
+      booklistId: listId,
+      bookId: book.id,
+    );
+    if (!_alive) {
+      return ApiResponse.fail(entry.error ?? 'remove book failed');
+    }
+    final entryId = entry.data;
+    if (!entry.success || entryId == null) {
+      return ApiResponse.fail(
+        entry.error ?? 'book is not in this booklist',
+      );
+    }
     final wasFirstPage = _firstPageIds.contains(book.id);
     final removed = _books[index];
     _books.removeAt(index);
@@ -315,7 +336,10 @@ class BooklistDetailController
     state = state.copyWith(books: List.of(_books));
     final response = await ref
         .read(zlibraryApiProvider)
-        .removeBookFromBooklist(booklistId: listId, bookId: book.id);
+        .removeBookFromBooklist(
+          booklistId: listId,
+          readlistBookId: entryId,
+        );
     if (!_alive) return response;
     if (response.success) {
       final firstPage =
