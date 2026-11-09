@@ -38,7 +38,12 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
       final notifier = ref.read(savedBooksProvider.notifier);
       final success = wasFavorited
           ? await notifier.unsaveBook(bookId)
-          : await notifier.saveBook(bookId);
+          : await notifier.saveBook(
+              bookId,
+              // z 站详情页的 DisplayBook 背后就是完整 Book，乐观插入用它；
+              // 非 z 站（Anna/LibGen）没有心形按钮，走不到这里，null 也无妨。
+              book: widget.book.asZLibBook,
+            );
       if (!mounted) return;
       if (success) ref.invalidate(isBookFavoritedProvider(bookId));
       final l10n = AppLocalizations.of(context);
