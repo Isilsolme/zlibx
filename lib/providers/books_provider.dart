@@ -466,7 +466,13 @@ class SavedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
   /// 置 loading 态，失败时保留已有数据（只在尚无数据时才报 error），
   /// 收藏/取消后的后台对账就用它，列表不闪一下 loading。
   Future<void> loadSavedBooks({bool silent = false}) async {
-    final hadData = state.valueOrNull != null;
+    // build() 直接调这里，而首次 build 时 state 还不存在：读 `state`
+    // 会抛 StateError（'Tried to read the state of an uninitialized
+    // provider'），抛在 try 之前、第一个 await 之前，整个拉取直接
+    // 夭折、provider 永远卡在 loading——冷启动图书馆无限转圈就是
+    // 这么来的。`stateOrNull` 在未初始化时返回 null 而不抛，正是
+    // Riverpod 给 build 期读 state 的写法；初始化之后和 `state` 等价。
+    final hadData = stateOrNull?.valueOrNull != null;
     if (!silent) state = const AsyncValue.loading();
 
     try {
