@@ -1,7 +1,6 @@
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import 'booklist_html_cache.dart';
-import 'challenge_html_cache.dart';
 import 'wall_cookie_bridge.dart';
 import 'webview_challenge_solver.dart';
 
@@ -54,12 +53,12 @@ class BooklistSolver {
         pageUrl: url,
       );
     }
-    var html = ChallengeHtmlCache.get(url);
-    if (html != null && isChallengeHtml(html)) {
-      // A stale challenge page must not short-circuit the solve.
-      html = null;
-    }
-    html ??= await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
+    // Always fetch live. ChallengeHtmlCache holds pages captured by
+    // earlier solves (same-request retries), and a page captured before
+    // a write (create/delete) would be served here as a refresh result
+    // — the screen then stays stale until a cold start clears the
+    // in-memory cache. A solver-path refresh must return current data.
+    final html = await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (html == null || html.isEmpty || isChallengeHtml(html)) return null;
     await bridgeWallCookies(api, url);
     BooklistHtmlCache.store(url, html, accountId: accountId);

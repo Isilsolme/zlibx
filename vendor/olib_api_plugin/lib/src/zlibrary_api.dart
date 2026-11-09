@@ -1670,6 +1670,18 @@ class ZLibraryApi {
     );
   }
 
+  /// The site's JSON error strings sometimes carry HTML markup; toasts
+  /// show it raw, so strip tags here. A line break becomes a space
+  /// first so words don't run together.
+  static String _plainError(String? value, String fallback) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return fallback;
+    return text
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .trim();
+  }
+
   /// Create a booklist owned by the signed-in user. `POST
   /// /papi/booklist/create` with a JSON body `{title, description}`
   /// sent as `text/plain` (the same transport as [postBookComment],
@@ -1719,8 +1731,10 @@ class ZLibraryApi {
     }
     if (!_isSuccess(json)) {
       return ApiResponse.fail(
-        (json['error'] ?? json['message'])?.toString() ??
-            'create booklist failed',
+        _plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'create booklist failed',
+        ),
         statusCode: status,
       );
     }
@@ -1751,8 +1765,10 @@ class ZLibraryApi {
     final json = raw.json!;
     if (!_isSuccess(json)) {
       return ApiResponse.fail(
-        (json['error'] ?? json['message'])?.toString() ??
-            'add to booklist failed',
+        _plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'add to booklist failed',
+        ),
         statusCode: raw.status,
       );
     }
@@ -1787,8 +1803,10 @@ class ZLibraryApi {
     }
     if (!_isSuccess(json)) {
       return ApiResponse.fail(
-        (json['error'] ?? json['message'])?.toString() ??
-            'delete booklist failed',
+        _plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'delete booklist failed',
+        ),
         statusCode: status,
       );
     }

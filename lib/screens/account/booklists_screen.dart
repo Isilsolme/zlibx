@@ -297,7 +297,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                   AppRoutes.booklistDetail,
                   arguments: BooklistDetailArgs(booklist: list),
                 ),
-                onDelete: state.tab == BooklistTab.mine
+                onLongPress: state.tab == BooklistTab.mine
                     ? () => _confirmDelete(list)
                     : null,
               );
