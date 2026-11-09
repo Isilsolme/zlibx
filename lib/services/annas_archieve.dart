@@ -162,7 +162,7 @@ class AnnasArchieve {
 
   // Try request with optimized retry logic - fast failure and fallback
   Future<T> _requestWithRetry<T>(
-    Future<T> Function(String baseUrl) requestFn,
+    Future<T> Function(String baseUrl, CancelToken cancelToken) requestFn,
   ) async {
     // Anna's Archive requests must only retry across Anna's mirrors -
     // libgen/zlib mirrors 404 on AA paths and waste every retry slot.
@@ -195,10 +195,17 @@ class AnnasArchieve {
           // First mirror gets the full timeout; later mirrors get half.
           final timeoutSeconds =
               i == 0 ? requestTimeoutSeconds : subsequentRequestTimeoutSeconds;
+          // One token per attempt: on timeout the underlying Dio
+          // request is cancelled instead of downloading in the
+          // background while the retry loop moves on. The TimeoutException
+          // below is caught by the retry loop (no rethrow) so the next
+          // mirror/attempt still runs.
+          final cancelToken = CancelToken();
           // Apply timeout to the request function
-          final result = await requestFn(baseUrl).timeout(
+          final result = await requestFn(baseUrl, cancelToken).timeout(
             Duration(seconds: timeoutSeconds),
             onTimeout: () {
+              cancelToken.cancel();
               throw TimeoutException(
                   "Request timed out after ${timeoutSeconds}s");
             },
@@ -243,6 +250,7 @@ class AnnasArchieve {
   Future<Response> _makeRequest(
     String url, {
     Map<String, String>? headers,
+    CancelToken? cancelToken,
   }) async {
     final requestHeaders = <String, dynamic>{
       ...defaultDioHeaders,
@@ -259,6 +267,7 @@ class AnnasArchieve {
         headers: requestHeaders,
         validateStatus: (_) => true,
       ),
+      cancelToken: cancelToken,
     );
   }
 
@@ -576,7 +585,7 @@ class AnnasArchieve {
 
     try {
       final books =
-          await _requestWithRetry<List<BookData>>((currentBaseUrl) async {
+          await _requestWithRetry<List<BookData>>((currentBaseUrl, cancelToken) async {
         final String encodedURL = urlEncoder(
             searchQuery: searchQuery,
             content: content,
@@ -602,7 +611,8 @@ class AnnasArchieve {
 
         _logger.debug('Fetching search results',
             tag: 'AnnasArchive', metadata: {'url': encodedURL});
-        final response = await _makeRequest(encodedURL);
+        final response =
+            await _makeRequest(encodedURL, cancelToken: cancelToken);
 
         // Log response details for debugging
         _logger
@@ -735,7 +745,7 @@ class AnnasArchieve {
         tag: 'AnnasArchive', metadata: {'md5': md5});
 
     try {
-      final url = await _requestWithRetry<String>((currentBaseUrl) async {
+      final url = await _requestWithRetry<String>((currentBaseUrl, cancelToken) async {
         // The key is URL-encoded: it is user input and must never be
         // pasted raw into a query string.
         final fastDownloadUrl =
@@ -745,7 +755,8 @@ class AnnasArchieve {
             tag: 'AnnasArchive', metadata: {'md5': md5});
 
         final response = await dio.get(fastDownloadUrl,
-            options: Options(headers: defaultDioHeaders));
+            options: Options(headers: defaultDioHeaders),
+            cancelToken: cancelToken);
 
         if (response.statusCode == 200 || response.statusCode == 204) {
           dynamic data = response.data;
@@ -805,7 +816,7 @@ class AnnasArchieve {
 
     try {
       final data =
-          await _requestWithRetry<BookInfoData>((currentBaseUrl) async {
+          await _requestWithRetry<BookInfoData>((currentBaseUrl, cancelToken) async {
         // Replace the base URL in the url parameter if it contains a different one
         String adjustedUrl = url;
         final urlParsed = Uri.parse(url);
@@ -831,7 +842,8 @@ class AnnasArchieve {
 
         _logger.debug('Fetching book details',
             tag: 'AnnasArchive', metadata: {'url': adjustedUrl});
-        final response = await _makeRequest(adjustedUrl);
+        final response =
+            await _makeRequest(adjustedUrl, cancelToken: cancelToken);
 
         // Check for Cloudflare block in the response
         if (_isChallengeResponse(response)) {

@@ -35,6 +35,7 @@
 import 'dart:async';
 
 // Package imports:
+import 'package:dio/dio.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:
@@ -205,8 +206,19 @@ Future<DownloadTarget> resolveExternalDownload(BookInfoData info) async {
     // only) + HTML parse.
     try {
       final dio = createDio();
-      final response =
-          await dio.get<String>(mirror).timeout(const Duration(seconds: 15));
+      // Cancel the underlying request on timeout: otherwise the slow
+      // page keeps downloading in the background after this route
+      // has already given up and moved on.
+      final cancelToken = CancelToken();
+      final response = await dio
+          .get<String>(mirror, cancelToken: cancelToken)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () {
+              cancelToken.cancel();
+              throw TimeoutException('Slow-link fetch timed out after 15s');
+            },
+          );
       final link = ArchiveParsing.extractSlowDownloadLink(
         response.data ?? '',
         pageUrl: mirror,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,6 +121,10 @@ class UpdateNotifier extends Notifier<UpdateState> {
         return _applyCached();
       }
 
+      // Cancel the underlying request on timeout: otherwise the
+      // releases fetch keeps running in the background after the
+      // check has already fallen back to the cache.
+      final cancelToken = CancelToken();
       final response = await createDio()
           .getUri(
             Uri.parse(UpdateState.releaseApiUrl),
@@ -129,8 +135,15 @@ class UpdateNotifier extends Notifier<UpdateState> {
                 'X-GitHub-Api-Version': '2022-11-28',
               },
             ),
+            cancelToken: cancelToken,
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () {
+              cancelToken.cancel();
+              throw TimeoutException('Update check timed out after 10s');
+            },
+          );
 
       if (response.statusCode != 200) {
         final body = response.data?.toString() ?? '';
