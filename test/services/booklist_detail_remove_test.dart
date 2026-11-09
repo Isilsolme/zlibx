@@ -19,9 +19,7 @@ import 'package:zlibx/services/booklist_html_cache.dart';
 /// fake only implements the methods this controller path uses; any
 /// other call throws.
 class _FakeZLibraryApi implements ZLibraryApi {
-  _FakeZLibraryApi({this.entryId = 161213534});
-
-  int? entryId;
+  int? entryId = 161213534;
   bool failEntryFetch = false;
   int getReadlistBookIdCalls = 0;
   int? lastReadlistBooklistId;
@@ -99,7 +97,7 @@ void main() {
 
   /// Loads the controller with the fake page (two books) and waits for
   /// the microtask-started loadFirst to finish.
-  Future<ProviderContainer> _loadedContainer(_FakeZLibraryApi api) async {
+  Future<ProviderContainer> loadedContainer(_FakeZLibraryApi api) async {
     final container = ProviderContainer(
       overrides: [zlibraryApiProvider.overrideWithValue(api)],
     );
@@ -120,7 +118,7 @@ void main() {
 
   test('remove resolves the entry id and removes with it', () async {
     final api = _FakeZLibraryApi();
-    final container = await _loadedContainer(api);
+    final container = await loadedContainer(api);
 
     final response = await container
         .read(booklistDetailControllerProvider(_args).notifier)
@@ -145,7 +143,7 @@ void main() {
 
   test('remove is never called when the entry id is null', () async {
     final api = _FakeZLibraryApi()..entryId = null;
-    final container = await _loadedContainer(api);
+    final container = await loadedContainer(api);
 
     final response = await container
         .read(booklistDetailControllerProvider(_args).notifier)
@@ -166,7 +164,7 @@ void main() {
 
   test('remove is never called when resolving the entry id fails', () async {
     final api = _FakeZLibraryApi()..failEntryFetch = true;
-    final container = await _loadedContainer(api);
+    final container = await loadedContainer(api);
 
     final response = await container
         .read(booklistDetailControllerProvider(_args).notifier)
