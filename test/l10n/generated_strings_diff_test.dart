@@ -13,7 +13,6 @@
 // them, so each language file is imported below.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zlibx/l10n/generated/app_localizations.dart';
 import 'package:zlibx/l10n/generated/app_localizations_en.dart';
 import 'package:zlibx/l10n/generated/app_localizations_ja.dart';
 import 'package:zlibx/l10n/generated/app_localizations_ko.dart';

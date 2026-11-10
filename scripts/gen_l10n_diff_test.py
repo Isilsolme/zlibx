@@ -218,7 +218,9 @@ def main() -> int:
     keys = sorted(reference)
     lines: list[str] = [HEADER.rstrip("\n"), ""]
     lines.append("import 'package:flutter_test/flutter_test.dart';")
-    lines.append("import 'package:zlibx/l10n/generated/app_localizations.dart';")
+    # NOTE: the main generated file (app_localizations.dart) is NOT
+    # imported on purpose: the test uses only the per-locale classes,
+    # and importing it trips unused_import (fatal under flutter analyze).
     # The generated per-locale classes live in the per-LANGUAGE files
     # (app_localizations_zh.dart holds both Zh and ZhHant); the main
     # file imports them but does not export them, so each language
