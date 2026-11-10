@@ -5,8 +5,10 @@
 // same library, `on ZLibraryApiBase`, so it can use the base
 // class's private HTTP helpers (`_get`, `_postForm`, `_postText`,
 // `_delete`) and session fields directly. The parsing helpers
-// (`_booksOf`, `_metaOf`) and `_delete` moved here with the
-// block because only this domain uses them; the shared helpers
+// (`_booksOf`, `_metaOf`) moved to the base class in step 4,
+// because `search` moved there too (both this mixin and the
+// downloads mixin call it through the base); `_delete` stays here
+// because only this domain uses it. The shared helpers
 // (`_postText`, `_isInvalidHashError`) live in the base class
 // because other domains use them too. A mixin in a separate
 // library could not see those privates without changing the
@@ -16,40 +18,6 @@ part of 'zlibrary_api.dart';
 /// Search, detail, lists, and comments methods for [ZLibraryApi].
 mixin ZLibrarySearch on ZLibraryApiBase {
   // ── Search & lists ─────────────────────────────────────────────────
-
-  Future<ApiResponse<List<Book>>> search({
-    String? message,
-    int? yearFrom,
-    int? yearTo,
-    List<String>? languages,
-    List<String>? extensions,
-    String? order,
-    int? page,
-    int? limit,
-  }) async {
-    final raw = await _postForm('/eapi/book/search', {
-      if (message != null) 'message': message,
-      if (yearFrom != null) 'yearFrom': yearFrom,
-      if (yearTo != null) 'yearTo': yearTo,
-      if (languages != null) 'languages': languages,
-      if (extensions != null) 'extensions': extensions,
-      if (order != null) 'order': order,
-      if (page != null) 'page': page,
-      if (limit != null) 'limit': limit,
-    });
-    if (raw.json == null) {
-      return ApiResponse.fail(raw.error ?? 'search failed',
-          statusCode: raw.status);
-    }
-    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
-      return ApiResponse.fail(
-        (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
-            'search failed',
-        statusCode: raw.status,
-      );
-    }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
-  }
 
   /// Full detail for one book. [hashId] is the eapi hash from a search
   /// response; a webpage short hash (from booklist/profile HTML, or a
@@ -82,18 +50,6 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// fails or no result matches. The search response is the only
   /// place the eapi hash appears — booklist/profile HTML and the
   /// get-books JSON carry only the short URL hash.
-  Future<String?> resolveEapiHash(String bookId, String title) async {
-    final res = await search(message: title, limit: 20);
-    if (!res.success || res.data == null) return null;
-    for (final book in res.data!) {
-      if (book.id.toString() == bookId &&
-          book.hash != null &&
-          book.hash!.isNotEmpty) {
-        return book.hash;
-      }
-    }
-    return null;
-  }
 
   Future<ApiResponse<Book>> _fetchBookInfo(
     String bookId,
@@ -148,11 +104,11 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return search(order: 'popular', limit: 20);
     }
-    final books = _booksOf(raw.json!);
+    final books = ZLibraryApiBase._booksOf(raw.json!);
     if (books.isEmpty) {
       return search(order: 'popular', limit: 20);
     }
-    return ApiResponse.ok(books, meta: _metaOf(raw.json!));
+    return ApiResponse.ok(books, meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Personalised home recommendations. Falls back to most-popular when
@@ -168,9 +124,9 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     if (raw.status == 404) return getMostPopular();
     if (raw.json == null) return getMostPopular();
     if (!ZLibraryApiBase._isSuccess(raw.json!)) return getMostPopular();
-    final books = _booksOf(raw.json!);
+    final books = ZLibraryApiBase._booksOf(raw.json!);
     if (books.isEmpty) return getMostPopular();
-    return ApiResponse.ok(books, meta: _metaOf(raw.json!));
+    return ApiResponse.ok(books, meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Recently added books. Falls back to a newest-ordered search on 404.
@@ -195,7 +151,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   Future<ApiResponse<List<Book>>> getUserSaved({
@@ -220,7 +176,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   Future<ApiResponse<List<Book>>> getUserDownloaded({
@@ -241,7 +197,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Save to "My library". Mirrors the confirmed unsave path.
@@ -309,7 +265,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: _metaOf(raw.json!));
+    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Book comments, view-only. The site's own `papi/` JSON API, NOT eapi:
@@ -617,20 +573,4 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     return _Raw(status: lastStatus, error: 'too many redirects');
   }
 
-  static Map<String, dynamic>? _metaOf(Map<String, dynamic> json) {
-    final pagination = json['pagination'];
-    if (pagination is Map<String, dynamic>) return pagination;
-    final meta = json['meta'];
-    if (meta is Map<String, dynamic>) return meta;
-    return null;
-  }
-
-  static List<Book> _booksOf(Map<String, dynamic> json) {
-    final raw = json['books'] ?? json['data'] ?? json['results'];
-    if (raw is! List) return const [];
-    return raw
-        .whereType<Map<String, dynamic>>()
-        .map(Book.fromJson)
-        .toList();
-  }
 }
