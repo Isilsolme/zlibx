@@ -109,6 +109,58 @@ class MainActivity : FlutterActivity() {
                             runAsync(result) { copyContentToCache(uri) }
                         }
                     }
+                    "createPendingDownload" -> {
+                        val displayName = call.argument<String>("displayName")
+                        val mimeType = call.argument<String>("mimeType")
+                        if (displayName == null || mimeType == null) {
+                            result.success(null)
+                        } else {
+                            runAsync(result, lightExecutor) {
+                                createPendingDownload(displayName, mimeType)
+                            }
+                        }
+                    }
+                    "writePendingChunk" -> {
+                        val uri = call.argument<String>("uri")?.let(Uri::parse)
+                        val bytes = call.argument<ByteArray>("bytes")
+                        if (uri == null || bytes == null) {
+                            result.success(false)
+                        } else {
+                            // Runs on the IO worker: a full 256 KB buffer
+                            // must never be written on the platform thread.
+                            runAsync(result) { writePendingChunk(uri, bytes) }
+                        }
+                    }
+                    "finishPendingDownload" -> {
+                        val uri = call.argument<String>("uri")?.let(Uri::parse)
+                        if (uri == null) {
+                            result.success(false)
+                        } else {
+                            runAsync(result, lightExecutor) {
+                                finishPendingDownload(uri)
+                            }
+                        }
+                    }
+                    "abortPendingDownload" -> {
+                        val uri = call.argument<String>("uri")?.let(Uri::parse)
+                        if (uri == null) {
+                            result.success(false)
+                        } else {
+                            runAsync(result, lightExecutor) {
+                                abortPendingDownload(uri)
+                            }
+                        }
+                    }
+                    "pendingEntrySize" -> {
+                        val uri = call.argument<String>("uri")?.let(Uri::parse)
+                        if (uri == null) {
+                            result.success(-1L)
+                        } else {
+                            runAsync(result, lightExecutor) {
+                                pendingEntrySize(uri)
+                            }
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -159,6 +211,99 @@ class MainActivity : FlutterActivity() {
                 Log.w(TAG, "MediaStore cleanup failed", cleanupError)
             }
             return null
+        }
+    }
+
+    /// Insert a pending entry (IS_PENDING=1) into the public
+    /// Downloads/zlibx folder (Android 10+). Returns the content URI
+    /// string, or null when unsupported (pre-Android 10) or on any
+    /// failure. No bytes are written here — the caller streams them
+    /// with [writePendingChunk] and publishes with
+    /// [finishPendingDownload].
+    private fun createPendingDownload(
+        displayName: String,
+        mimeType: String,
+    ): String? {
+        // RELATIVE_PATH only exists on Android 10+ (API 29).
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+        val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, displayName)
+            put(MediaStore.Downloads.MIME_TYPE, mimeType)
+            put(MediaStore.Downloads.RELATIVE_PATH, "Download/zlibx")
+            put(MediaStore.Downloads.IS_PENDING, 1)
+        }
+        return try {
+            contentResolver.insert(
+                MediaStore.Downloads.EXTERNAL_CONTENT_URI,
+                values,
+            )?.toString()
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending create failed", e)
+            null
+        }
+    }
+
+    /// Append [bytes] to the pending entry [uri]. Every call opens its
+    /// own stream in "wa" (append) mode, writes, and closes — no stream
+    /// is held across calls. False on any failure, including devices
+    /// that refuse "wa".
+    private fun writePendingChunk(uri: Uri, bytes: ByteArray): Boolean {
+        return try {
+            val out = contentResolver.openOutputStream(uri, "wa")
+            if (out == null) {
+                Log.w(TAG, "MediaStore pending write: stream unavailable")
+                false
+            } else {
+                out.use { it.write(bytes) }
+                true
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending write failed", e)
+            false
+        }
+    }
+
+    /// Publish the pending entry by clearing IS_PENDING. False on any
+    /// failure (the caller then treats the download as failed and
+    /// removes the entry with [abortPendingDownload]).
+    private fun finishPendingDownload(uri: Uri): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        return try {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.IS_PENDING, 0)
+            }
+            contentResolver.update(uri, values, null, null) > 0
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending finish failed", e)
+            false
+        }
+    }
+
+    /// Delete a pending entry (cleanup of a cancelled / failed /
+    /// superseded download). False on any failure.
+    private fun abortPendingDownload(uri: Uri): Boolean {
+        return try {
+            contentResolver.delete(uri, null, null) > 0
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending abort failed", e)
+            false
+        }
+    }
+
+    /// Byte size of the pending entry [uri], read from its file
+    /// descriptor (statSize). Used on resume to reconcile the persisted
+    /// byte count: if the process died after a chunk was committed but
+    /// before the sidecar was written, the sidecar lags the entry and
+    /// resuming from it would duplicate bytes. Returns -1 when the size
+    /// cannot be determined.
+    private fun pendingEntrySize(uri: Uri): Long {
+        return try {
+            contentResolver.openFileDescriptor(uri, "r")?.use { pfd ->
+                pfd.statSize
+            } ?: -1L
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending size failed", e)
+            -1L
         }
     }
 

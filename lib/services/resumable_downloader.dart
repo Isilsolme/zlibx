@@ -20,6 +20,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 /// The server answered with something that is not the requested file
 /// (challenge / error page). Never retried automatically.
@@ -65,6 +66,10 @@ class ResumableDownloader {
   /// when the server honours Range. See the library comment for the
   /// integrity rules. Throws [DownloadContentException],
   /// [DownloadTruncatedException] or a [DioException].
+  ///
+  /// When [pendingWriter] is given, bytes stream into its pending
+  /// MediaStore entry instead of [savePath]; [savePath] is then only the
+  /// key for the `.meta` validator and `.pending.json` sidecars.
   static Future<void> download(
     Dio dio,
     String url,
@@ -72,6 +77,7 @@ class ResumableDownloader {
     Map<String, String>? headers,
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
+    PendingDownloadWriter? pendingWriter,
   }) async {
     // At most one forced restart (after a 416): bounded, never recursive.
     for (var attempt = 0; attempt < 2; attempt++) {
@@ -82,6 +88,7 @@ class ResumableDownloader {
         headers: headers,
         onProgress: onProgress,
         cancelToken: cancelToken,
+        pendingWriter: pendingWriter,
       );
       if (!restarted) return;
     }
@@ -98,15 +105,31 @@ class ResumableDownloader {
     Map<String, String>? headers,
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
+    PendingDownloadWriter? pendingWriter,
   }) async {
     final file = File(savePath);
     final meta = File(metaPathFor(savePath));
-    var start = await file.exists() ? await file.length() : 0;
+    var start = pendingWriter != null
+        ? pendingWriter.bytesWritten
+        : await file.exists()
+            ? await file.length()
+            : 0;
     final validator = start > 0 ? await _readValidator(meta) : null;
     if (start > 0 && validator == null) {
       // A partial file with no recorded validator cannot be trusted to
       // belong to the same remote file: restart instead of appending.
       start = 0;
+    }
+    // A pending entry cannot be truncated, only recreated: when the
+    // resume offset is dropped, reset the writer before the request.
+    if (pendingWriter != null &&
+        start == 0 &&
+        pendingWriter.bytesWritten > 0) {
+      if (!await pendingWriter.reset()) {
+        throw const DownloadContentException(
+          'cannot recreate the pending MediaStore entry',
+        );
+      }
     }
 
     final reqHeaders = <String, String>{...?headers};
@@ -130,7 +153,15 @@ class ResumableDownloader {
     final code = res.statusCode ?? 0;
     if (code == 416) {
       await res.data?.stream.drain<void>();
-      await file.writeAsBytes(const []);
+      if (pendingWriter != null) {
+        if (!await pendingWriter.reset()) {
+          throw const DownloadContentException(
+            'cannot recreate the pending MediaStore entry',
+          );
+        }
+      } else {
+        await file.writeAsBytes(const []);
+      }
       if (await meta.exists()) await meta.delete();
       return true;
     }
@@ -163,13 +194,31 @@ class ResumableDownloader {
       // on a fresh download, report truncation when a length was
       // advertised, and drop the validator.
       if (!resumed) {
-        await file.writeAsBytes(const []);
+        if (pendingWriter != null) {
+          if (!await pendingWriter.reset()) {
+            throw const DownloadContentException(
+              'cannot recreate the pending MediaStore entry',
+            );
+          }
+        } else {
+          await file.writeAsBytes(const []);
+        }
       }
       if (total > 0 && base < total) {
         throw DownloadTruncatedException(base, total);
       }
       if (await meta.exists()) await meta.delete();
       return false;
+    }
+
+    if (pendingWriter != null && !resumed && start > 0) {
+      // The server restarted the body (200 to a resume request):
+      // recreate the pending entry — appending would corrupt it.
+      if (!await pendingWriter.reset()) {
+        throw const DownloadContentException(
+          'cannot recreate the pending MediaStore entry',
+        );
+      }
     }
 
     IOSink? sink;
@@ -194,11 +243,17 @@ class ResumableDownloader {
               await meta.delete();
             }
           }
-          sink = file.openWrite(
-            mode: resumed ? FileMode.append : FileMode.write,
-          );
+          if (pendingWriter == null) {
+            sink = file.openWrite(
+              mode: resumed ? FileMode.append : FileMode.write,
+            );
+          }
         }
-        sink!.add(chunk);
+        if (sink != null) {
+          sink.add(chunk);
+        } else {
+          await pendingWriter!.add(chunk);
+        }
         received += chunk.length;
         onProgress?.call(received, total);
       }
@@ -207,7 +262,15 @@ class ResumableDownloader {
     }
     if (firstChunk && !resumed) {
       // Empty body: make sure a stale partial prefix does not survive.
-      await file.writeAsBytes(const []);
+      if (pendingWriter != null) {
+        if (!await pendingWriter.reset()) {
+          throw const DownloadContentException(
+            'cannot recreate the pending MediaStore entry',
+          );
+        }
+      } else {
+        await file.writeAsBytes(const []);
+      }
     }
 
     if (total > 0 && received < total) {

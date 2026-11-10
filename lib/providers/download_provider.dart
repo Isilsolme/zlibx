@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../services/http_client.dart';
 import '../services/media_store.dart';
+import '../services/pending_uri_writer.dart';
 import '../services/resumable_downloader.dart';
 import '../services/storage_service.dart';
 import '../utils/diagnostics.dart';
@@ -349,6 +350,9 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
     );
 
     String? temporaryPath;
+    // Pending MediaStore entry for this download (Android 10+ only).
+    // Null = staging fallback (.part file + publish copy).
+    PendingUriWriter? pendingWriter;
     try {
       // Downloads go to the app-specific external dir: no storage
       // permission is needed on any Android version.
@@ -368,6 +372,28 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       // Write to a task-specific temporary file so cancellation never leaves
       // a partial book under its final name.
       final alreadyExists = await File(finalPath).exists();
+      // Pending MediaStore entry (Android 10+): only when actually
+      // downloading. An already-present file needs no writer — creating
+      // one would publish an empty entry and record its URI instead of
+      // the real file. Any failure here keeps the staging flow
+      // (pendingWriter stays null).
+      if (Platform.isAndroid && !alreadyExists) {
+        pendingWriter = await PendingUriWriter.resume(
+          savePath: temporaryPath,
+        );
+        if (pendingWriter != null &&
+            !await MediaStoreFiles.exists(pendingWriter.uri)) {
+          // The pending entry vanished (user deleted it in Files);
+          // the sidecar is stale — drop it and start a fresh entry.
+          await pendingWriter.discard();
+          pendingWriter = null;
+        }
+        pendingWriter ??= await PendingUriWriter.create(
+          displayName: _buildSafeFileName(book),
+          mimeType: MediaStoreFiles.mimeTypeForExtension(book.extension),
+          savePath: temporaryPath,
+        );
+      }
       if (!alreadyExists && presetUrl != null) {
         // presetUrl 路径（LAN 传书 / 外部源解析链接）：直接 stream 到本地
         // 用独立 Dio，不带 z站 cookie / auth；LAN token 走 header。
@@ -391,6 +417,7 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
             }
           },
           cancelToken: cancelToken,
+          pendingWriter: pendingWriter,
         );
       } else if (!alreadyExists) {
         // 默认路径：用户自己 z站 账号查 URL + 下载
@@ -408,6 +435,7 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
             },
             cancelToken: cancelToken,
             title: book.title,
+            pendingWriter: pendingWriter,
           );
         } on DownloadLimitReachedException {
           rethrow;
@@ -423,34 +451,57 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       if (cancelToken.isCancelled) return;
       if (identical(_cancelTokens[id], cancelToken)) _cancelTokens.remove(id);
 
-      if (await File(temporaryPath).exists()) {
-        await File(temporaryPath).rename(finalPath);
-      }
-
       final completedAt = DateTime.now();
-      final fileSize = await File(finalPath).length();
+      int fileSize;
 
-      // Publish into the public Downloads/zlibx folder (MediaStore,
-      // Android 10+). On failure keep the app-specific file and report
-      // success with that location — the download itself still counts.
+      // The final location, and where the history records it.
       var recordedPath = finalPath;
-      if (Platform.isAndroid) {
-        final uri = await MediaStoreFiles.publishToDownloads(
-          sourcePath: finalPath,
-          displayName: _buildSafeFileName(book),
-          mimeType: MediaStoreFiles.mimeTypeForExtension(book.extension),
-        );
-        if (uri != null) {
-          recordedPath = uri;
-          try {
-            await File(finalPath).delete();
-          } catch (e) {
-            debugPrint('Could not remove staged download: $e');
-          }
-        } else {
-          debugPrint(
-            'MediaStore publish failed, keeping app-specific file',
+      if (pendingWriter != null) {
+        // Flush the writer's buffer and publish the pending entry
+        // (clear IS_PENDING): the book is already in Downloads/zlibx.
+        await pendingWriter.flush();
+        if (!await pendingWriter.finish()) {
+          // Publishing failed (e.g. the entry was removed): the book
+          // never reached Downloads — fail, don't record a dead URI.
+          await pendingWriter.discard();
+          pendingWriter = null;
+          throw StateError(
+            'could not publish the download into Downloads/zlibx',
           );
+        }
+        recordedPath = pendingWriter.uri;
+        // After flush() the buffer is empty, so bytesWritten is the
+        // total committed size — the file size for the task record.
+        fileSize = pendingWriter.bytesWritten;
+        pendingWriter = null;
+      } else {
+        if (await File(temporaryPath).exists()) {
+          await File(temporaryPath).rename(finalPath);
+        }
+        fileSize = await File(finalPath).length();
+
+        // Publish into the public Downloads/zlibx folder (MediaStore,
+        // Android 10+). On failure keep the app-specific file and
+        // report success with that location — the download itself
+        // still counts.
+        if (Platform.isAndroid) {
+          final uri = await MediaStoreFiles.publishToDownloads(
+            sourcePath: finalPath,
+            displayName: _buildSafeFileName(book),
+            mimeType: MediaStoreFiles.mimeTypeForExtension(book.extension),
+          );
+          if (uri != null) {
+            recordedPath = uri;
+            try {
+              await File(finalPath).delete();
+            } catch (e) {
+              debugPrint('Could not remove staged download: $e');
+            }
+          } else {
+            debugPrint(
+              'MediaStore publish failed, keeping app-specific file',
+            );
+          }
         }
       }
 
@@ -487,6 +538,16 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
         _clearProgressThrottle(id);
       }
     } catch (e) {
+      // HTML rejection — typed by both engines (DownloadContentException
+      // from ResumableDownloader, DownloadHtmlException from the vendor
+      // plugin): the destination is useless, never resume it. The
+      // publish failure above already discarded before throwing.
+      if (e is DownloadContentException || e is DownloadHtmlException) {
+        if (pendingWriter != null) {
+          await pendingWriter.discard();
+          pendingWriter = null;
+        }
+      }
       if (!cancelToken.isCancelled) {
         _updateTask(
           id,
@@ -499,7 +560,12 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       // from it instead of starting over; only an explicit user cancel
       // drops it. On success the file was already renamed away.
       if (temporaryPath != null && cancelToken.isCancelled) {
-        await _deletePartial(temporaryPath);
+        if (pendingWriter != null) {
+          await pendingWriter.discard();
+          pendingWriter = null;
+        } else {
+          await _deletePartial(temporaryPath);
+        }
       }
       if (identical(_cancelTokens[id], cancelToken)) _cancelTokens.remove(id);
     }
@@ -516,6 +582,7 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
     Map<String, String>? headers,
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
+    PendingDownloadWriter? pendingWriter,
   }) async {
     try {
       await ResumableDownloader.download(
@@ -525,10 +592,15 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
         headers: headers,
         onProgress: onProgress,
         cancelToken: cancelToken,
+        pendingWriter: pendingWriter,
       );
     } on DownloadContentException {
       // Not a book: the partial (if any) is useless, never resume it.
-      await _deletePartial(savePath);
+      if (pendingWriter != null) {
+        await pendingWriter.discard();
+      } else {
+        await _deletePartial(savePath);
+      }
       rethrow;
     }
   }

@@ -7,6 +7,7 @@
 // content URI. Old history entries keep plain file paths and keep
 // working — every helper below routes on the `content://` prefix.
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -68,6 +69,101 @@ class MediaStoreFiles {
     } on PlatformException catch (e) {
       debugPrint('MediaStore publish failed: ${e.code} ${e.message}');
       return null;
+    }
+  }
+
+  /// Create a pending MediaStore entry in the public Downloads/zlibx
+  /// folder (Android 10+ only), to be filled by [writePendingChunk]
+  /// and published by [finishPendingDownload]. Returns the content
+  /// URI string, or null when unavailable — the caller then falls
+  /// back to the staged .part flow.
+  static Future<String?> createPendingDownload({
+    required String displayName,
+    required String mimeType,
+  }) async {
+    if (!Platform.isAndroid) return null;
+    try {
+      final uri = await _channel.invokeMethod<String>(
+        'createPendingDownload',
+        <String, Object>{
+          'displayName': displayName,
+          'mimeType': mimeType,
+        },
+      );
+      return (uri != null && uri.isNotEmpty) ? uri : null;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'MediaStore createPendingDownload failed: ${e.code} ${e.message}',
+      );
+      return null;
+    }
+  }
+
+  /// Append one batch of bytes to a pending entry. [bytes] must be a
+  /// contiguous block (the writer coalesces to 256 KB before calling).
+  static Future<bool> writePendingChunk(String uri, List<int> bytes) async {
+    if (!Platform.isAndroid) return false;
+    try {
+      // Uint8List crosses the channel as a byte[]; a plain List<int>
+      // would arrive as ArrayList<Integer> on the Kotlin side. Reuse
+      // the buffer when it already is one (no extra 256 KB copy).
+      final payload =
+          bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+      return await _channel.invokeMethod<bool>(
+            'writePendingChunk',
+            <String, Object>{
+              'uri': uri,
+              'bytes': payload,
+            },
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Publish a pending entry (clear IS_PENDING). False on failure.
+  static Future<bool> finishPendingDownload(String uri) async {
+    if (!Platform.isAndroid) return false;
+    try {
+      return await _channel.invokeMethod<bool>(
+            'finishPendingDownload',
+            <String, Object>{'uri': uri},
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Delete a pending entry. False on failure.
+  static Future<bool> abortPendingDownload(String uri) async {
+    if (!Platform.isAndroid) return false;
+    try {
+      return await _channel.invokeMethod<bool>(
+            'abortPendingDownload',
+            <String, Object>{'uri': uri},
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// Actual byte size of a pending entry, read from its file
+  /// descriptor. Used on resume to reconcile the persisted byte count
+  /// (see PendingUriWriter.resume). Returns -1 when the size cannot be
+  /// determined (non-Android, entry gone, platform error).
+  static Future<int> pendingEntrySize(String uri) async {
+    if (!Platform.isAndroid) return -1;
+    try {
+      return await _channel.invokeMethod<int>(
+            'pendingEntrySize',
+            <String, Object>{'uri': uri},
+          ) ??
+          -1;
+    } on PlatformException {
+      return -1;
     }
   }
 

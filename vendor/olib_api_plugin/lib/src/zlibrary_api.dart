@@ -9,6 +9,44 @@ import 'book_comment.dart';
 import 'booklist.dart';
 import 'user.dart';
 
+/// App-facing byte sink for the pending-MediaStore download flow
+/// (Android 10+): the app streams bytes straight into an IS_PENDING
+/// entry instead of staging a .part file. Implemented by the app's
+/// PendingUriWriter; the plugin only ever calls these members, so it
+/// has no dependency on app code. All engines keep their current
+/// behaviour when no writer is passed.
+abstract class PendingDownloadWriter {
+  /// The MediaStore entry being filled (changes after [reset]).
+  String get uri;
+
+  /// Resume offset: bytes already committed (plus any buffered bytes).
+  int get bytesWritten;
+
+  /// Buffer one network chunk; may flush internally.
+  Future<void> add(List<int> chunk);
+
+  /// Commit all buffered bytes. Throws when the platform write fails.
+  Future<void> flush();
+
+  /// Delete the pending entry and all sidecars (cancel / bad content).
+  Future<void> discard();
+
+  /// Recreate the pending entry empty (server restarted the body).
+  /// False when the new entry cannot be created.
+  Future<bool> reset();
+}
+
+/// The server answered a download request with an HTML page (a
+/// challenge / error page) instead of the file. Never resumable: the
+/// destination (partial file or pending entry) is useless and must be
+/// discarded, never resumed.
+class DownloadHtmlException implements Exception {
+  final String message;
+  const DownloadHtmlException(this.message);
+  @override
+  String toString() => message;
+}
+
 /// Z-Library client, rewritten from the call sites in olib-mobile.
 ///
 /// Session model (matches what the app assumes):
@@ -1992,6 +2030,7 @@ class ZLibraryApi {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
     String? title,
+    PendingDownloadWriter? pendingWriter,
   }) async {
     var link = await _resolveDownloadLink(bookId, hash, title: title);
     var headers = Map<String, String>.from(_headers);
@@ -2005,6 +2044,7 @@ class ZLibraryApi {
         headers,
         onProgress: onProgress,
         cancelToken: cancelToken,
+        pendingWriter: pendingWriter,
       );
       final code = res.statusCode ?? 0;
       if (code != 301 &&
@@ -2045,9 +2085,14 @@ class ZLibraryApi {
     Map<String, String> headers, {
     void Function(int received, int total)? onProgress,
     CancelToken? cancelToken,
+    PendingDownloadWriter? pendingWriter,
   }) async {
     final file = File(savePath);
-    final start = await file.exists() ? await file.length() : 0;
+    var start = pendingWriter != null
+        ? pendingWriter.bytesWritten
+        : await file.exists()
+            ? await file.length()
+            : 0;
     final reqHeaders = Map<String, String>.from(headers);
     if (start > 0) reqHeaders['Range'] = 'bytes=$start-';
     final res = await _dio.get<ResponseBody>(
@@ -2070,13 +2115,22 @@ class ZLibraryApi {
     }
     if (code == 416 && start > 0) {
       await res.data?.stream.drain<void>();
-      await file.writeAsBytes(const []);
+      if (pendingWriter != null) {
+        // Recreate the pending entry empty; the recursive call then
+        // restarts with start == 0 and no Range header.
+        if (!await pendingWriter.reset()) {
+          throw StateError('cannot restart the pending MediaStore entry');
+        }
+      } else {
+        await file.writeAsBytes(const []);
+      }
       return _downloadOnce(
         link,
         savePath,
         headers,
         onProgress: onProgress,
         cancelToken: cancelToken,
+        pendingWriter: pendingWriter,
       );
     }
     final contentLength = int.tryParse(
@@ -2093,23 +2147,41 @@ class ZLibraryApi {
         res.headers.value(HttpHeaders.contentTypeHeader) ?? '';
     if (contentType.toLowerCase().contains('text/html')) {
       await res.data?.stream.drain<void>();
-      throw StateError(
+      throw DownloadHtmlException(
         'download answered an HTML page '
         '(HTTP $code, content-type $contentType) — the mirror is likely '
         'serving a challenge or error page instead of the file',
       );
     }
 
-    final sink = file.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+    // With a pending writer there is no file sink at all; bytes go
+    // through the writer's buffered channel. When the server answered
+    // 200 to a resume request (restarting the body), the pending entry
+    // must be recreated — appending would corrupt the file.
+    IOSink? sink;
     var received = resumed ? start : 0;
+    if (pendingWriter == null) {
+      sink = file.openWrite(
+        mode: resumed ? FileMode.append : FileMode.write,
+      );
+    } else if (!resumed && start > 0) {
+      if (!await pendingWriter.reset()) {
+        throw StateError('cannot restart the pending MediaStore entry');
+      }
+      received = 0;
+    }
     try {
       await for (final chunk in res.data!.stream) {
-        sink.add(chunk);
+        if (sink != null) {
+          sink.add(chunk);
+        } else {
+          await pendingWriter!.add(chunk);
+        }
         received += chunk.length;
         onProgress?.call(received, total);
       }
     } finally {
-      await sink.close();
+      await sink?.close();
     }
     // Length check: a stream that ends early (connection dropped and
     // silently closed by a proxy, truncated CDN answer) must not count
