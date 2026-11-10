@@ -164,7 +164,7 @@ def main() -> int:
     snapshot_path = root / "scripts" / "l10n_snapshot.json"
     output_path = root / "test" / "l10n" / "generated_strings_diff_test.dart"
     if not snapshot_path.is_file():
-        fail(f"missing snapshot: {snapshot_path} (run l10n_snapshot.py first)")
+        fail(f"missing snapshot: {snapshot_path}")
     snapshot: dict[str, dict[str, str]] = json.loads(
         snapshot_path.read_text(encoding="utf-8")
     )
