@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../models/display_book.dart';
 import '../screens/account/account_screen.dart';
 import '../screens/account/booklist_detail_screen.dart';
 import '../screens/account/booklists_screen.dart';
 import '../screens/account/my_comments_screen.dart';
 import '../screens/account/user_profile_screen.dart';
 import '../screens/auth/login_screen.dart';
+import '../screens/book_detail/book_detail_args.dart';
 import '../screens/book_detail/book_detail_screen.dart';
 import '../screens/comments/book_comments_screen.dart';
 import '../screens/downloads/local_downloads_screen.dart';
@@ -36,6 +39,79 @@ class AppRoutes {
   static const String myComments = '/my-comments';
   static const String userProfile = '/user-profile';
   static const String reader = '/reader';
+
+  // ── Typed navigation helpers (routes that take arguments) ──────────
+  //
+  // Each one is a single `pushNamed` with a statically typed `arguments:`
+  // object, so a call site can no longer pass the wrong type. The route
+  // table above and the receiving builders are unchanged; the string
+  // route names stay underneath.
+
+  /// Book detail page for an already-built [BookDetailArgs].
+  static Future<T?> openBookDetail<T extends Object?>(
+    BuildContext context,
+    BookDetailArgs args,
+  ) => Navigator.of(context).pushNamed<T>(bookDetail, arguments: args);
+
+  /// Book detail page for a Z-Library vendor [Book].
+  static Future<T?> openBookDetailForBook<T extends Object?>(
+    BuildContext context,
+    Book book,
+  ) => openBookDetail<T>(context, BookDetailArgs(book: book));
+
+  /// Book detail page for a unified [DisplayBook] (any source).
+  ///
+  /// A Z-Library [DisplayBook] carries its vendor [Book] in `original`;
+  /// that is passed through as the Z-Library form so the detail page
+  /// takes its Z-Library branch (a Z-Library [DisplayBook] wrapped with
+  /// `BookDetailArgs.fromDisplayBook` has no `book`, and that branch
+  /// reads `args.book`). Anna's Archive / LibGen items, and a
+  /// Z-Library item whose `original` is missing, go through
+  /// `BookDetailArgs.fromDisplayBook`.
+  static Future<T?> openBookDetailForDisplayBook<T extends Object?>(
+    BuildContext context,
+    DisplayBook book,
+  ) {
+    final zBook = book.asZLibBook;
+    return openBookDetail<T>(
+      context,
+      zBook != null
+          ? BookDetailArgs(book: zBook)
+          : BookDetailArgs.fromDisplayBook(displayBook: book),
+    );
+  }
+
+  /// A booklist's detail page.
+  static Future<T?> openBooklistDetail<T extends Object?>(
+    BuildContext context,
+    BooklistDetailArgs args,
+  ) => Navigator.of(context).pushNamed<T>(booklistDetail, arguments: args);
+
+  /// A book's comments page.
+  static Future<T?> openBookComments<T extends Object?>(
+    BuildContext context,
+    BookCommentsArgs args,
+  ) => Navigator.of(context).pushNamed<T>(bookComments, arguments: args);
+
+  /// A user's profile page.
+  static Future<T?> openUserProfile<T extends Object?>(
+    BuildContext context,
+    UserProfileArgs args,
+  ) => Navigator.of(context).pushNamed<T>(userProfile, arguments: args);
+
+  /// The similar-books page for one book.
+  static Future<T?> openSimilarBooks<T extends Object?>(
+    BuildContext context,
+    SimilarBooksArgs args,
+  ) => Navigator.of(context).pushNamed<T>(similarBooks, arguments: args);
+
+  /// The in-app reader. [ReaderArgs.remixUserId] / [ReaderArgs.remixUserKey]
+  /// are a session secret: they travel as route arguments only and must
+  /// never be put into a URL.
+  static Future<T?> openReader<T extends Object?>(
+    BuildContext context,
+    ReaderArgs args,
+  ) => Navigator.of(context).pushNamed<T>(reader, arguments: args);
 }
 
 /// The app's named-route table (passed to `MaterialApp.routes`).

@@ -392,10 +392,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _openBook(DisplayBook book) {
-    Navigator.of(context).pushNamed(
-      AppRoutes.bookDetail,
-      arguments: book.isZLibrary ? book.asZLibBook : book,
-    );
+    AppRoutes.openBookDetailForDisplayBook(context, book);
   }
 
   // ── UI builders ──────────────────────────────────────────────

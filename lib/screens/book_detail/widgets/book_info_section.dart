@@ -107,9 +107,9 @@ class BookInfoSection extends StatelessWidget {
                   style: const TextStyle(fontSize: 15),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppRoutes.similarBooks,
-                  arguments: SimilarBooksArgs(
+                onTap: () => AppRoutes.openSimilarBooks(
+                  context,
+                  SimilarBooksArgs(
                     bookId: book.id,
                     hashId: book.hash!,
                     bookTitle: book.title,
@@ -135,9 +135,9 @@ class BookInfoSection extends StatelessWidget {
                 style: const TextStyle(fontSize: 15),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-              onTap: () => Navigator.of(context).pushNamed(
-                AppRoutes.bookComments,
-                arguments: BookCommentsArgs(
+              onTap: () => AppRoutes.openBookComments(
+                context,
+                BookCommentsArgs(
                   bookId: book.id,
                   bookTitle: book.title,
                 ),

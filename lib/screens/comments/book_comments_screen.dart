@@ -119,9 +119,9 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   }
 
   void _openProfile(BookComment comment) {
-    Navigator.of(context).pushNamed(
-      AppRoutes.userProfile,
-      arguments: UserProfileArgs(
+    AppRoutes.openUserProfile(
+      context,
+      UserProfileArgs(
         userId: comment.userId,
         userName: comment.userName,
         userAvatar: comment.userAvatar,

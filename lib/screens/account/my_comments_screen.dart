@@ -11,7 +11,6 @@ import '../../routes/app_routes.dart';
 import '../../screens/comments/book_comments_screen.dart';
 import '../../screens/comments/widgets/comment_avatar.dart';
 import '../../screens/comments/widgets/comment_metric_chip.dart';
-import '../../screens/book_detail/book_detail_args.dart';
 import '../../utils/app_snack.dart';
 import '../../utils/date_text.dart';
 import '../../widgets/empty_state.dart';
@@ -150,9 +149,9 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
   // --------------------------------------------------------------- 导航
 
   void _openComments(MyComment comment) {
-    Navigator.of(context).pushNamed(
-      AppRoutes.bookComments,
-      arguments: BookCommentsArgs(
+    AppRoutes.openBookComments(
+      context,
+      BookCommentsArgs(
         bookId: comment.bookId,
         bookTitle: comment.bookTitle,
       ),
@@ -161,9 +160,9 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
 
   void _openProfile(MyComment comment) {
     final userName = ref.read(authProvider).user?.name ?? '';
-    Navigator.of(context).pushNamed(
-      AppRoutes.userProfile,
-      arguments: UserProfileArgs(
+    AppRoutes.openUserProfile(
+      context,
+      UserProfileArgs(
         userId: comment.userId,
         userName: userName,
         userAvatar: comment.userAvatar,
@@ -180,10 +179,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       title: comment.bookTitle,
       onReady: (book) {
         if (!mounted) return;
-        Navigator.of(context).pushNamed(
-          AppRoutes.bookDetail,
-          arguments: BookDetailArgs(book: book),
-        );
+        AppRoutes.openBookDetailForBook(context, book);
       },
       onFail: () =>
           _showSnack(AppLocalizations.of(context)!.openBookFailed),

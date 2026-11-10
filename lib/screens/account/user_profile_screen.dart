@@ -9,7 +9,6 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
-import '../../screens/book_detail/book_detail_args.dart';
 import '../../services/challenge_html_cache.dart';
 import '../../services/booklist_html_cache.dart';
 import '../../services/wall_cookie_bridge.dart';
@@ -127,10 +126,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       title: entry.bookTitle,
       onReady: (book) {
         if (!mounted) return;
-        Navigator.of(context).pushNamed(
-          AppRoutes.bookDetail,
-          arguments: BookDetailArgs(book: book),
-        );
+        AppRoutes.openBookDetailForBook(context, book);
       },
       onFail: () =>
           _showSnack(AppLocalizations.of(context)!.openBookFailed),
@@ -453,10 +449,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   if (i > 0) const Divider(height: 1, indent: 72),
                   BooklistRow(
                     list: _booklists[i],
-                    onTap: () => Navigator.of(context).pushNamed(
-                      AppRoutes.booklistDetail,
-                      arguments:
-                          BooklistDetailArgs(booklist: _booklists[i]),
+                    onTap: () => AppRoutes.openBooklistDetail(
+                      context,
+                      BooklistDetailArgs(booklist: _booklists[i]),
                     ),
                   ),
                 ],
@@ -528,9 +523,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
             userName: args.userName,
             coverUrl: _bookRefController.refFor(entry.bookId)?.cover ?? '',
             isOpeningBook: _bookRefController.isOpening(entry.bookId),
-            onCardTap: () => Navigator.of(context).pushNamed(
-              AppRoutes.bookComments,
-              arguments: BookCommentsArgs(
+            onCardTap: () => AppRoutes.openBookComments(
+              context,
+              BookCommentsArgs(
                 bookId: entry.bookId,
                 bookTitle: entry.bookTitle,
               ),

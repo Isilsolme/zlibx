@@ -61,10 +61,7 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    Navigator.of(context).pushNamed(
-                      AppRoutes.bookDetail,
-                      arguments: book,
-                    );
+                    AppRoutes.openBookDetailForBook(context, book);
                   },
                 ),
               );

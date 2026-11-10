@@ -10,7 +10,7 @@ import '../../providers/books_provider.dart';
 import '../../providers/download_provider.dart';
 import '../../providers/shelf_categories_provider.dart';
 import '../../providers/shelf_provider.dart';
-import '../../screens/book_detail/book_detail_screen.dart';
+import '../../routes/app_routes.dart';
 import '../../screens/search/search_screen.dart';
 import '../../services/media_store.dart';
 import 'widgets/shelf_book_item.dart';
@@ -619,12 +619,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
     final book = item.displayBook.original;
     if (book is Book) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const BookDetailScreen(),
-          settings: RouteSettings(arguments: book),
-        ),
-      );
+      AppRoutes.openBookDetailForBook(context, book);
     }
   }
 

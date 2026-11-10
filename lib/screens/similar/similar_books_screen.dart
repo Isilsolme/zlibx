@@ -185,9 +185,9 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                           return BookListTile(
                                             book: book.toDisplay(),
                                             onTap: () {
-                                              Navigator.of(context).pushNamed(
-                                                AppRoutes.bookDetail,
-                                                arguments: book,
+                                              AppRoutes.openBookDetailForBook(
+                                                context,
+                                                book,
                                               );
                                             },
                                           );
@@ -210,9 +210,9 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                             // 几乎不可能，可安全开 Hero。
                                             heroEnabled: true,
                                             onTap: () {
-                                              Navigator.of(context).pushNamed(
-                                                AppRoutes.bookDetail,
-                                                arguments: book,
+                                              AppRoutes.openBookDetailForBook(
+                                                context,
+                                                book,
                                               );
                                             },
                                           );

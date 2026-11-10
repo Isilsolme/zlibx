@@ -288,9 +288,9 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
               final list = state.lists[index];
               return BooklistCard(
                 list: list,
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppRoutes.booklistDetail,
-                  arguments: BooklistDetailArgs(
+                onTap: () => AppRoutes.openBooklistDetail(
+                  context,
+                  BooklistDetailArgs(
                     booklist: list,
                     canEdit: state.tab == BooklistTab.mine,
                   ),

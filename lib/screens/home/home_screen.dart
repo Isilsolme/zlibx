@@ -800,10 +800,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     compact: true,
                     showSourceBadge: true,
                     onTap: () {
-                      Navigator.of(context).pushNamed(
-                        AppRoutes.bookDetail,
-                        arguments: book.asZLibBook,
-                      );
+                      AppRoutes.openBookDetailForDisplayBook(context, book);
                     },
                   );
                 },

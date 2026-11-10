@@ -169,10 +169,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
             return BookListTile(
               book: book.toDisplay(),
               showCover: true,
-              onTap: () => Navigator.of(context).pushNamed(
-                AppRoutes.bookDetail,
-                arguments: book,
-              ),
+              onTap: () => AppRoutes.openBookDetailForBook(context, book),
               onLongPress: widget.args.canEdit
                   ? () => _confirmRemove(book)
                   : null,

@@ -208,9 +208,9 @@ class BookActionBar extends ConsumerWidget {
     // 未登录时 user 为 null，仍不带会话，站点会弹登录墙。
     final userKey =
         (user?.remixUserkey.isNotEmpty == true) ? user!.remixUserkey : null;
-    Navigator.of(context).pushNamed(
-      AppRoutes.reader,
-      arguments: ReaderArgs(
+    AppRoutes.openReader(
+      context,
+      ReaderArgs(
         url: url,
         title: book.title,
         remixUserId: user?.id,
