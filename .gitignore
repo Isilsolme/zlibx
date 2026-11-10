@@ -79,6 +79,7 @@ test/*
 !test/parsers/
 !test/services/
 !test/l10n/
+!test/routes/
 debug/
 publish_page/
 dev_docs/*
