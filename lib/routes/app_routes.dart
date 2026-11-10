@@ -200,13 +200,48 @@ Map<String, WidgetBuilder> buildAppRoutes() {
     AppRoutes.login: (context) => const LoginScreen(),
     AppRoutes.home: (context) => const HomeScreen(),
     AppRoutes.search: (context) => const SearchScreen(),
-    AppRoutes.bookDetail: (context) => const BookDetailScreen(),
+    AppRoutes.bookDetail: (context) {
+      final raw = ModalRoute.of(context)!.settings.arguments;
+      // Normalize the calling forms into BookDetailArgs:
+      //  - a BookDetailArgs (either form);
+      //  - a DisplayBook (Anna's Archive / LibGen) or a vendor Book (z站,
+      //    legacy callers).
+      // Anything else (missing, wrong type) used to hit a bare `as Book`
+      // cast and red-screen; show the plain fallback instead.
+      final BookDetailArgs? args = raw is BookDetailArgs
+          ? raw
+          : raw is DisplayBook
+          ? BookDetailArgs.fromDisplayBook(displayBook: raw)
+          : raw is Book
+          ? BookDetailArgs(book: raw)
+          : null;
+      // The detail page needs either an external (Anna's Archive /
+      // LibGen) DisplayBook or a Z-Library Book; neither means the
+      // arguments cannot be shown.
+      if (args != null &&
+          (args.isAnnasArchive || args.isLibGen || args.book != null)) {
+        return BookDetailScreen(args: args);
+      }
+      return const _MissingRouteArgsScreen();
+    },
     AppRoutes.favorites: (context) => const FavoritesScreen(),
     AppRoutes.history: (context) => const HistoryScreen(),
     AppRoutes.downloads: (context) => const LocalDownloadsScreen(),
     AppRoutes.settings: (context) => const SettingsScreen(),
-    AppRoutes.similarBooks: (context) => const SimilarBooksScreen(),
-    AppRoutes.bookComments: (context) => const BookCommentsScreen(),
+    AppRoutes.similarBooks: (context) {
+      final args = ModalRoute.of(context)!.settings.arguments;
+      if (args is SimilarBooksArgs) {
+        return SimilarBooksScreen(args: args);
+      }
+      return const _MissingRouteArgsScreen();
+    },
+    AppRoutes.bookComments: (context) {
+      final args = ModalRoute.of(context)!.settings.arguments;
+      if (args is BookCommentsArgs) {
+        return BookCommentsScreen(args: args);
+      }
+      return const _MissingRouteArgsScreen();
+    },
     AppRoutes.account: (context) => const AccountScreen(),
     AppRoutes.booklists: (context) => const BooklistsScreen(),
     AppRoutes.booklistDetail: (context) {
@@ -220,7 +255,13 @@ Map<String, WidgetBuilder> buildAppRoutes() {
       return const _MissingRouteArgsScreen();
     },
     AppRoutes.myComments: (context) => const MyCommentsScreen(),
-    AppRoutes.userProfile: (context) => const UserProfileScreen(),
+    AppRoutes.userProfile: (context) {
+      final args = ModalRoute.of(context)!.settings.arguments;
+      if (args is UserProfileArgs) {
+        return UserProfileScreen(args: args);
+      }
+      return const _MissingRouteArgsScreen();
+    },
     AppRoutes.reader: (context) {
       final args = ModalRoute.of(context)!.settings.arguments;
       if (args is ReaderArgs) {
@@ -237,7 +278,7 @@ Map<String, WidgetBuilder> buildAppRoutes() {
 }
 
 /// Plain fallback for routes whose typed arguments are missing or of the
-/// wrong type — see the booklistDetail / reader builders above.
+/// wrong type — see the guarded builders above.
 class _MissingRouteArgsScreen extends StatelessWidget {
   const _MissingRouteArgsScreen();
 

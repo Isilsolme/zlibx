@@ -31,7 +31,9 @@ class BookCommentsArgs {
 /// 上下文条 / 状态视图 / 列表 / 输入区，并发起导航与聚焦。
 /// 需要登录会话，未登录显示登录入口。详见 controller 文档。
 class BookCommentsScreen extends ConsumerStatefulWidget {
-  const BookCommentsScreen({super.key});
+  final BookCommentsArgs args;
+
+  const BookCommentsScreen({super.key, required this.args});
 
   @override
   ConsumerState<BookCommentsScreen> createState() =>
@@ -51,8 +53,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_controller != null) return;
-    final args =
-        ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    final args = widget.args;
     final l10n = AppLocalizations.of(context)!;
     _controller = BookCommentsController(
       bookId: args.bookId,
@@ -157,8 +158,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args =
-        ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    final args = widget.args;
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: GradientAppBar(title: l10n.comments),

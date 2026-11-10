@@ -25,7 +25,9 @@ class SimilarBooksArgs {
 }
 
 class SimilarBooksScreen extends ConsumerStatefulWidget {
-  const SimilarBooksScreen({super.key});
+  final SimilarBooksArgs args;
+
+  const SimilarBooksScreen({super.key, required this.args});
 
   @override
   ConsumerState<SimilarBooksScreen> createState() => _SimilarBooksScreenState();
@@ -47,7 +49,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
   }
 
   Future<void> _loadSimilarBooks() async {
-    final args = ModalRoute.of(context)!.settings.arguments as SimilarBooksArgs;
+    final args = widget.args;
     final api = ref.read(zlibraryApiProvider);
 
     setState(() {
@@ -83,7 +85,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)!.settings.arguments as SimilarBooksArgs;
+    final args = widget.args;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(

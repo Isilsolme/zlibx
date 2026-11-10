@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../core/book_description.dart';
 import '../../models/display_book.dart';
 import '../../providers/books_provider.dart';
@@ -15,19 +14,14 @@ import 'widgets/external_book_action_bar.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 class BookDetailScreen extends ConsumerWidget {
-  const BookDetailScreen({super.key});
+  /// Already normalized and validated by the route builder
+  /// (see `buildAppRoutes` in `routes/app_routes.dart`).
+  final BookDetailArgs args;
+
+  const BookDetailScreen({super.key, required this.args});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final raw = ModalRoute.of(context)!.settings.arguments;
-    // Normalize the three calling forms into BookDetailArgs:
-    //  - a DisplayBook (Anna, from search) / a vendor Book (z站, legacy)
-    //  - a BookDetailArgs (either form).
-    final BookDetailArgs args = raw is BookDetailArgs
-        ? raw
-        : raw is DisplayBook
-        ? BookDetailArgs.fromDisplayBook(displayBook: raw)
-        : BookDetailArgs(book: raw as Book);
     // External detail (Anna's Archive / LibGen): search + detail, and
     // download via the external resolver (Stage 3).
     if (args.isAnnasArchive || args.isLibGen) {

@@ -41,7 +41,9 @@ import '../../widgets/entrance.dart';
 /// [_UserProfileScreenState._openBookDetail]); tapping a booklist
 /// opens its detail page, with the carousel preview painting instantly.
 class UserProfileScreen extends ConsumerStatefulWidget {
-  const UserProfileScreen({super.key});
+  final UserProfileArgs args;
+
+  const UserProfileScreen({super.key, required this.args});
 
   @override
   ConsumerState<UserProfileScreen> createState() =>
@@ -60,8 +62,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   /// [CommentBookRefController]）。
   late final CommentBookRefController _bookRefController;
 
-  UserProfileArgs get _args =>
-      ModalRoute.of(context)!.settings.arguments as UserProfileArgs;
+  UserProfileArgs get _args => widget.args;
 
   @override
   void initState() {
