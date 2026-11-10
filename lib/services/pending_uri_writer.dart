@@ -6,7 +6,7 @@
 // afterwards (saves one full-file copy and the staging space).
 //
 // This class owns that entry: it buffers chunks, pushes them over the
-// platform channel in 256 KB batches (append mode, so a retry must
+// platform channel in 4 MB batches (append mode, so a retry must
 // resume from exactly the committed byte count), and persists a small
 // JSON sidecar (`<savePath>.pending.json`) so an interrupted download
 // — user retry or app kill — resumes the same pending entry.
@@ -48,8 +48,8 @@ class PendingUriWriter implements PendingDownloadWriter {
 
   /// Coalesce threshold: chunks are buffered in memory until this
   /// size crosses, so the platform channel (open/write/close a stream
-  /// in Kotlin) runs once per 256 KB, not once per network chunk.
-  static const int _flushThreshold = 256 * 1024;
+  /// in Kotlin) runs once per 4 MB, not once per network chunk.
+  static const int _flushThreshold = 4 * 1024 * 1024;
 
   String _uri;
   final String _savePath;
@@ -141,7 +141,7 @@ class PendingUriWriter implements PendingDownloadWriter {
     }
   }
 
-  /// Buffer one network chunk; flushes automatically once 256 KB
+  /// Buffer one network chunk; flushes automatically once 4 MB
   /// accumulate. A false from the platform channel (storage full,
   /// device refusing "wa", entry gone) throws — the caller aborts.
   @override
