@@ -86,7 +86,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final userKey = widget.remixUserKey;
     if (userId == null || userKey == null) return;
     final uri = Uri.tryParse(widget.url);
-    if (uri == null || uri.host.isEmpty) return;
+    // Secure cookies are meaningless (and a leak risk) off https.
+    if (uri == null || uri.host.isEmpty || uri.scheme != 'https') return;
     final hosts = <String>{uri.host};
     if (uri.host.startsWith('reader.')) {
       hosts.add(uri.host.substring('reader.'.length));

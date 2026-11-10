@@ -12,6 +12,7 @@ import '../../../services/media_store.dart';
 import '../../../providers/update_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_snack.dart';
+import '../../../utils/host_utils.dart';
 import '../../../widgets/state_transition_switch.dart';
 import '../../../widgets/update_dialog.dart';
 import '../../reader/reader_screen.dart';
@@ -182,19 +183,7 @@ class BookActionBar extends ConsumerWidget {
     final user = authState.user;
 
     // Build the reader domain from the custom domain
-    final String readerDomain;
-    final languagePrefixes = {'zh', 'en', 'de', 'fr', 'es', 'it', 'pt', 'ja', 'ko', 'ru', 'ar'};
-    final dotIndex = customDomain.indexOf('.');
-    if (dotIndex > 0) {
-      final prefix = customDomain.substring(0, dotIndex);
-      if (languagePrefixes.contains(prefix)) {
-        readerDomain = 'reader${customDomain.substring(dotIndex)}';
-      } else {
-        readerDomain = 'reader.$customDomain';
-      }
-    } else {
-      readerDomain = 'reader.$customDomain';
-    }
+    final readerDomain = readerDomainFor(customDomain);
 
     String url = book.readOnlineUrl!;
     url = url.replaceAll(RegExp(r'cdn\.reader\.'), 'reader.');
@@ -206,14 +195,21 @@ class BookActionBar extends ConsumerWidget {
     // 已登录就带会话：自定义线路登录时密码本来就发给该线路，
     // 会话只发给同线路的 reader 子域，不再按内置/自定义区分。
     // 未登录时 user 为 null，仍不带会话，站点会弹登录墙。
+    //
+    // readOnlineUrl comes from the server: only attach the session when the
+    // rewritten URL really points at this line's reader (https, own domain).
+    // Otherwise open it without a session (the site shows its login wall).
+    final trusted = isTrustedReaderUrl(url, customDomain);
     final userKey =
-        (user?.remixUserkey.isNotEmpty == true) ? user!.remixUserkey : null;
+        (trusted && user?.remixUserkey.isNotEmpty == true)
+            ? user!.remixUserkey
+            : null;
     AppRoutes.openReader(
       context,
       ReaderArgs(
         url: url,
         title: book.title,
-        remixUserId: user?.id,
+        remixUserId: userKey == null ? null : user?.id,
         remixUserKey: userKey,
       ),
     );

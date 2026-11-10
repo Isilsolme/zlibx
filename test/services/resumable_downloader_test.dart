@@ -16,6 +16,7 @@ class _Origin implements HttpClientAdapter {
   String? etag = '"v1"';
   String contentType = 'application/epub+zip';
   bool truncate = false; // advertise full length but send half
+  int? contentRangeStart; // lie about where a 206 body starts
   final List<Map<String, dynamic>> seen = [];
 
   @override
@@ -43,6 +44,9 @@ class _Origin implements HttpClientAdapter {
       }
       out = body.sublist(start);
       status = 206;
+      h['content-range'] = [
+        'bytes ${contentRangeStart ?? start}-${body.length - 1}/${body.length}',
+      ];
     }
     h[Headers.contentLengthHeader] = ['${out.length}'];
     final sent = truncate ? out.sublist(0, out.length ~/ 2) : out;
@@ -110,6 +114,20 @@ void main() {
     expect(await File(path).readAsBytes(), book);
     expect(o.seen.last['If-Range'], '"v1"');
     expect(o.seen.last['Range'], startsWith('bytes='));
+  });
+
+  test('restarts from zero when a 206 starts at a different offset', () async {
+    final o = _Origin(book)..truncate = true;
+    await expectLater(
+      ResumableDownloader.download(dioFor(o), 'https://x/f', path),
+      throwsA(isA<DownloadTruncatedException>()),
+    );
+    // Misbehaving proxy: answers 206 but says the body starts at byte 0.
+    o
+      ..truncate = false
+      ..contentRangeStart = 0;
+    await ResumableDownloader.download(dioFor(o), 'https://x/f', path);
+    expect(await File(path).readAsBytes(), book);
   });
 
   test('restarts from zero when the remote file changed', () async {

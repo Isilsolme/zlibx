@@ -166,6 +166,31 @@ class ResumableDownloader {
       return true;
     }
 
+    // A 206 must continue exactly where our partial file ends. A server
+    // (or proxy) that answers a different range would otherwise get its
+    // bytes appended at the wrong offset: a silently corrupt book. When
+    // Content-Range is present and disagrees, restart from zero.
+    if (code == 206 && start > 0) {
+      final cr = res.headers.value('content-range');
+      final m = cr == null
+          ? null
+          : RegExp(r'^\s*bytes\s+(\d+)-', caseSensitive: false).firstMatch(cr);
+      if (cr != null && (m == null || int.parse(m.group(1)!) != start)) {
+        await res.data?.stream.drain<void>();
+        if (pendingWriter != null) {
+          if (!await pendingWriter.reset()) {
+            throw const DownloadContentException(
+              'cannot recreate the pending MediaStore entry',
+            );
+          }
+        } else {
+          await file.writeAsBytes(const []);
+        }
+        if (await meta.exists()) await meta.delete();
+        return true;
+      }
+    }
+
     final contentType =
         (res.headers.value(HttpHeaders.contentTypeHeader) ?? '').toLowerCase();
     if (contentType.contains('text/html')) {

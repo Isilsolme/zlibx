@@ -212,17 +212,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           const Duration(seconds: 8),
         );
         
-        // Read response body to check for success
-        final bodyBytes = await response.expand((chunk) => chunk).toList();
-        final body = String.fromCharCodes(bodyBytes);
-        
-        // Check if API returns success
-        final isSuccess = body.contains('"success":1') || 
-                          body.contains('"success": 1') ||
-                          (response.statusCode >= 200 && response.statusCode < 300);
-        return isSuccess;
+        // Headers are enough (same rule as the speed test): a healthy
+        // mirror answers this endpoint 2xx. The body is never read, so a
+        // hostile or broken mirror cannot make us buffer an unbounded
+        // response, and a non-2xx page no longer counts as success.
+        return response.statusCode >= 200 && response.statusCode < 300;
       } finally {
-        client.close();
+        client.close(force: true);
       }
     } catch (e) {
       // Network-layer exception text can carry URLs or response
