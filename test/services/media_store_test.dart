@@ -12,7 +12,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../lib/services/media_store.dart';
+import 'package:zlibx/services/media_store.dart';
 
 /// Minimal in-memory stand-in for the Kotlin MediaStore side.
 class _FakeMediaStore {

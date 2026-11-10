@@ -12,8 +12,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../lib/providers/download_provider.dart';
-import '../lib/services/storage_service.dart';
+import 'package:zlibx/providers/download_provider.dart';
+import 'package:zlibx/services/storage_service.dart';
 
 /// In-memory stand-in for StorageService's download-history methods.
 class _FakeStorage extends StorageService {

@@ -15,8 +15,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
-import '../lib/services/media_store.dart';
-import '../lib/services/pending_uri_writer.dart';
+import 'package:zlibx/services/media_store.dart';
+import 'package:zlibx/services/pending_uri_writer.dart';
 
 /// In-memory stand-in for the Kotlin MediaStore side: entries are
 /// byte lists keyed by content URI. Flags let tests fail one call.
