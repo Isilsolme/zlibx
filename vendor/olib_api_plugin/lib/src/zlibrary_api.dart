@@ -366,7 +366,7 @@ abstract class ZLibraryApiBase {
 ///   than silently returning wrong data; see their doc comments.
 
 class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth {
-  ZLibraryApi({String? domain, Dio? dio}) : super(domain: domain, dio: dio);
+  ZLibraryApi({super.domain, super.dio});
 
   /// Called with the raw HTML of every booklist page the plugin loads
   /// successfully over Dio (list pages, profile page, detail page 1).
