@@ -227,6 +227,25 @@ class BooklistDetailController
         fetchedAt: fetchedAt,
       );
     }
+    // The fetch predates a write that invalidated this URL mid-flight:
+    // its data was dropped, and the snapshot it painted (if any) is
+    // stale too — a refresh that started while a remove was still in
+    // flight would otherwise leave the removed book on screen until
+    // the next refresh. Retry once with a fresh fetch; a second
+    // invalidation during the retry just drops again, no loop.
+    if (_isCurrent(generation) &&
+        BooklistHtmlCache.wasInvalidatedAfter(
+          list.url,
+          fetchedAt,
+          accountId: accountId,
+        )) {
+      await _loadDetailPage(
+        background: hasLocalSnapshot,
+        generation: generation,
+        accountId: accountId,
+        fetchedAt: DateTime.now(),
+      );
+    }
     if (!_isCurrent(generation)) return;
     state = state.copyWith(isLoading: false, isLoadingMore: false);
   }

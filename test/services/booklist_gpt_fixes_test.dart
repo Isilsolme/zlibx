@@ -406,6 +406,73 @@ void main() {
     );
   });
 
+  // Doc P1-4 residual: a refresh that starts while a remove is still
+  // in flight paints the pre-invalidation cache (the removed book is
+  // back on screen), and its fetch is dropped as stale — without a
+  // retry the book would linger until the next refresh. loadFirst
+  // retries once with a fresh fetch, which returns the post-remove
+  // page and paints it.
+  test('refresh during a remove retries once and paints the fresh page',
+      () async {
+    final api = _FakeZLibraryApi();
+    const url = 'https://example.com/booklist/7777777/hash/retry.html';
+    const args = BooklistDetailArgs(
+      booklist: Booklist(id: '7777777', name: 'Retry', url: url, count: 2),
+      canEdit: true,
+    );
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      1,
+      const [Book(id: 1, title: 'One'), Book(id: 2, title: 'Two')],
+      accountId: _user.id,
+    );
+    final container = await _loadedDetailContainer(api, args: args);
+    final provider = booklistDetailControllerProvider(args);
+    final notifier = container.read(provider.notifier);
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [1, 2],
+    );
+    // Hold both the remove's write and the refresh's fetch, then start
+    // the remove: its optimistic update lands, the write waits.
+    api.removeGate = Completer<ApiResponse<bool>>();
+    api.detailGate = Completer<ApiResponse<List<Book>>>();
+    final removeFuture =
+        notifier.removeBook(const Book(id: 1, title: 'One'));
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [2],
+    );
+    // The refresh starts while the remove is in flight: it paints the
+    // still-cached page (book 1 is back) and its fetch is held.
+    final refreshFuture = notifier.loadFirst();
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [1, 2],
+    );
+    // The remove completes and invalidates; the held fetch then lands
+    // stale and is dropped, so loadFirst retries with a fresh fetch.
+    api.removeGate!.complete(ApiResponse.ok(true));
+    await removeFuture;
+    api.detailGate!.complete(ApiResponse.ok(api.detailPage1));
+    api.detailGate = null;
+    api.detailPage1 = const [Book(id: 2, title: 'Two')];
+    await refreshFuture;
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [2],
+    );
+    expect(container.read(provider).isLoadingMore, isFalse);
+    expect(
+      BooklistHtmlCache.getBooksPage(url, 1, accountId: _user.id)
+          ?.map((book) => book.id)
+          .toList(),
+      [2],
+    );
+  });
+
   // Item 4: a stale loadMore must not clear a newer loadMore's flag.
   // A loads page 2, a refresh bumps the generation, B loads page 2;
   // when A finishes, isLoadingMore stays true (B owns it); when B
