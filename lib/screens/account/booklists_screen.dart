@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/booklist_detail_provider.dart';
 import '../../providers/booklists_provider.dart';
 import '../../providers/zlibrary_provider.dart';
@@ -13,7 +13,6 @@ import '../../widgets/loading_widget.dart';
 import 'widgets/create_booklist_dialog.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 /// Booklists: the signed-in user's own booklists and public booklists to
 /// discover, with search on both. Tapping a list opens its books. The
 /// "my booklists" tab can create a new list (`createBooklist`) and
@@ -61,7 +60,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   /// Ask for a name (and optional description), create the list on the
   /// account, then reload "my booklists" so the new list shows up.
   Future<void> _createBooklist() async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<({String title, String description})>(
       context: context,
       builder: (context) => const CreateBooklistDialog(),
@@ -75,15 +74,13 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         .createBooklist(title: result.title, description: result.description);
     if (!mounted) return;
     if (response.success) {
-      showAppSnackOn(messenger, l10n.get(S.booklistCreated));
+      showAppSnackOn(messenger, l10n.booklistCreated);
       if (ref.read(booklistsControllerProvider).tab == BooklistTab.mine) {
         await controller.loadFirst();
       }
     } else {
       showAppSnackOn(messenger,
-            l10n
-                .get(S.booklistCreateFailed)
-                .replaceAll('{error}', response.error ?? ''),
+            l10n.booklistCreateFailed(response.error ?? ''),
           );
     }
   }
@@ -92,20 +89,20 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   /// then the controller's optimistic removal; on failure the list is
   /// restored and the error is shown, on success the tab reloads.
   Future<void> _confirmDelete(Booklist list) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get(S.booklistDeleteConfirm)),
-        content: Text(l10n.get(S.booklistDeleteDesc)),
+        title: Text(l10n.booklistDeleteConfirm),
+        content: Text(l10n.booklistDeleteDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.get(S.cancel)),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.get(S.delete)),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -116,21 +113,19 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     final response = await controller.deleteBooklist(list);
     if (!mounted) return;
     if (response.success) {
-      showAppSnackOn(messenger, l10n.get(S.booklistDeleted));
+      showAppSnackOn(messenger, l10n.booklistDeleted);
       await controller.loadFirst();
     } else {
       showAppSnackOn(
         messenger,
-        l10n
-            .get(S.booklistDeleteFailed)
-            .replaceAll('{error}', response.error ?? ''),
+        l10n.booklistDeleteFailed(response.error ?? ''),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(booklistsControllerProvider);
     final controller = ref.read(booklistsControllerProvider.notifier);
     final showFab =
@@ -141,7 +136,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           ? FloatingActionButton.extended(
               onPressed: _createBooklist,
               icon: const Icon(Icons.add_rounded),
-              label: Text(l10n.get(S.createBooklist)),
+              label: Text(l10n.createBooklist),
             )
           : null,
       body: RefreshIndicator(
@@ -150,7 +145,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverAppBar.large(title: Text(l10n.get(S.booklists))),
+            SliverAppBar.large(title: Text(l10n.booklists)),
             SliverToBoxAdapter(child: _header(l10n, state, controller)),
             ..._body(l10n, state, controller),
           ],
@@ -178,12 +173,12 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 ButtonSegment(
                   value: BooklistTab.mine,
                   icon: const Icon(Icons.person_outline_rounded),
-                  label: Text(l10n.get(S.myBooklists)),
+                  label: Text(l10n.myBooklists),
                 ),
                 ButtonSegment(
                   value: BooklistTab.discover,
                   icon: const Icon(Icons.explore_outlined),
-                  label: Text(l10n.get(S.discoverBooklists)),
+                  label: Text(l10n.discoverBooklists),
                 ),
               ],
               selected: {state.tab},
@@ -217,12 +212,12 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           textInputAction: TextInputAction.search,
           onSubmitted: controller.search,
           decoration: InputDecoration(
-            hintText: l10n.get(S.searchBooklists),
+            hintText: l10n.searchBooklists,
             prefixIcon: const Icon(Icons.search_rounded),
             suffixIcon: value.text.isEmpty
                 ? null
                 : IconButton(
-                    tooltip: l10n.get(S.clear),
+                    tooltip: l10n.clear,
                     icon: const Icon(Icons.close_rounded),
                     onPressed: _clearSearch,
                   ),
@@ -250,11 +245,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.login_rounded,
-              title: l10n.get(S.loginToViewBooklists),
+              title: l10n.loginToViewBooklists,
               action: FilledButton(
                 onPressed: () =>
                     Navigator.of(context).pushNamed(AppRoutes.login),
-                child: Text(l10n.get(S.login)),
+                child: Text(l10n.login),
               ),
             ),
           ),
@@ -265,11 +260,11 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.error_outline,
-              title: l10n.get(S.error),
+              title: l10n.error,
               message: state.error,
               action: FilledButton(
                 onPressed: controller.loadFirst,
-                child: Text(l10n.get(S.retry)),
+                child: Text(l10n.retry),
               ),
             ),
           ),
@@ -281,7 +276,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
               hasScrollBody: false,
               child: EmptyState(
                 icon: Icons.collections_bookmark_outlined,
-                title: l10n.get(S.noBooklists),
+                title: l10n.noBooklists,
               ),
             ),
           ];

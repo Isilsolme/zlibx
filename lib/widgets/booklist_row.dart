@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 
-import '../l10n/s_keys.dart';
 /// One booklist row: cover thumb, name, author + book count + views,
 /// optional description, chevron. Shared by the booklists screen and
 /// the user profile page's booklists section.
@@ -15,14 +14,12 @@ class BooklistRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final meta = [
       if (list.author.isNotEmpty) list.author,
       if (list.count != null)
-        l10n
-            .get(S.booklistBookCount)
-            .replaceAll('{count}', list.count.toString()),
+        l10n.booklistBookCount(list.count!),
       if (list.views.isNotEmpty) list.views,
     ].join(' · ');
     return ListTile(

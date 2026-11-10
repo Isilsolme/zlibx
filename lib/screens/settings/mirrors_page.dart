@@ -13,14 +13,13 @@
 import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/material.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../services/instance_manager.dart';
 import '../../services/mirror_speed_test.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 /// Settings > Network > Mirrors.
 ///
 /// Every mirror the app can talk to, per service, exactly as
@@ -61,13 +60,6 @@ class _MirrorsPageState extends State<MirrorsPage> {
     MirrorService.zlibrary: 'Z-Library',
     MirrorService.welib: 'WeLib',
     MirrorService.annasArchive: "Anna's Archive",
-  };
-
-  static const _serviceSubtitleKeys = {
-    MirrorService.libgen: 'mirror_service_libgen_desc',
-    MirrorService.zlibrary: 'mirror_service_zlibrary_desc',
-    MirrorService.welib: 'mirror_service_welib_desc',
-    MirrorService.annasArchive: 'mirror_service_annas_desc',
   };
 
   @override
@@ -117,7 +109,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
   Future<void> _probeSpeed() async {
     if (_probing) return;
     setState(() => _probing = true);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     try {
       await MirrorSpeedTest().probeAll();
@@ -126,7 +118,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
       if (!mounted) return;
       showAppSnackOn(
         messenger,
-        l10n.get(S.mirrorSpeedTestDone),
+        l10n.mirrorSpeedTestDone,
         duration: const Duration(seconds: 2),
       );
     } catch (error) {
@@ -134,7 +126,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
       if (!mounted) return;
       showAppSnack(
         context,
-        l10n.get(S.mirrorSpeedTestFailed),
+        l10n.mirrorSpeedTestFailed,
         error: true,
       );
     } finally {
@@ -151,7 +143,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
   Future<void> _refresh() async {
     if (_refreshing) return;
     setState(() => _refreshing = true);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     try {
       final result = await InstanceManager().refresh();
@@ -163,7 +155,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
         // list is SLUM's answer.
         showAppSnack(
           context,
-          l10n.get(S.mirrorListUnreachable),
+          l10n.mirrorListUnreachable,
           error: true,
         );
         return;
@@ -171,17 +163,15 @@ class _MirrorsPageState extends State<MirrorsPage> {
       showAppSnackOn(
         messenger,
         result.changes.isEmpty
-            ? l10n.get(S.mirrorListUpToDate)
-            : l10n
-                .get(S.mirrorListUpdated)
-                .replaceAll('{count}', '${result.changes.length}'),
+            ? l10n.mirrorListUpToDate
+            : l10n.mirrorListUpdated(result.changes.length),
         duration: const Duration(seconds: 2),
       );
     } catch (e) {
       if (!mounted) return;
       showAppSnack(
         context,
-        l10n.get(S.mirrorRefreshFailed),
+        l10n.mirrorRefreshFailed,
         error: true,
       );
     } finally {
@@ -191,11 +181,11 @@ class _MirrorsPageState extends State<MirrorsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: GradientAppBar(
-        title: l10n.get(S.mirrors),
+        title: l10n.mirrors,
         actions: [
           if (_probing)
             const Padding(
@@ -205,7 +195,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
           else
             IconButton(
               icon: const Icon(Icons.speed),
-              tooltip: l10n.get(S.mirrorSpeedTest),
+              tooltip: l10n.mirrorSpeedTest,
               onPressed: _probeSpeed,
             ),
         ],
@@ -221,7 +211,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                   children: [
                     const Icon(Icons.error_outline, size: 48),
                     const SizedBox(height: 12),
-                    Text(l10n.get(S.mirrorsLoadFailed)),
+                    Text(l10n.mirrorsLoadFailed),
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: () {
@@ -231,7 +221,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                         });
                         _loadAll();
                       },
-                      child: Text(l10n.get(S.searchRetry)),
+                      child: Text(l10n.searchRetry),
                     ),
                   ],
                 ),
@@ -250,7 +240,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     child: Text(
-                      l10n.get(S.mirrorsFooterNote),
+                      l10n.mirrorsFooterNote,
                       style: const TextStyle(fontSize: 12),
                     ),
                   ),
@@ -271,10 +261,10 @@ class _MirrorsPageState extends State<MirrorsPage> {
           setState(() => _autoMode = value);
           await _loadAll();
         },
-        title: Text(l10n.get(S.mirrorAutoOrder)),
+        title: Text(l10n.mirrorAutoOrder),
         subtitle: Text(_autoMode
-            ? l10n.get(S.mirrorAutoDesc)
-            : l10n.get(S.mirrorManualDesc)),
+            ? l10n.mirrorAutoDesc
+            : l10n.mirrorManualDesc),
         secondary:
             Icon(_autoMode ? Icons.auto_awesome : Icons.touch_app),
       ),
@@ -292,7 +282,12 @@ class _MirrorsPageState extends State<MirrorsPage> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           Text(
-            l10n.get(_serviceSubtitleKeys[service] ?? ''),
+            switch (service) {
+              MirrorService.libgen => l10n.mirrorServiceLibgenDesc,
+              MirrorService.zlibrary => l10n.mirrorServiceZlibraryDesc,
+              MirrorService.welib => l10n.mirrorServiceWelibDesc,
+              MirrorService.annasArchive => l10n.mirrorServiceAnnasDesc,
+            },
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -311,8 +306,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
       return ListTile(
         dense: true,
         leading: const Icon(Icons.cloud_off),
-        title: Text(l10n.get(S.mirrorsNoMirrors)),
-        subtitle: Text(l10n.get(S.mirrorsNoMirrorsHint)),
+        title: Text(l10n.mirrorsNoMirrors),
+        subtitle: Text(l10n.mirrorsNoMirrorsHint),
         trailing: IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: _refresh,
@@ -350,10 +345,8 @@ class _MirrorsPageState extends State<MirrorsPage> {
             if (site.protection != Protection.none) site.protection.label,
             if (site.latencyMs != null) '${site.latencyMs}ms',
             if (measured != null)
-              l10n
-                  .get(S.mirrorDeviceMs)
-                  .replaceAll('{ms}', '$measured'),
-            if (down) l10n.get(S.mirrorsDownHint),
+              l10n.mirrorDeviceMs(measured),
+            if (down) l10n.mirrorsDownHint,
           ].join(' · '),
           style: const TextStyle(fontSize: 12),
         ),
@@ -364,7 +357,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
               IconButton(
                 icon: const Icon(Icons.keyboard_arrow_up),
                 iconSize: 20,
-                tooltip: l10n.get(S.mirrorMoveUp),
+                tooltip: l10n.mirrorMoveUp,
                 onPressed: index == 0
                     ? null
                     : () async {
@@ -376,7 +369,7 @@ class _MirrorsPageState extends State<MirrorsPage> {
               IconButton(
                 icon: const Icon(Icons.keyboard_arrow_down),
                 iconSize: 20,
-                tooltip: l10n.get(S.mirrorMoveDown),
+                tooltip: l10n.mirrorMoveDown,
                 onPressed: index == total - 1
                     ? null
                     : () async {

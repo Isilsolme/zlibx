@@ -10,11 +10,10 @@ import '../../widgets/domain_selector.dart';
 import '../../widgets/mirror_trust_dialog.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/update_dialog.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'widgets/account_manager_sheet.dart';
 import 'login_failure.dart';
 
-import '../../l10n/s_keys.dart';
 class LoginScreen extends ConsumerStatefulWidget {
   final bool addAccountMode;
 
@@ -68,15 +67,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context,
         SnackBar(
           content: Text(
-            AppLocalizations.of(context)
-                .get(S.newVersionFound)
-                .replaceAll(
-                  '{version}',
-                  '${ref.read(updateProvider).latestVersion}',
-                ),
+            AppLocalizations.of(context)!.newVersionFound(
+              ref.read(updateProvider).latestVersion ?? '',
+            ),
           ),
           action: SnackBarAction(
-            label: AppLocalizations.of(context).get(S.update),
+            label: AppLocalizations.of(context)!.update,
             onPressed: () => showUpdateDialog(context),
           ),
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -149,12 +145,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.warning,
           animType: AnimType.bottomSlide,
-          title: AppLocalizations.of(context).get(S.lineUnavailable),
-          desc: AppLocalizations.of(context).get(
-              cf ? 'login_line_blocked_cf' : 'login_line_connect_failed'),
-          btnCancelText: AppLocalizations.of(context).get(S.close),
+          title: AppLocalizations.of(context)!.lineUnavailable,
+          desc: cf
+              ? AppLocalizations.of(context)!.loginLineBlockedCf
+              : AppLocalizations.of(context)!.loginLineConnectFailed,
+          btnCancelText: AppLocalizations.of(context)!.close,
           btnCancelOnPress: () {},
-          btnOkText: AppLocalizations.of(context).get(S.switchLine),
+          btnOkText: AppLocalizations.of(context)!.switchLine,
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
             showDialog(
@@ -168,11 +165,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context: context,
           dialogType: DialogType.error,
           animType: AnimType.bottomSlide,
-          title: AppLocalizations.of(context).get(S.loginFailed),
+          title: AppLocalizations.of(context)!.loginFailed,
           desc: failureKind == LoginFailureKind.credentials
-              ? (AppLocalizations.of(context).get(S.loginBadCredentials))
-              : (AppLocalizations.of(context).get(S.loginUnknownFailure).replaceAll('{line}', lineName).replaceAll('{time}', occurredAt).replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
-          btnOkText: AppLocalizations.of(context).get(S.confirmOk),
+              ? (AppLocalizations.of(context)!.loginBadCredentials)
+              : (AppLocalizations.of(context)!.loginUnknownFailure(lineName, occurredAt, safeLoginErrorDetail(error, email, password))),
+          btnOkText: AppLocalizations.of(context)!.confirmOk,
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
         ).show();
@@ -254,9 +251,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 24),
 
                   Text(
-                    AppLocalizations.of(context).get(
-                      widget.addAccountMode ? 'add_account' : 'welcome_back',
-                    ),
+                    widget.addAccountMode
+                        ? AppLocalizations.of(context)!.addAccount
+                        : AppLocalizations.of(context)!.welcomeBack,
                     style: Theme.of(
                       context,
                     ).textTheme.displayMedium?.copyWith(color: Colors.white),
@@ -265,11 +262,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 8),
 
                   Text(
-                    AppLocalizations.of(context).get(
-                      widget.addAccountMode
-                          ? 'add_account_subtitle'
-                          : 'login_to_continue',
-                    ),
+                    widget.addAccountMode
+                        ? AppLocalizations.of(context)!.addAccountSubtitle
+                        : AppLocalizations.of(context)!.loginToContinue,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.white.withValues(alpha: 0.8),
                     ),
@@ -313,7 +308,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   child: Text(
                                     AppLocalizations.of(
                                       context,
-                                    ).get(S.useAnotherAccount),
+                                    )!.useAnotherAccount,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
@@ -334,7 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(
                                 context,
-                              ).get(S.email),
+                              )!.email,
                               prefixIcon: const Icon(Icons.email_outlined),
                             ),
                             validator: (value) {
@@ -356,7 +351,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: InputDecoration(
                               labelText: AppLocalizations.of(
                                 context,
-                              ).get(S.password),
+                              )!.password,
                               prefixIcon: const Icon(Icons.lock_outlined),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -400,7 +395,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       color: Colors.white,
                                     )
                                   : Text(
-                                      AppLocalizations.of(context).get(S.login),
+                                      AppLocalizations.of(context)!.login,
                                     ),
                             ),
                           ),
@@ -412,7 +407,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               label: Text(
                                 AppLocalizations.of(
                                   context,
-                                ).get(S.manageAccounts),
+                                )!.manageAccounts,
                               ),
                             ),
                           ],
@@ -441,12 +436,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildRecentAccountEntry(BuildContext context) {
     final account = _savedAccounts.last;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final name = account['name']?.toString().trim();
     final email = account['email']?.toString().trim();
     final displayName = name == null || name.isEmpty
-        ? l10n.get(S.unknown)
+        ? l10n.unknown
         : name;
 
     return Material(
@@ -470,7 +465,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.get(S.recentAccount),
+                      l10n.recentAccount,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
@@ -525,7 +520,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  AppLocalizations.of(context).get(S.loginUseZsiteAccount),
+                  AppLocalizations.of(context)!.loginUseZsiteAccount,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 13,
@@ -537,7 +532,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            AppLocalizations.of(context).get(S.loginNoAccountHint),
+            AppLocalizations.of(context)!.loginNoAccountHint,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.6),
               fontSize: 12,
@@ -556,7 +551,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
       },
       child: Text(
-        AppLocalizations.of(context).get(S.loginSkipExplore),
+        AppLocalizations.of(context)!.loginSkipExplore,
         style: TextStyle(
           color: Colors.white.withValues(alpha: 0.7),
           fontSize: 13,
@@ -574,17 +569,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       children: [
         _buildBadge(
           icon: Icons.code,
-          text: AppLocalizations.of(context).get(S.badgeOpenSource),
+          text: AppLocalizations.of(context)!.badgeOpenSource,
           color: Colors.green,
         ),
         _buildBadge(
           icon: Icons.money_off,
-          text: AppLocalizations.of(context).get(S.searchFree),
+          text: AppLocalizations.of(context)!.searchFree,
           color: Colors.blue,
         ),
         _buildBadge(
           icon: Icons.smart_toy_outlined,
-          text: AppLocalizations.of(context).get(S.badgeAiBuilt),
+          text: AppLocalizations.of(context)!.badgeAiBuilt,
           color: Colors.purple,
         ),
       ],

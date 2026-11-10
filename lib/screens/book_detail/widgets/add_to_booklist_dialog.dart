@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../../../l10n/app_localizations.dart';
-import '../../../l10n/s_keys.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/booklists_provider.dart';
 import '../../../providers/zlibrary_provider.dart';
@@ -43,13 +42,13 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // The picker's own controller instance (mine tab by default);
     // watching the shared controller here used to flip the
     // booklists screen's tab to mine as a side effect.
     final state = ref.watch(addToBooklistPickerProvider);
     return AlertDialog(
-      title: Text(l10n.get(S.selectBooklist)),
+      title: Text(l10n.selectBooklist),
       content: SizedBox(
         width: double.maxFinite,
         child: _body(l10n, state),
@@ -58,7 +57,7 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
         TextButton(
           onPressed:
               _busy ? null : () => Navigator.of(context).pop(false),
-          child: Text(l10n.get(S.cancel)),
+          child: Text(l10n.cancel),
         ),
       ],
     );
@@ -75,11 +74,11 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(l10n.get(S.loginToViewBooklists)),
+            Text(l10n.loginToViewBooklists),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.get(S.login)),
+              child: Text(l10n.login),
             ),
           ],
         );
@@ -87,18 +86,18 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(state.error ?? l10n.get(S.error)),
+            Text(state.error ?? l10n.error),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: () =>
                   ref.read(addToBooklistPickerProvider.notifier).loadFirst(),
-              child: Text(l10n.get(S.retry)),
+              child: Text(l10n.retry),
             ),
           ],
         );
       case BooklistsPhase.ready:
         if (state.lists.isEmpty) {
-          return Text(l10n.get(S.noBooklists));
+          return Text(l10n.noBooklists);
         }
         // Page 1 only (10 lists) — the picker is a quick pick, not a
         // browser; more lists live on the booklists tab.
@@ -120,9 +119,7 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
                     subtitle: list.count == null
                         ? null
                         : Text(
-                            l10n
-                                .get(S.booklistBookCount)
-                                .replaceAll('{count}', '${list.count}'),
+                            l10n.booklistBookCount(list.count!),
                           ),
                     onTap: _busy ? null : () => _add(list),
                   ),
@@ -154,7 +151,7 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
       ref.read(booklistsControllerProvider.notifier).noteBookAdded(list.id);
       showAppSnack(
         context,
-        AppLocalizations.of(context).get(S.addToBooklistSuccess),
+        AppLocalizations.of(context)!.addToBooklistSuccess,
       );
       Navigator.of(context).pop(false);
       return;
@@ -162,9 +159,7 @@ class _AddToBooklistDialogState extends ConsumerState<_AddToBooklistDialog> {
     setState(() => _busy = false);
     showAppSnack(
       context,
-      AppLocalizations.of(context)
-          .get(S.addToBooklistFailed)
-          .replaceAll('{error}', response.error ?? ''),
+      AppLocalizations.of(context)!.addToBooklistFailed(response.error ?? ''),
     );
   }
 }

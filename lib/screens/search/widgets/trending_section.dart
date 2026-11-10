@@ -1,8 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_localizations.dart';
-import '../../../l10n/s_keys.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../services/open_library.dart';
 import '../../../utils/cover_cache.dart';
 import '../../../widgets/cover_placeholder.dart';
@@ -41,7 +40,7 @@ class SearchTrendingSection extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                l10n.get(S.trendingOnOpenLibrary),
+                l10n.trendingOnOpenLibrary,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),

@@ -18,13 +18,12 @@ import '../../widgets/domain_selector.dart';
 import '../../widgets/update_dialog.dart';
 import '../../models/display_book.dart';
 import '../../routes/app_routes.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../account/account_screen.dart';
 import '../downloads/local_downloads_screen.dart';
 import '../settings/settings_screen.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -263,9 +262,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                AppLocalizations.of(
-                                  context,
-                                ).get(destinations[i].labelKey),
+                                switch (destinations[i].labelKey) {
+                                  'downloads' =>
+                                      AppLocalizations.of(context)!.downloads,
+                                  'account' =>
+                                      AppLocalizations.of(context)!.account,
+                                  'settings' =>
+                                      AppLocalizations.of(context)!.settings,
+                                  _ =>
+                                      AppLocalizations.of(context)!.recommended,
+                                },
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: _selectedIndex == i
@@ -358,17 +364,17 @@ String _getGreeting(BuildContext context) {
   final hour = DateTime.now().hour;
 
   if (hour < 6) {
-    return AppLocalizations.of(context).get(S.greetingLateNight);
+    return AppLocalizations.of(context)!.greetingLateNight;
   } else if (hour < 12) {
-    return AppLocalizations.of(context).get(S.goodMorning);
+    return AppLocalizations.of(context)!.goodMorning;
   } else if (hour < 14) {
-    return AppLocalizations.of(context).get(S.greetingNoon);
+    return AppLocalizations.of(context)!.greetingNoon;
   } else if (hour < 18) {
-    return AppLocalizations.of(context).get(S.greetingAfternoon);
+    return AppLocalizations.of(context)!.greetingAfternoon;
   } else if (hour < 22) {
-    return AppLocalizations.of(context).get(S.greetingEvening);
+    return AppLocalizations.of(context)!.greetingEvening;
   } else {
-    return AppLocalizations.of(context).get(S.greetingLateNight);
+    return AppLocalizations.of(context)!.greetingLateNight;
   }
 }
 
@@ -476,7 +482,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       if (mounted && (!res.success || books == null)) {
         showAppSnack(
           context,
-          AppLocalizations.of(context).get(S.refreshFailed),
+          AppLocalizations.of(context)!.refreshFailed,
         );
       }
       return;
@@ -510,18 +516,15 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  AppLocalizations.of(context)
-                      .get(S.newVersionFound)
-                      .replaceAll(
-                        '{version}',
-                        '${ref.read(updateProvider).latestVersion}',
-                      ),
+                  AppLocalizations.of(context)!.newVersionFound(
+                    ref.read(updateProvider).latestVersion ?? '',
+                  ),
                 ),
               ),
             ],
           ),
           action: SnackBarAction(
-            label: AppLocalizations.of(context).get(S.update),
+            label: AppLocalizations.of(context)!.update,
             textColor: Colors.white,
             onPressed: () => showUpdateDialog(context),
           ),
@@ -609,7 +612,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                   children: [
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get(S.searchForBooks),
+                        AppLocalizations.of(context)!.searchForBooks,
                         style: TextStyle(
                           color:
                               cs.onSurfaceVariant.withValues(alpha: 0.7),
@@ -639,7 +642,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.name ?? (AppLocalizations.of(context).get(S.reader)),
+                  user?.name ?? (AppLocalizations.of(context)!.reader),
                   style: theme.textTheme.displaySmall?.copyWith(
                     color: cs.onSurface,
                     fontWeight: FontWeight.bold,
@@ -714,7 +717,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppLocalizations.of(context).get(S.lineUnavailableCurrent),
+                        AppLocalizations.of(context)!.lineUnavailableCurrent,
                         style: TextStyle(
                           color: Colors.orange.shade900,
                           fontWeight: FontWeight.w600,
@@ -722,7 +725,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
                         ),
                       ),
                       Text(
-                        AppLocalizations.of(context).get(S.lineCachedLoginHint),
+                        AppLocalizations.of(context)!.lineCachedLoginHint,
                         style: TextStyle(
                           color: Colors.orange.shade800,
                           fontSize: 11,
@@ -812,7 +815,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       loading: () => Padding(
         padding: EdgeInsets.only(top: topPadding + 40, bottom: 40),
         child: LoadingWidget(
-          message: AppLocalizations.of(context).get(S.loadingTrendingBooks),
+          message: AppLocalizations.of(context)!.loadingTrendingBooks,
         ),
       ),
       error: (error, stack) => Padding(

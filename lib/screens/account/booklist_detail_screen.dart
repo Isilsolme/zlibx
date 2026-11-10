@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../models/display_book.dart';
 import '../../providers/booklist_detail_provider.dart';
 import '../../routes/app_routes.dart';
@@ -11,7 +11,6 @@ import '../../widgets/booklist_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_widget.dart';
 
-import '../../l10n/s_keys.dart';
 import '../../utils/app_snack.dart';
 // Existing callers (main.dart routes, the profile page) import the args
 // class from this screen's library.
@@ -59,20 +58,20 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
   /// controller's optimistic removal; on failure the book is restored
   /// and the error is shown.
   Future<void> _confirmRemove(Book book) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get(S.booklistRemoveBookConfirm)),
+        title: Text(l10n.booklistRemoveBookConfirm),
         content: Text(book.title),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.get(S.cancel)),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.get(S.remove)),
+            child: Text(l10n.remove),
           ),
         ],
       ),
@@ -82,20 +81,18 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     final response = await ref.read(_provider.notifier).removeBook(book);
     if (!mounted) return;
     if (response.success) {
-      showAppSnackOn(messenger, l10n.get(S.booklistBookRemoved));
+      showAppSnackOn(messenger, l10n.booklistBookRemoved);
     } else {
       showAppSnackOn(
         messenger,
-        l10n
-            .get(S.booklistRemoveBookFailed)
-            .replaceAll('{error}', response.error ?? ''),
+        l10n.booklistRemoveBookFailed(response.error ?? ''),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(_provider);
     final controller = ref.read(_provider.notifier);
     final booklist = widget.args.booklist;
@@ -130,7 +127,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.only(top: 48),
-            child: LoadingWidget(message: l10n.get(S.loading)),
+            child: LoadingWidget(message: l10n.loading),
           ),
         ),
       ];
@@ -141,11 +138,11 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
           hasScrollBody: false,
           child: EmptyState(
             icon: Icons.error_outline,
-            title: l10n.get(S.error),
+            title: l10n.error,
             message: state.error,
             action: FilledButton(
               onPressed: controller.loadFirst,
-              child: Text(l10n.get(S.retry)),
+              child: Text(l10n.retry),
             ),
           ),
         ),
@@ -157,7 +154,7 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
           hasScrollBody: false,
           child: EmptyState(
             icon: Icons.collections_bookmark_outlined,
-            title: l10n.get(S.noBooklistBooks),
+            title: l10n.noBooklistBooks,
           ),
         ),
       ];

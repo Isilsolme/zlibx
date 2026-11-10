@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/update_dialog.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../auth/login_screen.dart';
 import 'widgets/download_path_section.dart';
 import 'widgets/donation_key_section.dart';
@@ -14,7 +14,6 @@ import 'widgets/network_section.dart';
 import 'widgets/section_header.dart';
 import 'widgets/settings_card.dart';
 
-import '../../l10n/s_keys.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -22,7 +21,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final t = AppLocalizations.of(context);
+    final t = AppLocalizations.of(context)!;
 
     // No top bar: this is a bottom-nav tab, like the account page —
     // the title bar only eats vertical space.
@@ -53,8 +52,8 @@ class SettingsScreen extends ConsumerWidget {
             SettingsCard(
               child: ListTile(
                 leading: const Icon(Icons.login),
-                title: Text(t.get(S.login)),
-                subtitle: Text(t.get(S.loginToContinue)),
+                title: Text(t.login),
+                subtitle: Text(t.loginToContinue),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => Navigator.of(context).push<bool>(
                   MaterialPageRoute(
@@ -83,18 +82,18 @@ class SettingsScreen extends ConsumerWidget {
           // ── Update ───────────────────────────────────────────────
           SectionHeader(
             icon: Icons.system_update_rounded,
-            title: AppLocalizations.of(context).get(S.update),
+            title: AppLocalizations.of(context)!.update,
           ),
           SettingsCard(
             child: ListTile(
               leading: const Icon(Icons.system_update),
-              title: Text(AppLocalizations.of(context).get(S.checkForUpdates)),
+              title: Text(AppLocalizations.of(context)!.checkForUpdates),
               subtitle: FutureBuilder<PackageInfo>(
                 future: PackageInfo.fromPlatform(),
                 builder: (context, snapshot) {
                   final version = snapshot.data?.version ?? '...';
                   return Text(
-                    AppLocalizations.of(context).get(S.currentVersionLabel).replaceAll('{version}', version),
+                    AppLocalizations.of(context)!.currentVersionLabel(version),
                   );
                 },
               ),

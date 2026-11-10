@@ -10,10 +10,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zlibx/utils/host_utils.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 class ReaderScreen extends StatefulWidget {
   final String url;
   final String title;
@@ -125,7 +124,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
       if (!names.contains('remix_userid') ||
           !names.contains('remix_userkey')) {
         showAppSnack(context,
-              AppLocalizations.of(context).get(S.readerSessionWriteFailed),
+              AppLocalizations.of(context)!.readerSessionWriteFailed,
             );
       }
     } catch (error) {
@@ -168,7 +167,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   Future<void> _shareProbeLog() async {
-    final localizations = AppLocalizations.of(context);
+    final localizations = AppLocalizations.of(context)!;
     final entryCount = _probeLog.length;
     try {
       final dir = await getApplicationDocumentsDirectory();
@@ -185,17 +184,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
         ShareParams(
           files: [XFile(file.path)],
           subject: 'Litera Probe Log (${_probeLog.length} entries)',
-          text: localizations
-              .get(S.readerResourceLogCount)
-              .replaceAll('{count}', '$entryCount'),
+          text: localizations.readerResourceLogCount(entryCount),
         ),
       );
     } catch (e) {
       if (mounted) {
         showAppSnack(context,
-              AppLocalizations.of(context)
-                  .get(S.readerLogExportFailed)
-                  .replaceAll('{error}', '$e'),
+              AppLocalizations.of(context)!.readerLogExportFailed('$e'),
             );
       }
     }
@@ -268,8 +263,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
             ),
             IconButton(
-              tooltip: AppLocalizations.of(context)
-                .get(S.readerExportResourceLog),
+              tooltip: AppLocalizations.of(context)!
+                .readerExportResourceLog,
               icon: const Icon(Icons.ios_share),
               onPressed: _probeLog.isEmpty ? null : _shareProbeLog,
             ),

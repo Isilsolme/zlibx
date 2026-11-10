@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/update_provider.dart';
 import '../utils/app_snack.dart';
 import 'loading_widget.dart';
 
-import '../l10n/s_keys.dart';
 /// 更新对话框：Release 清单里的下载渠道（网盘等）+ 官网 + GitHub，用户自选。
 ///
 /// 强制更新时不可关闭（返回键 / 点遮罩均无效）。
@@ -30,7 +29,7 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
         children: [
           const LoadingWidget.inline(),
           const SizedBox(width: 20),
-          Text(AppLocalizations.of(context).get(S.checkingUpdates)),
+          Text(AppLocalizations.of(context)!.checkingUpdates),
         ],
       ),
     ),
@@ -49,12 +48,12 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
   await showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(AppLocalizations.of(context).get(S.upToDateTitle)),
-      content: Text(AppLocalizations.of(context).get(S.upToDateDesc)),
+      title: Text(AppLocalizations.of(context)!.upToDateTitle),
+      content: Text(AppLocalizations.of(context)!.upToDateDesc),
       actions: [
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: Text(AppLocalizations.of(context).get(S.gotIt)),
+          child: Text(AppLocalizations.of(context)!.gotIt),
         ),
       ],
     ),
@@ -92,7 +91,7 @@ class _UpdateDialog extends ConsumerWidget {
         ),
       if (update.downloadUrl != null)
         _Channel(
-          AppLocalizations.of(context).get(S.websiteDownload),
+          AppLocalizations.of(context)!.websiteDownload,
           update.downloadUrl!,
           Icons.language,
         ),
@@ -104,8 +103,8 @@ class _UpdateDialog extends ConsumerWidget {
       icon: Icon(Icons.system_update, color: cs.primary, size: 32),
       title: Text(
         forced
-            ? (AppLocalizations.of(context).get(S.updateRequired))
-            : (AppLocalizations.of(context).get(S.updateFoundTitle).replaceAll('{version}', '${update.latestVersion}')),
+            ? (AppLocalizations.of(context)!.updateRequired)
+            : (AppLocalizations.of(context)!.updateFoundTitle(update.latestVersion ?? '')),
         textAlign: TextAlign.center,
       ),
       content: SizedBox(
@@ -116,7 +115,7 @@ class _UpdateDialog extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context).get(S.updateCurrentLatest).replaceAll('{current}', '${update.currentVersion}').replaceAll('{latest}', '${update.latestVersion}'),
+                AppLocalizations.of(context)!.updateCurrentLatest(update.currentVersion ?? '', update.latestVersion ?? ''),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: cs.onSurfaceVariant,
@@ -125,7 +124,7 @@ class _UpdateDialog extends ConsumerWidget {
               if (forced) ...[
                 const SizedBox(height: 12),
                 Text(
-                  AppLocalizations.of(context).get(S.updateUnsupported),
+                  AppLocalizations.of(context)!.updateUnsupported,
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
@@ -151,7 +150,7 @@ class _UpdateDialog extends ConsumerWidget {
               ],
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context).get(S.chooseDownloadSource),
+                AppLocalizations.of(context)!.chooseDownloadSource,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: cs.onSurfaceVariant,
                 ),
@@ -164,7 +163,7 @@ class _UpdateDialog extends ConsumerWidget {
               if (update.droppedLinkCount > 0) ...[
                 const SizedBox(height: 12),
                 Text(
-                  AppLocalizations.of(context).get(S.updateDroppedLinks).replaceAll('{count}', '${update.droppedLinkCount}'),
+                  AppLocalizations.of(context)!.updateDroppedLinks(update.droppedLinkCount),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -181,7 +180,7 @@ class _UpdateDialog extends ConsumerWidget {
               ref.read(updateProvider.notifier).dismissUpdate();
               Navigator.of(context).pop();
             },
-            child: Text(AppLocalizations.of(context).get(S.later)),
+            child: Text(AppLocalizations.of(context)!.later),
           ),
       ],
     );
