@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 392 getters/methods, in all 5 locales, plus the 20
+// every one of the 393 getters/methods, in all 5 locales, plus the 20
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -272,6 +272,7 @@ void main() {
     expect(loc.openFileFailed, 'Could not open file');
     expect(loc.openFolder, 'Open Folder');
     expect(loc.openFolderFailed, 'Could not open download folder directly. Please check your "Download" folder app.');
+    expect(loc.openSourceLicenses, 'Open Source Licenses');
     expect(loc.original, 'Original');
     expect(loc.page, 'Page');
     expect(loc.pages, 'Pages');
@@ -668,6 +669,7 @@ void main() {
     expect(loc.openFileFailed, 'ファイルを開けませんでした');
     expect(loc.openFolder, 'フォルダを開く');
     expect(loc.openFolderFailed, 'ダウンロードフォルダを直接開けませんでした。ダウンロードフォルダアプリをご確認ください。');
+    expect(loc.openSourceLicenses, 'オープンソースライセンス');
     expect(loc.original, 'オリジナル');
     expect(loc.page, 'ページ');
     expect(loc.pages, 'ページ数');
@@ -1064,6 +1066,7 @@ void main() {
     expect(loc.openFileFailed, '파일을 열 수 없습니다');
     expect(loc.openFolder, '폴더 열기');
     expect(loc.openFolderFailed, '다운로드 폴더를 직접 열 수 없습니다. 다운로드 폴더 앱을 확인해 주세요.');
+    expect(loc.openSourceLicenses, '오픈소스 라이선스');
     expect(loc.original, '원본');
     expect(loc.page, '페이지');
     expect(loc.pages, '페이지 수');
@@ -1460,6 +1463,7 @@ void main() {
     expect(loc.openFileFailed, '无法打开文件');
     expect(loc.openFolder, '打开文件夹');
     expect(loc.openFolderFailed, '无法直接打开下载文件夹。请检查您的文件管理应用。');
+    expect(loc.openSourceLicenses, '开源许可');
     expect(loc.original, '原版');
     expect(loc.page, '页');
     expect(loc.pages, '页数');
@@ -1856,6 +1860,7 @@ void main() {
     expect(loc.openFileFailed, '無法開啟檔案');
     expect(loc.openFolder, '開啟資料夾');
     expect(loc.openFolderFailed, '無法直接開啟下載資料夾。請檢查您的檔案管理應用程式。');
+    expect(loc.openSourceLicenses, '開源許可');
     expect(loc.original, '原版');
     expect(loc.page, '頁');
     expect(loc.pages, '頁數');

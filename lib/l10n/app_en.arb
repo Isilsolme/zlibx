@@ -341,6 +341,7 @@
   "openFileFailed": "Could not open file",
   "openFolder": "Open Folder",
   "openFolderFailed": "Could not open download folder directly. Please check your \"Download\" folder app.",
+  "openSourceLicenses": "Open Source Licenses",
   "original": "Original",
   "page": "Page",
   "pages": "Pages",

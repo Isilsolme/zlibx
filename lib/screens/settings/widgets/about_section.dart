@@ -48,6 +48,17 @@ class AboutSection extends StatelessWidget {
                 onTap: () =>
                     _launchUrl('https://github.com/minglaiyo/zlibx'),
               ),
+              const SettingsDivider(),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title:
+                    Text(AppLocalizations.of(context)!.openSourceLicenses),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'zlibx',
+                ),
+              ),
             ],
           ),
         ),

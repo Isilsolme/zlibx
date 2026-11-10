@@ -341,6 +341,7 @@
   "openFileFailed": "無法開啟檔案",
   "openFolder": "開啟資料夾",
   "openFolderFailed": "無法直接開啟下載資料夾。請檢查您的檔案管理應用程式。",
+  "openSourceLicenses": "開源許可",
   "original": "原版",
   "page": "頁",
   "pages": "頁數",

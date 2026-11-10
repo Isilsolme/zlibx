@@ -341,6 +341,7 @@
   "openFileFailed": "파일을 열 수 없습니다",
   "openFolder": "폴더 열기",
   "openFolderFailed": "다운로드 폴더를 직접 열 수 없습니다. 다운로드 폴더 앱을 확인해 주세요.",
+  "openSourceLicenses": "오픈소스 라이선스",
   "original": "원본",
   "page": "페이지",
   "pages": "페이지 수",

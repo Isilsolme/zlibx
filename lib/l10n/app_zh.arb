@@ -341,6 +341,7 @@
   "openFileFailed": "无法打开文件",
   "openFolder": "打开文件夹",
   "openFolderFailed": "无法直接打开下载文件夹。请检查您的文件管理应用。",
+  "openSourceLicenses": "开源许可",
   "original": "原版",
   "page": "页",
   "pages": "页数",

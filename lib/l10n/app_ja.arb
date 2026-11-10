@@ -341,6 +341,7 @@
   "openFileFailed": "ファイルを開けませんでした",
   "openFolder": "フォルダを開く",
   "openFolderFailed": "ダウンロードフォルダを直接開けませんでした。ダウンロードフォルダアプリをご確認ください。",
+  "openSourceLicenses": "オープンソースライセンス",
   "original": "オリジナル",
   "page": "ページ",
   "pages": "ページ数",
