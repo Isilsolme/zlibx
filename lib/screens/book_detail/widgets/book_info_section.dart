@@ -117,6 +117,26 @@ class BookInfoSection extends StatelessWidget {
                 ),
               ),
             ],
+            // Add this book to one of the user's own booklists.
+            const SizedBox(height: 8),
+            Divider(
+              height: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.5),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.collections_bookmark_outlined,
+                color: cs.primary,
+                size: 22,
+              ),
+              title: Text(
+                l10n.addToBooklist,
+                style: const TextStyle(fontSize: 15),
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              onTap: () => _addToBooklist(context, book),
+            ),
             // Book comments (Z-Library site comments, view-only).
             const SizedBox(height: 8),
             Divider(
@@ -142,26 +162,6 @@ class BookInfoSection extends StatelessWidget {
                   bookTitle: book.title,
                 ),
               ),
-            ),
-            // Add this book to one of the user's own booklists.
-            const SizedBox(height: 8),
-            Divider(
-              height: 1,
-              color: cs.outlineVariant.withValues(alpha: 0.5),
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(
-                Icons.collections_bookmark_outlined,
-                color: cs.primary,
-                size: 22,
-              ),
-              title: Text(
-                l10n.addToBooklist,
-                style: const TextStyle(fontSize: 15),
-              ),
-              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-              onTap: () => _addToBooklist(context, book),
             ),
           ],
         ),
