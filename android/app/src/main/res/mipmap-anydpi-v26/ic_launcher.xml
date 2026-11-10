@@ -6,4 +6,11 @@
           android:drawable="@drawable/ic_launcher_foreground"
           android:inset="16%" />
   </foreground>
+  <!-- Monochrome layer for Android 13+ themed ("dynamic colour") launcher
+       icons: the launcher keeps only this layer's alpha and paints it with
+       the wallpaper palette. It must be a VectorDrawable — a bitmap layer is
+       ignored by Honor/MagicOS — traced from tool/icons/olib-app-logo.png
+       into res/drawable/ic_launcher_monochrome.xml (the 16% inset of the
+       foreground is baked into that vector's <group> transform). -->
+  <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>
