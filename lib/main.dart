@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/settings_provider.dart';
@@ -34,8 +33,7 @@ import 'services/storage_service.dart';
 import 'services/challenge_html_cache.dart';
 import 'services/webview_challenge_solver.dart';
 import 'screens/challenge_solver/challenge_solver_screen.dart';
-import 'l10n/app_localizations.dart';
-import 'l10n/generated/app_localizations.dart' as gen;
+import 'l10n/generated/app_localizations.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -141,17 +139,14 @@ class _MyAppState extends ConsumerState<MyApp> {
 
           // Localization
           locale: locale,
-          supportedLocales: supportedLocales,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            // Step 2: generated delegate alongside the old one, so
-            // converted call sites resolve the generated localizations.
-            // Step 3 removes the old delegate; step 4 deletes it.
-            gen.AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          // The generated list (app delegate + GlobalMaterial +
+          // GlobalCupertino + GlobalWidgets). Passing only
+          // [AppLocalizations.delegate] would trip the debug-only
+          // _debugCheckLocalizations assert for any non-English
+          // locale, because MaterialApp appends English-only
+          // DefaultMaterial/DefaultCupertino delegates.
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
 
           initialRoute: AppRoutes.splash,
           routes: {
