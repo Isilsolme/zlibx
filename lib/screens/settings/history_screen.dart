@@ -48,7 +48,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         actions: [
           IconButton(
             tooltip: l10n.sort,
-            icon: const Icon(Icons.sort_rounded),
+            icon: const Icon(Icons.swap_vert_rounded),
             onPressed: _showSortDialog,
           ),
         ],
@@ -168,37 +168,54 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         _HistorySort.sizeAsc => l10n.historySortSizeAsc,
       };
 
+  /// Sort picker, in the project's own dialog idiom (see the domain
+  /// selector): dense ListTile rows, the selected row marked with a
+  /// leading check_circle in the primary color and a bold primary
+  /// title. Tapping a row applies the sort and closes the dialog.
   Future<void> _showSortDialog() async {
     final l10n = AppLocalizations.of(context)!;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) => AlertDialog(
-          title: Text(l10n.sort),
+      builder: (dialogContext) {
+        final cs = Theme.of(dialogContext).colorScheme;
+        return AlertDialog(
+          titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+          title: Text(
+            l10n.sort,
+            style: const TextStyle(fontSize: 18),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: _HistorySort.values.map((sort) {
-              return RadioListTile<_HistorySort>(
-                title: Text(_sortLabel(l10n, sort)),
-                value: sort,
-                groupValue: _sort,
-                // The default row carries the "default" tag, like the
-                // sort dialog the user pointed at.
-                secondary: sort == _HistorySort.dateDesc
-                    ? Text(
-                        l10n.historySortDefault,
-                        style: Theme.of(dialogContext).textTheme.bodySmall
-                            ?.copyWith(
-                              color: Theme.of(
-                                dialogContext,
-                              ).colorScheme.onSurfaceVariant,
-                            ),
+              final selected = sort == _sort;
+              return ListTile(
+                dense: true,
+                visualDensity: const VisualDensity(vertical: -2),
+                leading: selected
+                    ? Icon(
+                        Icons.check_circle,
+                        color: cs.primary,
+                        size: 20,
                       )
-                    : null,
-                onChanged: (value) {
-                  if (value == null) return;
-                  setDialogState(() {});
-                  setState(() => _sort = value);
+                    : const Icon(
+                        Icons.circle_outlined,
+                        size: 20,
+                        color: Colors.grey,
+                      ),
+                title: Text(
+                  _sortLabel(l10n, sort),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: selected
+                        ? FontWeight.w700
+                        : FontWeight.normal,
+                    color: selected ? cs.primary : null,
+                  ),
+                ),
+                onTap: () {
+                  setState(() => _sort = sort);
+                  Navigator.pop(dialogContext);
                 },
               );
             }).toList(),
@@ -209,8 +226,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               child: Text(l10n.close),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

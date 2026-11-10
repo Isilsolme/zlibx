@@ -200,7 +200,6 @@
   "historyEmptyMessage": "他のデバイスでダウンロードした本がここに表示されます",
   "historySortDateAsc": "ダウンロード日 ↑",
   "historySortDateDesc": "ダウンロード日 ↓",
-  "historySortDefault": "default",
   "historySortSizeAsc": "ファイルサイズ ↑",
   "historySortSizeDesc": "ファイルサイズ ↓",
   "historySortTitleAsc": "名前 (A-Z)",

@@ -200,7 +200,6 @@
   "historyEmptyMessage": "在其他设备上下载的书籍将显示在这里",
   "historySortDateAsc": "下载日期 ↑",
   "historySortDateDesc": "下载日期 ↓",
-  "historySortDefault": "default",
   "historySortSizeAsc": "文件大小 ↑",
   "historySortSizeDesc": "文件大小 ↓",
   "historySortTitleAsc": "名称 (A-Z)",

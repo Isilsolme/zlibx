@@ -200,7 +200,6 @@
   "historyEmptyMessage": "다른 기기에서 다운로드한 책이 여기에 표시됩니다",
   "historySortDateAsc": "다운로드 날짜 ↑",
   "historySortDateDesc": "다운로드 날짜 ↓",
-  "historySortDefault": "default",
   "historySortSizeAsc": "파일 크기 ↑",
   "historySortSizeDesc": "파일 크기 ↓",
   "historySortTitleAsc": "이름 (A-Z)",
