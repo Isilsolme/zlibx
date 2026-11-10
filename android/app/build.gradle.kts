@@ -28,7 +28,7 @@ android {
 
     defaultConfig {
         applicationId = "com.open_library.app"
-        minSdk = flutter.minSdkVersion
+        minSdk = 29
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

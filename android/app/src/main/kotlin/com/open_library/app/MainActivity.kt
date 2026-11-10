@@ -206,8 +206,6 @@ class MainActivity : FlutterActivity() {
         displayName: String,
         mimeType: String,
     ): String? {
-        // RELATIVE_PATH only exists on Android 10+ (API 29).
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         val source = File(sourcePath)
         if (!source.exists()) return null
         val values = ContentValues().apply {
@@ -255,8 +253,6 @@ class MainActivity : FlutterActivity() {
         displayName: String,
         mimeType: String,
     ): String? {
-        // RELATIVE_PATH only exists on Android 10+ (API 29).
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, displayName)
             put(MediaStore.Downloads.MIME_TYPE, mimeType)
@@ -358,7 +354,6 @@ class MainActivity : FlutterActivity() {
     /// caller then treats the download as failed and removes the entry
     /// with [abortPendingDownload]).
     private fun finishPendingDownload(uri: Uri): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
         if (!closePendingStream(uri.toString())) return false
         return try {
             val values = ContentValues().apply {

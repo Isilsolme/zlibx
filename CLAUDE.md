@@ -57,6 +57,6 @@ There is no code generation in this project: `Book`/`User` and all other models 
 ## Repo Notes
 
 - Android build uses `android/build.gradle.kts`. China-based Maven mirrors (Aliyun) are added only when the `useCnMirror` Gradle property is set; CI does not use them.
-- Requires Dart SDK ^3.10.0; CI pins Flutter 3.44.0. Android `compileSdk = 37`, `minSdk = flutter.minSdkVersion` (24 with Flutter 3.44), arm64-v8a only (`abiFilters`).
+- Requires Dart SDK ^3.10.0; CI pins Flutter 3.44.0. Android `compileSdk = 37`, `minSdk = 29` (Android 10), arm64-v8a only (`abiFilters`).
 - CI workflow: `.github/workflows/oliblite-build-android-arm64.yml` ("Build Android APK") — runs `flutter analyze` and `flutter test` before building the release APK; publishes a GitHub Release only on tag pushes.
 - Release signing uses a keystore restored from repo secrets in CI; the workflow refuses to build if the signing material is missing.
