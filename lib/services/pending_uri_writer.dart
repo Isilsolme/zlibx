@@ -344,15 +344,40 @@ class PendingUriWriter implements PendingDownloadWriter {
   }
 
   Future<void> _persistState() async {
+    final stateFile = File(_statePath);
+    final tempFile = File('$_statePath.tmp');
     try {
-      await File(_statePath).writeAsString(
+      // Write and flush a complete replacement before publishing it.
+      // This avoids leaving a truncated JSON sidecar if the process is
+      // interrupted during serialization or disk I/O.
+      await tempFile.writeAsString(
         jsonEncode(<String, Object>{
           'uri': _uri,
           'bytesWritten': _committed,
         }),
+        flush: true,
       );
+      try {
+        await tempFile.rename(_statePath);
+      } on FileSystemException {
+        // Some platforms do not replace an existing destination on
+        // rename. Fall back to deleting the destination first; if the
+        // replacement rename also fails, the outer handler cleans up
+        // the temp file (losing the sidecar only costs a fresh
+        // download on retry).
+        if (await stateFile.exists()) {
+          await stateFile.delete();
+        }
+        await tempFile.rename(_statePath);
+      }
     } on FileSystemException {
       // Losing the sidecar only costs a fresh download on retry.
+      // Best-effort cleanup prevents stale temporary files accumulating.
+      try {
+        if (await tempFile.exists()) await tempFile.delete();
+      } on FileSystemException {
+        // Best effort.
+      }
     }
   }
 }

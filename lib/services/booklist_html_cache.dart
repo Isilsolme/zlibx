@@ -62,22 +62,23 @@ class BooklistHtmlCache {
   static void _sweepTokenHtmlOnce(Box box) {
     if (_tokenSweepDone) return;
     _tokenSweepDone = true;
-    for (final value in box.values) {
+    // Delete only the entries that actually contain a legacy token.
+    // The cache box also stores safe HTML and parsed JSON pages; wiping
+    // every key because one old HTML page is sensitive needlessly drops
+    // unrelated, reusable cache entries.
+    final sensitiveKeys = <dynamic>[];
+    for (final key in box.keys) {
+      final value = box.get(key);
       if (value is Map &&
           value['html'] is String &&
           (value['html'] as String).contains('user_token=')) {
-        // Purge synchronously in memory: Box.clear() only empties
-        // the in-memory store AFTER awaiting the disk write, so a
-        // read in the same synchronous flow (e.g. the get() that
-        // triggered this sweep) would still see the stale entries
-        // — including the token-bearing HTML this sweep exists to
-        // drop. deleteAll applies the deletions to the in-memory
-        // store synchronously (Hive 2.2.3 _writeFrames begins the
-        // transaction before the disk write); the returned Future
-        // only covers the disk flush.
-        unawaited(box.deleteAll(box.keys.toList()));
-        return;
+        sensitiveKeys.add(key);
       }
+    }
+    if (sensitiveKeys.isNotEmpty) {
+      // Hive applies deletes to its in-memory store synchronously; the
+      // Future only represents the disk flush.
+      unawaited(box.deleteAll(sensitiveKeys));
     }
   }
 

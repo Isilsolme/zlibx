@@ -677,8 +677,10 @@ void main() {
   });
 
   // Item 11: a box that still holds pre-strip HTML carrying a token
-  // is purged once on first access (the cache rebuilds clean).
-  test('first access purges pre-strip HTML carrying a token', () {
+  // is swept once on first access — only the token-bearing entries
+  // are dropped; clean HTML and parsed JSON pages survive (the old
+  // wipe-the-whole-box behaviour dropped those too).
+  test('first access purges only pre-strip HTML carrying a token', () {
     final box = Hive.box(BooklistHtmlCache.boxName);
     box.put('https://example.com/booklist/1/h/s.html', {
       'at': DateTime.now().millisecondsSinceEpoch,
@@ -688,10 +690,28 @@ void main() {
       'at': DateTime.now().millisecondsSinceEpoch,
       'html': '<html>clean</html>',
     });
+    box.put('https://example.com/booklist/2/h/s.html#json-page=2', {
+      'at': DateTime.now().millisecondsSinceEpoch,
+      'books': [
+        {'id': 1, 'title': 'Kept'},
+      ],
+    });
+    // First access runs the one-time sweep.
     expect(
       BooklistHtmlCache.get('https://example.com/booklist/2/h/s.html'),
-      isNull,
+      '<html>clean</html>',
     );
-    expect(box.isEmpty, isTrue);
+    expect(
+      box.containsKey('https://example.com/booklist/1/h/s.html'),
+      isFalse,
+    );
+    expect(
+      BooklistHtmlCache.getBooksPage(
+        'https://example.com/booklist/2/h/s.html',
+        2,
+      ),
+      isNotNull,
+    );
+    expect(box.isEmpty, isFalse);
   });
 }
