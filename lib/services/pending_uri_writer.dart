@@ -188,7 +188,7 @@ class PendingUriWriter implements PendingDownloadWriter {
   @override
   Future<void> discard() async {
     await MediaStoreFiles.abortPendingDownload(_uri);
-    for (final path in <String>[_statePath, '${_savePath}.meta']) {
+    for (final path in <String>[_statePath, '$_savePath.meta']) {
       try {
         final f = File(path);
         if (await f.exists()) await f.delete();
@@ -228,7 +228,7 @@ class PendingUriWriter implements PendingDownloadWriter {
     await close();
     final published = await MediaStoreFiles.finishPendingDownload(_uri);
     if (!published) return false;
-    for (final path in <String>[_statePath, '${_savePath}.meta']) {
+    for (final path in <String>[_statePath, '$_savePath.meta']) {
       try {
         final f = File(path);
         if (await f.exists()) await f.delete();
