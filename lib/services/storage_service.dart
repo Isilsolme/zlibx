@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../utils/app_log.dart';
 import 'auth_storage.dart';
 import 'hive_service.dart';
 
@@ -41,7 +41,7 @@ class StorageService {
       final userId = (await AuthStorage().getCredentials())['userId'];
       return (userId == null || userId.isEmpty) ? null : userId;
     } catch (error) {
-      debugPrint('[storage] cannot resolve account id');
+      AppLog.report('[storage] cannot resolve account id', tag: 'storage_service');
       return null;
     }
   }
@@ -55,7 +55,7 @@ class StorageService {
     try {
       return List<String>.from(data);
     } catch (error) {
-      debugPrint('[storage] ignoring corrupt favorites entry');
+      AppLog.report('[storage] ignoring corrupt favorites entry', tag: 'storage_service');
       return [];
     }
   }
@@ -99,7 +99,7 @@ class StorageService {
       }
       await box.delete(_keyFavorites);
     } catch (error) {
-      debugPrint('[storage] favorites migration failed');
+      AppLog.report('[storage] favorites migration failed', tag: 'storage_service');
     }
   }
 

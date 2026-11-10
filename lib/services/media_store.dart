@@ -7,13 +7,26 @@
 // content URI. Old history entries keep plain file paths and keep
 // working — every helper below routes on the `content://` prefix.
 import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
 import 'package:open_filex/open_filex.dart';
+
+import '../utils/app_log.dart';
 
 class MediaStoreFiles {
   static const _channel = MethodChannel('zlibx/media_store');
+
+  /// Test seam: the Android-only methods below return early on other
+  /// platforms. Tests set [forceAndroidForTesting] to drive the
+  /// platform-channel path on the host; production always reads
+  /// [Platform.isAndroid], so behaviour is unchanged.
+  @visibleForTesting
+  static bool forceAndroidForTesting = false;
+
+  /// True on Android, or when a test forces the Android path.
+  static bool get _onAndroid => forceAndroidForTesting || Platform.isAndroid;
 
   static bool isContentUri(String location) =>
       location.startsWith('content://');
@@ -54,7 +67,7 @@ class MediaStoreFiles {
     required String displayName,
     required String mimeType,
   }) async {
-    if (!Platform.isAndroid) return null;
+    if (!_onAndroid) return null;
     try {
       final uri = await _channel.invokeMethod<String>(
         'publishToDownloads',
@@ -66,7 +79,10 @@ class MediaStoreFiles {
       );
       return (uri != null && uri.isNotEmpty) ? uri : null;
     } on PlatformException catch (e) {
-      debugPrint('MediaStore publish failed: ${e.code} ${e.message}');
+      AppLog.report(
+        'MediaStore publish failed: ${e.code} ${e.message}',
+        tag: 'media_store',
+      );
       return null;
     }
   }
@@ -80,7 +96,7 @@ class MediaStoreFiles {
     required String displayName,
     required String mimeType,
   }) async {
-    if (!Platform.isAndroid) return null;
+    if (!_onAndroid) return null;
     try {
       final uri = await _channel.invokeMethod<String>(
         'createPendingDownload',
@@ -91,8 +107,9 @@ class MediaStoreFiles {
       );
       return (uri != null && uri.isNotEmpty) ? uri : null;
     } on PlatformException catch (e) {
-      debugPrint(
+      AppLog.report(
         'MediaStore createPendingDownload failed: ${e.code} ${e.message}',
+        tag: 'media_store',
       );
       return null;
     }
@@ -101,7 +118,7 @@ class MediaStoreFiles {
   /// Append one batch of bytes to a pending entry. [bytes] must be a
   /// contiguous block (the writer coalesces to 256 KB before calling).
   static Future<bool> writePendingChunk(String uri, List<int> bytes) async {
-    if (!Platform.isAndroid) return false;
+    if (!_onAndroid) return false;
     try {
       // Uint8List crosses the channel as a byte[]; a plain List<int>
       // would arrive as ArrayList<Integer> on the Kotlin side. Reuse
@@ -123,7 +140,7 @@ class MediaStoreFiles {
 
   /// Publish a pending entry (clear IS_PENDING). False on failure.
   static Future<bool> finishPendingDownload(String uri) async {
-    if (!Platform.isAndroid) return false;
+    if (!_onAndroid) return false;
     try {
       return await _channel.invokeMethod<bool>(
             'finishPendingDownload',
@@ -137,7 +154,7 @@ class MediaStoreFiles {
 
   /// Delete a pending entry. False on failure.
   static Future<bool> abortPendingDownload(String uri) async {
-    if (!Platform.isAndroid) return false;
+    if (!_onAndroid) return false;
     try {
       return await _channel.invokeMethod<bool>(
             'abortPendingDownload',
@@ -154,7 +171,7 @@ class MediaStoreFiles {
   /// (see PendingUriWriter.resume). Returns -1 when the size cannot be
   /// determined (non-Android, entry gone, platform error).
   static Future<int> pendingEntrySize(String uri) async {
-    if (!Platform.isAndroid) return -1;
+    if (!_onAndroid) return -1;
     try {
       return await _channel.invokeMethod<int>(
             'pendingEntrySize',
@@ -170,7 +187,7 @@ class MediaStoreFiles {
   /// content:// URIs publishToDownloads returns.
   static Future<bool> exists(String location) async {
     if (isContentUri(location)) {
-      if (!Platform.isAndroid) return false;
+      if (!_onAndroid) return false;
       try {
         return await _channel.invokeMethod<bool>(
               'contentExists',
@@ -189,7 +206,7 @@ class MediaStoreFiles {
   /// keep using OpenFilex as before.
   static Future<bool> open(String location) async {
     if (isContentUri(location)) {
-      if (!Platform.isAndroid) return false;
+      if (!_onAndroid) return false;
       try {
         return await _channel.invokeMethod<bool>(
               'openContent',
@@ -208,7 +225,7 @@ class MediaStoreFiles {
   /// are deleted as files, as before.
   static Future<bool> delete(String location) async {
     if (isContentUri(location)) {
-      if (!Platform.isAndroid) return false;
+      if (!_onAndroid) return false;
       try {
         return await _channel.invokeMethod<bool>(
               'deleteContent',
@@ -234,7 +251,7 @@ class MediaStoreFiles {
   /// Returns null when the temp copy fails.
   static Future<String?> shareablePath(String location) async {
     if (!isContentUri(location)) return location;
-    if (!Platform.isAndroid) return null;
+    if (!_onAndroid) return null;
     try {
       final path = await _channel.invokeMethod<String>(
         'copyContentToCache',

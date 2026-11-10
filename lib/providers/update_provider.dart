@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../services/hive_service.dart';
 import '../services/http_client.dart';
 import '../services/update/update_manifest.dart';
+import '../utils/app_log.dart';
 
 export '../services/update/update_manifest.dart' show UpdateLink;
 
@@ -123,8 +124,9 @@ class UpdateNotifier extends Notifier<UpdateState> {
       }
 
       if (!force && !_shouldCheck()) {
-        debugPrint(
+        AppLog.report(
           'UpdateService: Skipping request (checked recently), using cache',
+          tag: 'update_provider',
         );
         return _applyCached();
       }
@@ -155,9 +157,10 @@ class UpdateNotifier extends Notifier<UpdateState> {
 
       if (response.statusCode != 200) {
         final body = response.data?.toString() ?? '';
-        debugPrint(
+        AppLog.report(
           'UpdateService: GitHub releases API ${response.statusCode}: '
           '${body.length > 200 ? body.substring(0, 200) : body}',
+          tag: 'update_provider',
         );
         return _applyCached();
       }
@@ -165,7 +168,10 @@ class UpdateNotifier extends Notifier<UpdateState> {
       final data = response.data as Map<String, dynamic>;
       final tagName = data['tag_name'] as String?;
       if (tagName == null || tagName.isEmpty) {
-        debugPrint('UpdateService: release missing tag_name');
+        AppLog.report(
+          'UpdateService: release missing tag_name',
+          tag: 'update_provider',
+        );
         return _applyCached();
       }
       final body = (data['body'] as String? ?? '').trim();
@@ -179,7 +185,12 @@ class UpdateNotifier extends Notifier<UpdateState> {
 
       return _apply(tagName, body, htmlUrl);
     } catch (e) {
-      debugPrint('UpdateService: Error checking for update: $e');
+      // Network-layer exception text can carry URLs or response
+      // fragments: log the type only.
+      AppLog.report(
+        'UpdateService: Error checking for update: ${e.runtimeType}',
+        tag: 'update_provider',
+      );
       return _applyCached();
     }
   }
@@ -224,10 +235,11 @@ class UpdateNotifier extends Notifier<UpdateState> {
       isBlocked: forceUpdate,
     );
 
-    debugPrint(
+    AppLog.report(
       'UpdateService: Current=$current, Latest=$latest, '
       'HasUpdate=$hasUpdate, Force=$forceUpdate, Links=${manifest.links.length}, '
       'DroppedLinks=${manifest.droppedLinkNames}',
+      tag: 'update_provider',
     );
     return hasUpdate;
   }

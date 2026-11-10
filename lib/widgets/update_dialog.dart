@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../providers/update_provider.dart';
+import '../utils/app_log.dart';
 import '../utils/app_snack.dart';
 import 'loading_widget.dart';
 
@@ -201,7 +202,13 @@ class _ChannelButton extends StatelessWidget {
         mode: LaunchMode.externalApplication,
       );
     } catch (e) {
-      debugPrint('UpdateDialog: failed to open ${channel.url}: $e');
+      // The exception text can repeat the URL: log the type only.
+      // The channel URL itself stays: the dialog shows it to the user
+      // to copy by hand, so it is user-visible by design.
+      AppLog.report(
+        'UpdateDialog: failed to open ${channel.url}: ${e.runtimeType}',
+        tag: 'update_dialog',
+      );
     }
     // 打不开时把链接显示出来，方便用户手动复制
     if (!ok && context.mounted) {

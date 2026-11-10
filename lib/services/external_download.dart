@@ -39,7 +39,6 @@ import 'package:dio/dio.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 // Project imports:
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:zlibx/core/annas_archive.dart';
 import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/download_target.dart';
@@ -49,6 +48,7 @@ import 'package:zlibx/services/http_client.dart';
 import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/mirror_fetcher.dart';
 import 'package:zlibx/services/secure_storage.dart';
+import 'package:zlibx/utils/app_log.dart';
 
 /// Secure-storage key for the user's own Anna's Archive donation key.
 /// Credentials live in flutter_secure_storage, never in plaintext Hive.
@@ -84,9 +84,10 @@ Future<void> _migrateAnnasDonationKeyFromHive() {
       }
       await HiveService.settingsBox.delete(annasDonationKeyHiveKey);
     } catch (error) {
-      debugPrint(
+      AppLog.report(
         '[external_download] donation key migration failed: '
         '${error.runtimeType}',
+        tag: 'external_download',
       );
     }
   }();

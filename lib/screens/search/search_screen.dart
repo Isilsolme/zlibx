@@ -21,6 +21,7 @@ import '../../services/open_library.dart';
 import '../../providers/update_provider.dart';
 import '../../services/hive_service.dart';
 
+import '../../utils/app_log.dart';
 import '../../utils/app_snack.dart';
 const _recentSearchesKey = 'recent_search_keywords';
 const _recentSearchesLimit = 12;
@@ -145,7 +146,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     try {
       await HiveService.settingsBox.put(_recentSearchesKey, searches);
     } catch (error) {
-      debugPrint('Failed to save recent searches: ${error.runtimeType}');
+      AppLog.report(
+        'Failed to save recent searches: ${error.runtimeType}',
+        tag: 'search_screen',
+      );
       if (mounted) {
         showAppSnack(context,
               AppLocalizations.of(context)!.searchHistorySaveFailed,

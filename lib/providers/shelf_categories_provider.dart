@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/unified_shelf_item.dart';
 import '../services/hive_service.dart';
+import '../utils/app_log.dart';
 
 class ShelfCategory {
   const ShelfCategory({required this.id, required this.name});
@@ -52,7 +53,10 @@ class ShelfCategoriesNotifier extends Notifier<ShelfCategoriesState> {
           <String, String>{};
       return ShelfCategoriesState(categories, assignments);
     } catch (error) {
-      debugPrint('Could not load shelf categories: ${error.runtimeType}');
+      AppLog.report(
+        'Could not load shelf categories: ${error.runtimeType}',
+        tag: 'shelf_categories',
+      );
       return const ShelfCategoriesState([], {});
     }
   }
@@ -76,7 +80,10 @@ class ShelfCategoriesNotifier extends Notifier<ShelfCategoriesState> {
     } catch (error) {
       // Persistence failure must not lose the in-memory change; the next
       // successful save rewrites the whole blob anyway.
-      debugPrint('Could not persist shelf categories: ${error.runtimeType}');
+      AppLog.report(
+        'Could not persist shelf categories: ${error.runtimeType}',
+        tag: 'shelf_categories',
+      );
     }
   }
 

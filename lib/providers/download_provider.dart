@@ -10,6 +10,7 @@ import '../services/media_store.dart';
 import '../services/pending_uri_writer.dart';
 import '../services/resumable_downloader.dart';
 import '../services/storage_service.dart';
+import '../utils/app_log.dart';
 import '../utils/diagnostics.dart';
 import '../utils/file_utils.dart';
 import 'zlibrary_provider.dart';
@@ -161,7 +162,10 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       }
     } catch (e) {
       // History failure should not break new downloads.
-      debugPrint('Could not load download history: ${e.runtimeType}');
+      AppLog.report(
+        'Could not load download history: ${e.runtimeType}',
+        tag: 'download_provider',
+      );
     }
   }
 
@@ -237,7 +241,10 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
       }
       return dir;
     } on FileSystemException catch (e) {
-      debugPrint('App download dir unavailable, fallback: $e');
+      AppLog.report(
+        'App download dir unavailable, fallback: $e',
+        tag: 'download_provider',
+      );
       return appExternal;
     }
   }
@@ -495,11 +502,15 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
             try {
               await File(finalPath).delete();
             } catch (e) {
-              debugPrint('Could not remove staged download: $e');
+              AppLog.report(
+                'Could not remove staged download: $e',
+                tag: 'download_provider',
+              );
             }
           } else {
-            debugPrint(
+            AppLog.report(
               'MediaStore publish failed, keeping app-specific file',
+              tag: 'download_provider',
             );
           }
         }
@@ -624,7 +635,10 @@ class DownloadNotifier extends Notifier<List<DownloadTask>> {
           profile.data!.downloadsLeft != null &&
           profile.data!.downloadsLeft! <= 0;
     } catch (e) {
-      debugPrint('Could not check download quota: ${e.runtimeType}');
+      AppLog.report(
+        'Could not check download quota: ${e.runtimeType}',
+        tag: 'download_provider',
+      );
       return false;
     }
   }

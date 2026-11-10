@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../providers/speed_test_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../utils/app_log.dart';
 import '../../widgets/domain_selector.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -224,7 +225,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         client.close();
       }
     } catch (e) {
-      debugPrint('Network check failed: $e');
+      // Network-layer exception text can carry URLs or response
+      // fragments: log the type only.
+      AppLog.report(
+        'Network check failed: ${e.runtimeType}',
+        tag: 'splash_screen',
+      );
       return false;
     }
   }

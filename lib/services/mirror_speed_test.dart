@@ -13,8 +13,8 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
+import '../utils/app_log.dart';
 import 'hive_service.dart';
 import 'http_client.dart';
 import 'instance_manager.dart';
@@ -144,7 +144,10 @@ class MirrorSpeedTest {
       }
       return null;
     } catch (e) {
-      debugPrint('Mirror probe failed for $url: ${e.runtimeType}');
+      AppLog.report(
+        'Mirror probe failed for $url: ${e.runtimeType}',
+        tag: 'mirror_speed_test',
+      );
       return null;
     }
   }

@@ -12,6 +12,7 @@ import 'package:zlibx/utils/host_utils.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 
+import '../../utils/app_log.dart';
 import '../../utils/app_snack.dart';
 class ReaderScreen extends StatefulWidget {
   final String url;
@@ -161,7 +162,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
     entry['t_ms'] = DateTime.now().difference(_probeStart).inMilliseconds;
     _probeLog.add(entry);
     if (kDebugMode) {
-      debugPrint('[LITERA_PROBE] ${jsonEncode(entry)}');
+      AppLog.debug(
+        '[LITERA_PROBE] ${jsonEncode(entry)}',
+        tag: 'reader_screen',
+      );
     }
     if (mounted) setState(() {});
   }
@@ -397,7 +401,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     'type': error.type.toString(),
                   });
                 }
-                debugPrint('WebView error: ${error.type}');
+                AppLog.report(
+                  'WebView error: ${error.type}',
+                  tag: 'reader_screen',
+                );
               },
             ),
           ),

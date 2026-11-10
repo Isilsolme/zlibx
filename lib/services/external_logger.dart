@@ -11,11 +11,17 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+import '../utils/app_log.dart';
 import 'http_client.dart';
 
 /// A minimal stand-in for OpenlibExtended's AppLogger: the ported services
 /// only need the four level methods plus a way to build a Dio that logs.
 /// Single shared instance so the static-ish call sites stay identical.
+///
+/// The level methods are thin delegations to [AppLog] (see
+/// utils/app_log.dart): same signatures, same debug-only gating, same
+/// `[LEVEL][tag] message | error | metadata` format. Nothing about the
+/// call sites changes.
 class AppLogger {
   static final AppLogger _instance = AppLogger._();
   factory AppLogger() => _instance;
@@ -26,8 +32,7 @@ class AppLogger {
     String? tag,
     Map<String, dynamic>? metadata,
   }) {
-    if (!kDebugMode) return;
-    debugPrint(_format('DEBUG', tag, message, metadata));
+    AppLog.debug(message, tag: tag, metadata: metadata);
   }
 
   void info(
@@ -35,11 +40,7 @@ class AppLogger {
     String? tag,
     Map<String, dynamic>? metadata,
   }) {
-    // Release builds must not print to logcat: the metadata can carry
-    // the user's search query, per-book URLs and response-body previews,
-    // readable by any process holding READ_LOGS. Same gate as debug().
-    if (!kDebugMode) return;
-    debugPrint(_format('INFO', tag, message, metadata));
+    AppLog.info(message, tag: tag, metadata: metadata);
   }
 
   void warning(
@@ -48,8 +49,7 @@ class AppLogger {
     dynamic error,
     Map<String, dynamic>? metadata,
   }) {
-    if (!kDebugMode) return;
-    debugPrint(_format('WARN', tag, message, metadata, error));
+    AppLog.warning(message, tag: tag, error: error, metadata: metadata);
   }
 
   void error(
@@ -59,24 +59,13 @@ class AppLogger {
     StackTrace? stackTrace,
     Map<String, dynamic>? metadata,
   }) {
-    if (!kDebugMode) return;
-    debugPrint(_format('ERROR', tag, message, metadata, error));
-    if (stackTrace != null) debugPrint(stackTrace.toString());
-  }
-
-  String _format(
-    String level,
-    String? tag,
-    String message,
-    Map<String, dynamic>? metadata, [
-    dynamic error,
-  ]) {
-    final buffer = StringBuffer('[$level]');
-    if (tag != null) buffer.write('[$tag]');
-    buffer.write(' $message');
-    if (error != null) buffer.write(' | $error');
-    if (metadata != null && metadata.isNotEmpty) buffer.write(' | $metadata');
-    return buffer.toString();
+    AppLog.error(
+      message,
+      tag: tag,
+      error: error,
+      stackTrace: stackTrace,
+      metadata: metadata,
+    );
   }
 }
 

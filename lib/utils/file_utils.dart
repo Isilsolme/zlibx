@@ -2,10 +2,10 @@ import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:android_intent_plus/android_intent.dart';
 
 import '../services/media_store.dart';
+import 'app_log.dart';
 
 /// Check if platform supports opening folder in file manager
 /// (Android-only build: always true on Android.)
@@ -57,7 +57,7 @@ Future<bool> openDownloadFolder() async {
     }
     return false;
   } catch (e) {
-    debugPrint('Failed to open download folder: $e');
+    AppLog.report('Failed to open download folder: $e', tag: 'file_utils');
     return false;
   }
 }
@@ -72,7 +72,7 @@ Future<bool> openFile(String filePath) async {
     }
     return await MediaStoreFiles.open(filePath);
   } catch (e) {
-    debugPrint('Failed to open file: $e');
+    AppLog.report('Failed to open file: $e', tag: 'file_utils');
     return false;
   }
 }
