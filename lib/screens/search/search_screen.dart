@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
-import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
-import '../../widgets/cover_placeholder.dart';
-import 'widgets/trending_section.dart';
+import 'widgets/active_filter_chips.dart';
+import 'widgets/empty_query_view.dart';
+import 'widgets/search_bar_field.dart';
+import 'widgets/search_skeleton_grid.dart';
+import 'widgets/search_suggestions_view.dart';
+import 'widgets/source_selector.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -17,7 +20,6 @@ import '../../routes/app_routes.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../constants/search_filters.dart';
 import '../../services/google_suggest_api.dart';
-import '../../services/open_library.dart';
 import '../../providers/update_provider.dart';
 import '../../services/hive_service.dart';
 
@@ -35,6 +37,9 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
+/// Orchestrator only: owns the query state (controller, debounce,
+/// suggestions), the applied filters and the recent-searches store, and
+/// wires the zero-state presentation widgets from `widgets/` together.
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
@@ -176,6 +181,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _performSearch();
   }
 
+  void _removeRecentSearch(String keyword) {
+    unawaited(
+      _saveRecentSearches(
+        _recentSearches.where((item) => item != keyword).toList(),
+      ),
+    );
+  }
+
+  void _clearRecentSearches() {
+    unawaited(_saveRecentSearches([]));
+  }
+
+  /// Fill the field with a suggestion without searching (the trailing
+  /// arrow in the suggestions view).
+  void _insertSuggestion(String suggestion) {
+    _searchController.text = suggestion;
+    _searchController.selection = TextSelection.collapsed(
+      offset: suggestion.length,
+    );
+  }
+
   void _clearSearch() {
     _searchController.clear();
     setState(() => _lastSubmittedQuery = '');
@@ -193,6 +219,36 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (query.isNotEmpty && query == _lastSubmittedQuery) {
       _performSearch();
     }
+  }
+
+  void _resetLanguageFilter() {
+    _selectedLanguage = 'all';
+    _applyFilterChange();
+  }
+
+  void _resetOrderFilter() {
+    _selectedOrder = 'default';
+    _applyFilterChange();
+  }
+
+  void _resetExtensionFilter() {
+    _selectedExtension = 'all';
+    _applyFilterChange();
+  }
+
+  /// The filter button in the search bar: opens the sheet with the
+  /// current locale's display names (same maps the chips mirror).
+  void _openFilterSheetForCurrentLocale() {
+    final l10n = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context).languageCode;
+    unawaited(
+      _openFilterSheet(
+        l10n,
+        getLanguageDisplayNames(locale),
+        getOrderDisplayNames(locale),
+        getExtensionDisplayNames(locale),
+      ),
+    );
   }
 
   Future<void> _openFilterSheet(
@@ -399,440 +455,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     AppRoutes.openBookDetailForDisplayBook(context, book);
   }
 
-  // ── UI builders ──────────────────────────────────────────────
-
-  /// Pill-shaped search bar; filter button opens the bottom sheet and
-  /// carries a badge with the number of active filters.
-  Widget _buildSearchBar(
-    AppLocalizations l10n,
-    bool isExternal,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    const radius = BorderRadius.all(Radius.circular(28));
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: TextField(
-        controller: _searchController,
-        textInputAction: TextInputAction.search,
-        onSubmitted: (_) => _performSearch(),
-        decoration: InputDecoration(
-          hintText: l10n.searchForBooks,
-          hintStyle: TextStyle(color: cs.onSurfaceVariant),
-          prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
-          suffixIcon: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!isExternal)
-                Badge(
-                  isLabelVisible: _activeFilterCount > 0,
-                  label: Text('$_activeFilterCount'),
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.tune_rounded,
-                      color: _activeFilterCount > 0
-                          ? cs.primary
-                          : cs.onSurfaceVariant,
-                    ),
-                    onPressed: () => _openFilterSheet(
-                      l10n,
-                      getLanguageDisplayNames(
-                        Localizations.localeOf(context).languageCode,
-                      ),
-                      getOrderDisplayNames(
-                        Localizations.localeOf(context).languageCode,
-                      ),
-                      getExtensionDisplayNames(
-                        Localizations.localeOf(context).languageCode,
-                      ),
-                    ),
-                  ),
-                ),
-              if (!_isQueryEmpty)
-                IconButton(
-                  icon: Icon(Icons.close_rounded, color: cs.onSurfaceVariant),
-                  onPressed: _clearSearch,
-                ),
-            ],
-          ),
-          filled: true,
-          fillColor: cs.surfaceContainerHighest,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 14,
-          ),
-          border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
-          enabledBorder:
-              OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: radius,
-            borderSide: BorderSide(color: cs.primary, width: 1.4),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Sliding-highlight segmented control for the search source.
-  Widget _buildSourceSelector(AppLocalizations l10n) {
-    final items = <BookSource>[
-      BookSource.zlibrary,
-      BookSource.annasArchive,
-      BookSource.libgen,
-    ];
-    final icons = <BookSource, IconData>{
-      BookSource.zlibrary: Icons.auto_stories_rounded,
-      BookSource.annasArchive: Icons.public_rounded,
-      BookSource.libgen: Icons.menu_book_rounded,
-    };
-    final labels = <BookSource, String>{
-      BookSource.zlibrary: l10n.sourceZlibrary,
-      BookSource.annasArchive: l10n.sourceAnnasArchive,
-      BookSource.libgen: l10n.sourceLibgen,
-    };
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            for (final source in items)
-              Expanded(
-                child: _SourceSegment(
-                  icon: icons[source]!,
-                  label: labels[source]!,
-                  selected: _source == source,
-                  onTap: () => _switchSource(source),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Compact removable chips mirroring the filters applied in the
-  /// sheet — deleting one resets it and re-searches.
-  Widget _buildActiveFilterChips(
-    AppLocalizations l10n,
-    Map<String, String> languageNames,
-    Map<String, String> orderNames,
-    Map<String, String> extensionNames,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    final chips = <Widget>[];
-
-    void addChip(String label, VoidCallback onDeleted) {
-      chips.add(
-        InputChip(
-          label: Text(label),
-          onDeleted: onDeleted,
-          deleteIconColor: cs.onPrimaryContainer,
-          backgroundColor: cs.primaryContainer,
-          side: BorderSide.none,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          labelStyle: TextStyle(
-            color: cs.onPrimaryContainer,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
-
-    if (_selectedLanguage != 'all') {
-      addChip(
-        '${l10n.language}: ${languageNames[_selectedLanguage]}',
-        () {
-          _selectedLanguage = 'all';
-          _applyFilterChange();
-        },
-      );
-    }
-    if (_selectedOrder != 'default') {
-      addChip(
-        '${l10n.sort}: ${orderNames[_selectedOrder]}',
-        () {
-          _selectedOrder = 'default';
-          _applyFilterChange();
-        },
-      );
-    }
-    if (_selectedExtension != 'all') {
-      addChip(
-        '${extensionNames[_selectedExtension]}',
-        () {
-          _selectedExtension = 'all';
-          _applyFilterChange();
-        },
-      );
-    }
-
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: chips.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) => chips[index],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required IconData icon,
-    required String title,
-    Widget? trailing,
-  }) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: cs.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-        ),
-        if (trailing != null) trailing,
-      ],
-    );
-  }
-
-  Widget _buildEmptyQueryView(AppLocalizations l10n) {
-    final trendingAsync = ref.watch(trendingBooksProvider);
-    final trendingBooks = (trendingAsync.valueOrNull ??
-            const <TrendingBookData>[])
-        .where((book) => book.title?.trim().isNotEmpty ?? false)
-        .toList();
-    if (_recentSearches.isEmpty && trendingBooks.isEmpty) {
-      if (trendingAsync.isLoading) {
-        return const LoadingWidget.page(padding: EdgeInsets.all(24));
-      }
-      return EmptyState(
-        icon: Icons.search_rounded,
-        title: l10n.startSearching,
-        message: l10n.enterSearchHint,
-      );
-    }
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      children: [
-        if (_recentSearches.isNotEmpty) _buildRecentSearchesSection(l10n),
-        if (trendingBooks.isNotEmpty) ...[
-          if (_recentSearches.isNotEmpty) const SizedBox(height: 28),
-          SearchTrendingSection(
-            l10n: l10n,
-            books: trendingBooks,
-            onSearch: _searchAgain,
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRecentSearchesSection(AppLocalizations l10n) {
-    final cs = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader(
-          icon: Icons.history_rounded,
-          title: l10n.searchHistoryTitle,
-          trailing: TextButton.icon(
-            onPressed: () => unawaited(_saveRecentSearches([])),
-            icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            label: Text(l10n.searchHistoryClear),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final keyword in _recentSearches)
-              InputChip(
-                label: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 180),
-                  child: Text(keyword, overflow: TextOverflow.ellipsis),
-                ),
-                onPressed: () => _searchAgain(keyword),
-                onDeleted: () => unawaited(
-                  _saveRecentSearches(
-                    _recentSearches.where((item) => item != keyword).toList(),
-                  ),
-                ),
-                deleteButtonTooltipMessage: l10n.searchHistoryRemove,
-                backgroundColor: cs.surfaceContainerLow,
-                side: BorderSide(color: cs.outlineVariant),
-              ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Suggestions for the text being typed; the matching prefix is
-  /// highlighted, and the trailing arrow inserts without searching.
-  Widget _buildSuggestionsView(AppLocalizations l10n) {
-    if (_suggestionsLoading && _suggestions.isEmpty) {
-      return const LoadingWidget.page(padding: EdgeInsets.all(24));
-    }
-    if (_suggestions.isEmpty) {
-      return EmptyState(
-        icon: Icons.search_rounded,
-        title: l10n.startSearching,
-        message: l10n.enterSearchHint,
-      );
-    }
-    final query = _searchController.text.trim();
-    final cs = Theme.of(context).colorScheme;
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
-      itemCount: _suggestions.length,
-      itemBuilder: (context, index) {
-        final suggestion = _suggestions[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => _searchAgain(suggestion),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: cs.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.search_rounded,
-                    size: 18,
-                    color: cs.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _highlightedText(suggestion, query),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.north_west_rounded,
-                    size: 18,
-                    color: cs.onSurfaceVariant,
-                  ),
-                  onPressed: () {
-                    _searchController.text = suggestion;
-                    _searchController.selection = TextSelection.collapsed(
-                      offset: suggestion.length,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _highlightedText(String suggestion, String query) {
-    final style = Theme.of(context).textTheme.bodyLarge;
-    if (query.isEmpty) {
-      return Text(suggestion, maxLines: 1, overflow: TextOverflow.ellipsis);
-    }
-    final idx = suggestion.toLowerCase().indexOf(query.toLowerCase());
-    if (idx < 0) {
-      return Text(suggestion, maxLines: 1, overflow: TextOverflow.ellipsis);
-    }
-    final cs = Theme.of(context).colorScheme;
-    return Text.rich(
-      TextSpan(
-        style: style,
-        children: [
-          TextSpan(text: suggestion.substring(0, idx)),
-          TextSpan(
-            text: suggestion.substring(idx, idx + query.length),
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: cs.primary,
-            ),
-          ),
-          TextSpan(text: suggestion.substring(idx + query.length)),
-        ],
-      ),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-    );
-  }
-
-  Widget _buildSkeletonGrid() {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 220,
-        childAspectRatio: 0.60,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: 8,
-      itemBuilder: (_, __) {
-        // 骨架用已有的 CoverPlaceholder.shimmer（1500ms 渐变扫过），
-        // 不再用静态灰块；布局、数量、尺寸与原来一致。
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: CoverPlaceholder.shimmer(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: SizedBox(
-                        height: 12,
-                        width: double.infinity,
-                        child: CoverPlaceholder.shimmer(),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: SizedBox(
-                        height: 10,
-                        width: 80,
-                        child: CoverPlaceholder.shimmer(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -865,15 +487,52 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: GradientAppBar(title: l10n.searchBooks),
       body: Column(
         children: [
-          _buildSearchBar(l10n, isExternal),
-          _buildSourceSelector(l10n),
+          SearchBarField(
+            l10n: l10n,
+            controller: _searchController,
+            isExternal: isExternal,
+            activeFilterCount: _activeFilterCount,
+            isQueryEmpty: _isQueryEmpty,
+            onSubmitted: _performSearch,
+            onFilterTap: _openFilterSheetForCurrentLocale,
+            onClear: _clearSearch,
+          ),
+          SearchSourceSelector(
+            l10n: l10n,
+            selected: _source,
+            onSwitch: _switchSource,
+          ),
           if (!isExternal && _activeFilterCount > 0)
-            _buildActiveFilterChips(l10n, languageNames, orderNames, extensionNames),
+            SearchActiveFilterChips(
+              l10n: l10n,
+              languageNames: languageNames,
+              orderNames: orderNames,
+              extensionNames: extensionNames,
+              selectedLanguage: _selectedLanguage,
+              selectedOrder: _selectedOrder,
+              selectedExtension: _selectedExtension,
+              onResetLanguage: _resetLanguageFilter,
+              onResetOrder: _resetOrderFilter,
+              onResetExtension: _resetExtensionFilter,
+            ),
           Expanded(
             child: _isQueryEmpty
-                ? _buildEmptyQueryView(l10n)
+                ? SearchEmptyQueryView(
+                    l10n: l10n,
+                    recentSearches: _recentSearches,
+                    onSearch: _searchAgain,
+                    onRemoveSearch: _removeRecentSearch,
+                    onClearHistory: _clearRecentSearches,
+                  )
                 : _showSuggestions
-                ? _buildSuggestionsView(l10n)
+                ? SearchSuggestionsView(
+                    l10n: l10n,
+                    suggestions: _suggestions,
+                    isLoading: _suggestionsLoading,
+                    query: _searchController.text.trim(),
+                    onSearch: _searchAgain,
+                    onInsert: _insertSuggestion,
+                  )
                 : !hasSearched
                 ? EmptyState(
                     icon: Icons.search_rounded,
@@ -881,7 +540,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     message: l10n.enterSearchHint,
                   )
                 : isLoading
-                ? _buildSkeletonGrid()
+                ? const SearchSkeletonGrid()
                 : error != null && resultCount == 0
                 ? EmptyState(
                     icon: Icons.error_outline_rounded,
@@ -1054,63 +713,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One segment of the sliding-highlight source selector.
-class _SourceSegment extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SourceSegment({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? cs.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: selected
-                          ? cs.onPrimaryContainer
-                          : cs.onSurfaceVariant,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
