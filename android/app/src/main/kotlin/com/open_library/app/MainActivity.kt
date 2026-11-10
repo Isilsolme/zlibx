@@ -11,6 +11,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileInputStream
+import java.io.OutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -30,7 +31,35 @@ class MainActivity : FlutterActivity() {
     // pool so they never queue behind a multi-hundred-MB copy.
     private val lightExecutor: ExecutorService = Executors.newFixedThreadPool(2)
 
+    // Every operation on a pending download entry (append / size /
+    // finish / abort) runs on this one thread, in the order Dart sent
+    // them. That ordering is what makes the held-open streams below safe:
+    // a size query or an abort can never overtake a write that was sent
+    // before it, and [pendingStreams] needs no locking. Kept apart from
+    // [ioExecutor] so a long share / publish copy never stalls a download.
+    private val pendingExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    /// One open append stream per pending entry (key = URI string),
+    /// held for the whole download instead of open / write / close per
+    /// batch. Only touched on [pendingExecutor].
+    private class PendingStream(val out: OutputStream) {
+        val openedAtNs: Long = System.nanoTime()
+        var bytes: Long = 0L
+        var writes: Int = 0
+        var writeNs: Long = 0L
+    }
+
+    private val pendingStreams = HashMap<String, PendingStream>()
+
     override fun onDestroy() {
+        // Close any held pending streams (entries stay IS_PENDING and
+        // resumable), then let queued work drain.
+        try {
+            pendingExecutor.execute { closeAllPendingStreams() }
+        } catch (e: Exception) {
+            Log.w(TAG, "pending stream cleanup not scheduled", e)
+        }
+        pendingExecutor.shutdown()
         // shutdown() lets a running copy finish; it only rejects new work.
         ioExecutor.shutdown()
         lightExecutor.shutdown()
@@ -126,9 +155,11 @@ class MainActivity : FlutterActivity() {
                         if (uri == null || bytes == null) {
                             result.success(false)
                         } else {
-                            // Runs on the IO worker: a full 256 KB buffer
-                            // must never be written on the platform thread.
-                            runAsync(result) { writePendingChunk(uri, bytes) }
+                            // Runs on the pending worker: a batch must
+                            // never be written on the platform thread.
+                            runAsync(result, pendingExecutor) {
+                                writePendingChunk(uri, bytes)
+                            }
                         }
                     }
                     "finishPendingDownload" -> {
@@ -136,7 +167,7 @@ class MainActivity : FlutterActivity() {
                         if (uri == null) {
                             result.success(false)
                         } else {
-                            runAsync(result, lightExecutor) {
+                            runAsync(result, pendingExecutor) {
                                 finishPendingDownload(uri)
                             }
                         }
@@ -146,7 +177,7 @@ class MainActivity : FlutterActivity() {
                         if (uri == null) {
                             result.success(false)
                         } else {
-                            runAsync(result, lightExecutor) {
+                            runAsync(result, pendingExecutor) {
                                 abortPendingDownload(uri)
                             }
                         }
@@ -156,7 +187,7 @@ class MainActivity : FlutterActivity() {
                         if (uri == null) {
                             result.success(-1L)
                         } else {
-                            runAsync(result, lightExecutor) {
+                            runAsync(result, pendingExecutor) {
                                 pendingEntrySize(uri)
                             }
                         }
@@ -243,31 +274,92 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    /// Append [bytes] to the pending entry [uri]. Every call opens its
-    /// own stream in "wa" (append) mode, writes, and closes — no stream
-    /// is held across calls. False on any failure, including devices
-    /// that refuse "wa".
+    /// Append [bytes] to the pending entry [uri]. The first call for an
+    /// entry opens a "wa" (append) stream and keeps it open in
+    /// [pendingStreams]; later calls reuse it, so a download pays the
+    /// ContentResolver open / close once instead of once per batch. The
+    /// stream is closed by [finishPendingDownload] / [abortPendingDownload]
+    /// (or here, on any write error, so a broken stream is never reused —
+    /// the next call reopens in append mode at the true end of file).
+    /// False on any failure, including devices that refuse "wa".
     private fun writePendingChunk(uri: Uri, bytes: ByteArray): Boolean {
+        val key = uri.toString()
         return try {
-            val out = contentResolver.openOutputStream(uri, "wa")
-            if (out == null) {
-                Log.w(TAG, "MediaStore pending write: stream unavailable")
+            val stream = pendingStreams[key] ?: openPendingStream(uri, key)
+            if (stream == null) {
                 false
             } else {
-                out.use { it.write(bytes) }
+                val startNs = System.nanoTime()
+                stream.out.write(bytes)
+                stream.writeNs += System.nanoTime() - startNs
+                stream.bytes += bytes.size.toLong()
+                stream.writes += 1
                 true
             }
         } catch (e: Exception) {
             Log.w(TAG, "MediaStore pending write failed", e)
+            closePendingStream(key)
             false
         }
     }
 
-    /// Publish the pending entry by clearing IS_PENDING. False on any
-    /// failure (the caller then treats the download as failed and
-    /// removes the entry with [abortPendingDownload]).
+    private fun openPendingStream(uri: Uri, key: String): PendingStream? {
+        val out = contentResolver.openOutputStream(uri, "wa")
+        if (out == null) {
+            Log.w(TAG, "MediaStore pending write: stream unavailable")
+            return null
+        }
+        val stream = PendingStream(out)
+        pendingStreams[key] = stream
+        return stream
+    }
+
+    /// Close and forget the held stream for [key]. True when there was
+    /// none or it closed cleanly. Logs one summary line (bytes, time
+    /// spent inside write(), wall time since open) — `adb logcat -s
+    /// ZlibxMediaStore` shows whether the MediaStore write path is a
+    /// bottleneck: if write time is small next to wall time, the
+    /// download is network-bound.
+    private fun closePendingStream(key: String): Boolean {
+        val stream = pendingStreams.remove(key) ?: return true
+        val closed = try {
+            stream.out.close()
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaStore pending stream close failed", e)
+            false
+        }
+        val writeMs = stream.writeNs / 1_000_000L
+        val wallMs = (System.nanoTime() - stream.openedAtNs) / 1_000_000L
+        val mibPerSec = if (stream.writeNs > 0L) {
+            stream.bytes.toDouble() / 1048576.0 / (stream.writeNs / 1e9)
+        } else {
+            0.0
+        }
+        val rate = String.format(java.util.Locale.US, "%.1f", mibPerSec)
+        Log.i(
+            TAG,
+            "pending stream closed: ${stream.bytes} B in ${stream.writes} " +
+                "writes, write time $writeMs ms ($rate MiB/s), " +
+                "wall $wallMs ms",
+        )
+        return closed
+    }
+
+    private fun closeAllPendingStreams() {
+        for (key in pendingStreams.keys.toList()) {
+            closePendingStream(key)
+        }
+    }
+
+    /// Publish the pending entry by clearing IS_PENDING. The held write
+    /// stream is closed first, so every byte is handed to the provider
+    /// before the entry becomes visible. False on any failure (the
+    /// caller then treats the download as failed and removes the entry
+    /// with [abortPendingDownload]).
     private fun finishPendingDownload(uri: Uri): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        if (!closePendingStream(uri.toString())) return false
         return try {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.IS_PENDING, 0)
@@ -280,8 +372,10 @@ class MainActivity : FlutterActivity() {
     }
 
     /// Delete a pending entry (cleanup of a cancelled / failed /
-    /// superseded download). False on any failure.
+    /// superseded download), closing its held write stream first. False
+    /// on any failure.
     private fun abortPendingDownload(uri: Uri): Boolean {
+        closePendingStream(uri.toString())
         return try {
             contentResolver.delete(uri, null, null) > 0
         } catch (e: Exception) {

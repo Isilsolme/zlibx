@@ -5,11 +5,20 @@
 // book in the app-specific dir and copying it into Downloads/zlibx
 // afterwards (saves one full-file copy and the staging space).
 //
-// This class owns that entry: it buffers chunks, pushes them over the
-// platform channel in 4 MB batches (append mode, so a retry must
-// resume from exactly the committed byte count), and persists a small
-// JSON sidecar (`<savePath>.pending.json`) so an interrupted download
-// — user retry or app kill — resumes the same pending entry.
+// This class owns that entry: it buffers chunks, hands them to the
+// platform in 1 MB batches (append mode, so a retry must resume from
+// exactly the committed byte count), and persists a small JSON sidecar
+// (`<savePath>.pending.json`) so an interrupted download — user retry
+// or app kill — resumes the same pending entry.
+//
+// Throughput (item-5 speed fix): the network stream is never paused
+// for a disk write. [add] only queues a full batch and returns; the
+// batches are written strictly in order by a background chain, and the
+// download loop is only held back when it runs more than
+// [_maxBatchesAhead] batches ahead of the disk. The Kotlin side keeps
+// ONE append stream open per entry for the whole download. Overall
+// speed is therefore min(network, MediaStore write) — the same overlap
+// the old `.part` IOSink gave — instead of network + write in series.
 //
 // The ResumableDownloader `.meta` validator sidecar is untouched: it
 // lives next to the same `.part` path and is removed by [discard] /
@@ -20,6 +29,7 @@
 // resuming from the stale sidecar offset would duplicate bytes. So
 // [resume] reconciles against the entry's true size (queried from the
 // platform) and treats that as authoritative.
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -40,16 +50,33 @@ class PendingUriWriter implements PendingDownloadWriter {
     required String savePath,
   })  : _uri = uri,
         _savePath = savePath,
-        _statePath = statePathFor(savePath);
+        _statePath = statePathFor(savePath) {
+    _live[_statePath] = this;
+  }
+
+  /// The newest writer per sidecar path. A retry builds a fresh writer
+  /// (see [resume]) while the failed attempt's already-queued batches
+  /// may still be landing; [resume] waits for them first, so the size
+  /// it reconciles against is final and no late batch can append after
+  /// the new writer has picked its resume offset.
+  static final Map<String, PendingUriWriter> _live =
+      <String, PendingUriWriter>{};
 
   /// JSON sidecar next to the `.part` path. Holds the pending URI and
   /// the committed byte count; written after every successful batch.
   static String statePathFor(String savePath) => '$savePath.pending.json';
 
   /// Coalesce threshold: chunks are buffered in memory until this
-  /// size crosses, so the platform channel (open/write/close a stream
-  /// in Kotlin) runs once per 4 MB, not once per network chunk.
-  static const int _flushThreshold = 4 * 1024 * 1024;
+  /// size crosses, so the platform channel runs once per 1 MB, not once
+  /// per network chunk. (The stream stays open in Kotlin, so a batch no
+  /// longer pays an open / close — the size only trades channel round
+  /// trips against memory.)
+  static const int _flushThreshold = 1024 * 1024;
+
+  /// How many queued batches the download loop may run ahead of the
+  /// disk before [add] makes it wait: at most ~8 MB in flight plus
+  /// the sub-1 MB buffer.
+  static const int _maxBatchesAhead = 8;
 
   String _uri;
   final String _savePath;
@@ -60,15 +87,31 @@ class PendingUriWriter implements PendingDownloadWriter {
   var _committed = 0;
   var _closed = false;
 
+  /// Tail of the in-order write chain. Every step catches its own
+  /// errors (see [_writeBatch]), so awaiting it never throws.
+  Future<void> _tail = Future<void>.value();
+
+  /// Completion futures of the most recent queued batches (sliding
+  /// window for [_maxBatchesAhead]).
+  final Queue<Future<void>> _batches = Queue<Future<void>>();
+
+  /// Bytes handed to the chain and not yet finished (committed or
+  /// failed).
+  var _queuedBytes = 0;
+
+  /// First write failure. Sticky: once set, every later batch is
+  /// skipped (a gap would corrupt the file) and [add] / [flush] throw.
+  StateError? _writeError;
+
   /// The MediaStore entry currently being filled. Changes when
   /// [reset] recreates the entry after a server-side restart.
   @override
   String get uri => _uri;
 
   /// Resume offset for the next request: bytes committed to the
-  /// pending entry plus bytes still in the buffer.
+  /// pending entry plus bytes queued or still in the buffer.
   @override
-  int get bytesWritten => _committed + _buffered;
+  int get bytesWritten => _committed + _queuedBytes + _buffered;
 
   /// Bytes actually committed to the MediaStore entry (what the
   /// sidecar persists).
@@ -116,6 +159,8 @@ class PendingUriWriter implements PendingDownloadWriter {
   static Future<PendingUriWriter?> resume({
     required String savePath,
   }) async {
+    final previous = _live[statePathFor(savePath)];
+    if (previous != null) await previous._settle();
     final file = File(statePathFor(savePath));
     try {
       if (!await file.exists()) return null;
@@ -141,39 +186,37 @@ class PendingUriWriter implements PendingDownloadWriter {
     }
   }
 
-  /// Buffer one network chunk; flushes automatically once 4 MB
-  /// accumulate. A false from the platform channel (storage full,
-  /// device refusing "wa", entry gone) throws — the caller aborts.
+  /// Buffer one network chunk. Once 1 MB accumulates the batch is
+  /// queued for writing and this returns immediately — the disk write
+  /// happens in the background. Only when the loop is more than
+  /// [_maxBatchesAhead] batches ahead of the disk does this wait. A
+  /// failed write (storage full, device refusing "wa", entry gone)
+  /// surfaces here or in [flush] as a [StateError] — the caller aborts.
   @override
   Future<void> add(List<int> chunk) async {
     if (_closed) {
       throw StateError('pending writer is closed');
     }
+    _throwIfFailed();
     _bufferedChunks.add(chunk);
     _buffered += chunk.length;
-    if (_buffered >= _flushThreshold) await flush();
+    if (_buffered < _flushThreshold) return;
+    _enqueueBuffered();
+    while (_batches.length > _maxBatchesAhead) {
+      await _batches.removeFirst();
+    }
+    _throwIfFailed();
   }
 
-  /// Commit all buffered bytes to the pending entry and update the
-  /// sidecar. Throws when the platform write fails.
+  /// Commit all buffered bytes to the pending entry (waits for every
+  /// queued batch to land) and update the sidecar. Throws when a
+  /// platform write failed.
   @override
   Future<void> flush() async {
-    if (_buffered == 0) return;
-    final combined = Uint8List(_buffered);
-    var offset = 0;
-    for (final chunk in _bufferedChunks) {
-      combined.setRange(offset, offset + chunk.length, chunk);
-      offset += chunk.length;
-    }
-    _bufferedChunks.clear();
-    _buffered = 0;
-    if (!await MediaStoreFiles.writePendingChunk(_uri, combined)) {
-      throw StateError(
-        'MediaStore pending write failed at $_committed bytes',
-      );
-    }
-    _committed += combined.length;
-    await _persistState();
+    if (_buffered > 0) _enqueueBuffered();
+    await _tail;
+    _batches.clear();
+    _throwIfFailed();
   }
 
   /// Flush and close; no further [add] / [reset] afterwards.
@@ -182,12 +225,66 @@ class PendingUriWriter implements PendingDownloadWriter {
     _closed = true;
   }
 
+  /// Move the buffered chunks into one batch and append it to the
+  /// write chain. Never awaits the write.
+  void _enqueueBuffered() {
+    final data = Uint8List(_buffered);
+    var offset = 0;
+    for (final chunk in _bufferedChunks) {
+      data.setRange(offset, offset + chunk.length, chunk);
+      offset += chunk.length;
+    }
+    _bufferedChunks.clear();
+    _buffered = 0;
+    _queuedBytes += data.length;
+    final done = _tail.then((_) => _writeBatch(data));
+    _tail = done;
+    _batches.addLast(done);
+  }
+
+  /// One step of the write chain. Never throws: a failure is recorded
+  /// in [_writeError] and every later step skips its write.
+  Future<void> _writeBatch(Uint8List data) async {
+    try {
+      if (_writeError == null) {
+        if (await MediaStoreFiles.writePendingChunk(_uri, data)) {
+          _committed += data.length;
+          await _persistState();
+        } else {
+          _writeError = StateError(
+            'MediaStore pending write failed at $_committed bytes',
+          );
+        }
+      }
+    } catch (e) {
+      _writeError = StateError(
+        'MediaStore pending write failed at $_committed bytes: $e',
+      );
+    } finally {
+      _queuedBytes -= data.length;
+    }
+  }
+
+  void _throwIfFailed() {
+    final error = _writeError;
+    if (error != null) throw error;
+  }
+
+  /// Wait until every queued batch has finished (written or skipped).
+  Future<void> _settle() => _tail;
+
   /// Discard the pending entry and all sidecars (user cancel, HTML
   /// rejection, unrecoverable failure). Also removes the `.meta`
   /// validator like a deleted partial would.
   @override
   Future<void> discard() async {
+    // Queued batches must not be written into an entry that is about
+    // to be deleted: mark the chain failed so they skip, then wait for
+    // the one write that may already be in flight.
+    _writeError ??= StateError('pending download discarded');
+    await _tail;
     await MediaStoreFiles.abortPendingDownload(_uri);
+    if (identical(_live[_statePath], this)) _live.remove(_statePath);
     for (final path in <String>[_statePath, '$_savePath.meta']) {
       try {
         final f = File(path);
@@ -206,6 +303,12 @@ class PendingUriWriter implements PendingDownloadWriter {
   @override
   Future<bool> reset() async {
     if (_closed) return false;
+    // Drop queued batches (skipped via the sticky error), wait for the
+    // write in flight, then start clean on the new entry.
+    _writeError ??= StateError('pending entry is being recreated');
+    await _tail;
+    _batches.clear();
+    _writeError = null;
     await MediaStoreFiles.abortPendingDownload(_uri);
     _bufferedChunks.clear();
     _buffered = 0;
@@ -228,6 +331,7 @@ class PendingUriWriter implements PendingDownloadWriter {
     await close();
     final published = await MediaStoreFiles.finishPendingDownload(_uri);
     if (!published) return false;
+    if (identical(_live[_statePath], this)) _live.remove(_statePath);
     for (final path in <String>[_statePath, '$_savePath.meta']) {
       try {
         final f = File(path);
