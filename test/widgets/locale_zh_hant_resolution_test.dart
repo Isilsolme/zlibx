@@ -26,7 +26,11 @@ void main() {
           MaterialApp(
             locale: Locale('zh', country),
             supportedLocales: gen.AppLocalizations.supportedLocales,
-            localizationsDelegates: const [gen.AppLocalizations.delegate],
+            // The generated list (app delegate + GlobalMaterial/Cupertino/
+            // Widgets). Passing only the app delegate makes MaterialApp fall
+            // back to the English-only Default delegates, which fail the
+            // debug locale check for any non-English locale.
+            localizationsDelegates: gen.AppLocalizations.localizationsDelegates,
             home: Builder(
               builder: (context) =>
                   Text(gen.AppLocalizations.of(context)!.settings),
