@@ -55,14 +55,39 @@ class SpeedTestState {
 }
 
 class SpeedTestNotifier extends Notifier<SpeedTestState> {
-  late final List<String> _domains;
+  // Reassignable, not `late final`: build() re-runs when the domain
+  // list changes (SLUM data arriving) and a second late-final
+  // assignment would throw LateInitializationError — the same trap
+  // documented on DomainNotifier's _api.
+  List<String> _domains = const [];
 
   /// Max concurrent requests to avoid flooding the network.
   static const int _maxConcurrent = 8;
 
   @override
   SpeedTestState build() {
-    _domains = ref.read(domainListProvider);
+    final domains = ref.watch(domainListProvider);
+    // A test in flight must not be clobbered by a list change: keep
+    // its results. The new list is picked up by runTest(), which
+    // re-runs when it notices the list moved mid-test (see below).
+    final prev = stateOrNull;
+    if (prev != null && prev.testing) {
+      _domains = domains;
+      return prev;
+    }
+    // The list moved (SLUM data arrived) while no test was in flight:
+    // re-run against the new list, otherwise the picker would sit on
+    // untested rows until the user taps Retest. Skipped on first build
+    // (_domains empty) — the splash screen starts the first test, and
+    // runTest()'s testing guard makes a duplicate call a no-op anyway.
+    // The microtask runs after build() returns, when the notifier is
+    // initialized; setting state there does not re-trigger build().
+    if (_domains.isNotEmpty && !_sameDomains(_domains, domains)) {
+      _domains = domains;
+      Future.microtask(runTest);
+    } else {
+      _domains = domains;
+    }
     // Was _initResults(): the initial results list is the initial state
     // itself (a state assignment inside build() would be overwritten by
     // its return value).
@@ -73,11 +98,17 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
 
   /// Run speed test with bounded concurrency (semaphore pattern).
   /// Safe to call multiple times — ignores if already running.
-  Future<void> runTest() async {
+  Future<void> runTest({bool isRetry = false}) async {
     if (state.testing) return;
 
     // Reset results
     final results = _domains.map((d) => DomainTestResult(d)).toList();
+    // The list this run tests. If the domain list changes while the
+    // test runs (SLUM data arriving), these results are for a stale
+    // list — the check at the end discards them and re-runs against
+    // the new list instead of publishing results that would hide the
+    // new SLUM lines from the picker.
+    final testedDomains = List<String>.from(_domains);
     state = SpeedTestState(results: results, testing: true, testedCount: 0);
 
     int running = 0;
@@ -119,11 +150,34 @@ class SpeedTestNotifier extends Notifier<SpeedTestState> {
       return la.compareTo(lb);
     });
 
+    // The domain list moved while this run was in flight (SLUM data
+    // arrived): these results are for a stale list. Discard them and
+    // re-run against the current list. Bounded to one retry — the list
+    // only changes when SLUM data arrives, so a second move mid-retry
+    // is not expected; the retry's results stand in that case.
+    if (!isRetry && !_sameDomains(testedDomains, ref.read(domainListProvider))) {
+      _domains = ref.read(domainListProvider);
+      state = SpeedTestState(
+        results: _domains.map((d) => DomainTestResult(d)).toList(),
+        testing: false,
+        testedCount: 0,
+      );
+      return runTest(isRetry: true);
+    }
+
     state = SpeedTestState(
       results: List.from(results),
       testing: false,
       testedCount: tested,
     );
+  }
+
+  static bool _sameDomains(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   Future<void> _checkDomain(DomainTestResult result) async {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/hive_service.dart';
+import '../services/instance_manager.dart';
 import '../services/mirror_trust.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'auth_provider.dart';
@@ -51,8 +52,60 @@ const kBuiltInDomains = [
   '909190.xyz',
 ];
 
+/// Z-Library mirrors as open-slum.org reports them (hosts + status),
+/// in the order [InstanceManager] presents them. This is the same
+/// source the Mirrors settings page reads — the domain picker reuses it
+/// so the two lists cannot disagree. [InstanceManager.instances] applies
+/// the auto order (or the user's manual order) and returns down mirrors
+/// too, which the picker needs in order to grey them out.
+///
+/// The catalogue is warmed at startup
+/// (`InstanceManager().refreshOnStartup()`), so this usually resolves
+/// from cache. While it is loading or on error, [domainListProvider]
+/// falls back to [kBuiltInDomains] and [domainDownHostsProvider] is
+/// empty.
+final slumZlibrarySitesProvider = FutureProvider<List<SlumSite>>((ref) async {
+  final views = await InstanceManager().instances(MirrorService.zlibrary);
+  return [for (final view in views) view.site];
+});
+
+/// All lines the picker can offer, merged from both mirror sources:
+///
+///  * open-slum.org Z-Library mirrors FIRST, in SLUM order;
+///  * then built-in domains not already present (deduped by host,
+///    case-insensitive).
+///
+/// While SLUM data has never arrived (offline / cold start with no
+/// cache) this is just [kBuiltInDomains] — the previous behaviour.
+/// When SLUM data arrives the list updates to the merged order, and
+/// every consumer that watches this provider (picker, line label,
+/// network section, speed test) follows it.
 final domainListProvider = Provider<List<String>>((ref) {
-  return kBuiltInDomains;
+  final slumSites = ref.watch(slumZlibrarySitesProvider).valueOrNull;
+  if (slumSites == null || slumSites.isEmpty) {
+    return kBuiltInDomains;
+  }
+  final seen = <String>{};
+  final merged = <String>[];
+  for (final site in slumSites) {
+    if (seen.add(site.host.toLowerCase())) merged.add(site.host);
+  }
+  for (final domain in kBuiltInDomains) {
+    if (seen.add(domain.toLowerCase())) merged.add(domain);
+  }
+  return merged;
+});
+
+/// Hosts open-slum.org reports DOWN (lowercased). The domain picker
+/// greys these out. Empty while SLUM data is loading or unavailable —
+/// an unknown line is never treated as down.
+final domainDownHostsProvider = Provider<Set<String>>((ref) {
+  final slumSites = ref.watch(slumZlibrarySitesProvider).valueOrNull;
+  if (slumSites == null) return const {};
+  return {
+    for (final site in slumSites)
+      if (site.isDown) site.host.toLowerCase(),
+  };
 });
 
 final domainProvider =

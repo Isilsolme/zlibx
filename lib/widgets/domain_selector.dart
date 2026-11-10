@@ -87,6 +87,9 @@ class DomainSelectionDialog extends ConsumerWidget {
     final currentDomain = ref.watch(domainProvider);
     final domains = ref.watch(domainListProvider);
     final speedState = ref.watch(speedTestProvider);
+    // Hosts open-slum.org reports DOWN. Those rows are greyed out and
+    // not tappable (see _buildDomainTile); they stay visible.
+    final downHosts = ref.watch(domainDownHostsProvider);
 
     // Build lookup: domain -> DomainTestResult
     final Map<String, DomainTestResult> resultMap = {};
@@ -155,12 +158,16 @@ class DomainSelectionDialog extends ConsumerWidget {
               final lineLabel = lineIndex >= 0
                   ? 'Line ${lineIndex + 1}'
                   : result.domain;
+              // SLUM-reported down: greyed out, not tappable (still shown).
+              final isDown =
+                  downHosts.contains(result.domain.toLowerCase());
               return _buildDomainTile(
                 context,
                 ref,
                 result,
                 lineLabel,
                 currentDomain,
+                isDown,
               );
             }
             // Last item: custom domain
@@ -200,6 +207,7 @@ class DomainSelectionDialog extends ConsumerWidget {
     DomainTestResult result,
     String label,
     String currentDomain,
+    bool isDown,
   ) {
     final isSelected = result.domain == currentDomain;
     final latency = result.latencyMs;
@@ -225,31 +233,43 @@ class DomainSelectionDialog extends ConsumerWidget {
       );
     }
 
-    return ListTile(
-      dense: true,
-      visualDensity: const VisualDensity(vertical: -2),
-      leading: isSelected
-          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20)
-          : const Icon(Icons.circle_outlined, size: 20, color: Colors.grey),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
-          color: isSelected ? Theme.of(context).colorScheme.primary : null,
+    // A SLUM-reported down line stays visible but greyed out and not
+    // tappable — same treatment as the Mirrors settings page (Opacity
+    // + strikethrough + disabled control). Only `SlumStatus.down`
+    // counts; degraded / protected / unknown are attemptable and render
+    // normally. If the user wants a dead line tappable again, re-enable
+    // onTap here (one line).
+    return Opacity(
+      opacity: isDown ? 0.55 : 1,
+      child: ListTile(
+        dense: true,
+        visualDensity: const VisualDensity(vertical: -2),
+        leading: isSelected
+            ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20)
+            : const Icon(Icons.circle_outlined, size: 20, color: Colors.grey),
+        title: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
+            color: isSelected ? Theme.of(context).colorScheme.primary : null,
+            decoration: isDown ? TextDecoration.lineThrough : null,
+          ),
         ),
+        trailing: trailing,
+        onTap: isDown
+            ? null
+            : () async {
+                final trusted = await confirmMirrorTrust(
+                  context,
+                  result.domain,
+                  builtIn: true,
+                );
+                if (!trusted || !context.mounted) return;
+                ref.read(domainProvider.notifier).setDomain(result.domain);
+                Navigator.pop(context);
+              },
       ),
-      trailing: trailing,
-      onTap: () async {
-        final trusted = await confirmMirrorTrust(
-          context,
-          result.domain,
-          builtIn: true,
-        );
-        if (!trusted || !context.mounted) return;
-        ref.read(domainProvider.notifier).setDomain(result.domain);
-        Navigator.pop(context);
-      },
     );
   }
 
