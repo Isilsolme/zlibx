@@ -1,0 +1,239 @@
+import 'package:olib_api_plugin/olib_api_plugin.dart';
+
+import 'booklist_html_cache.dart';
+import 'booklist_solver.dart';
+import 'external_logger.dart';
+
+/// Data layer for the booklist screens: fetching (fast Dio first, the
+/// WebView solver on the browser-check wall), parsing, the persistent
+/// [BooklistHtmlCache] and invalidation all live here. The Riverpod
+/// controllers keep only their state machines (the generation / alive
+/// guards and the loading flags) and apply what this repository
+/// returns to their state.
+///
+/// The repository holds no state of its own: every method is a
+/// stateless operation on the [ZLibraryApi] it was constructed with or
+/// on the cache, so a controller can keep its generation checks around
+/// each call exactly where they were. In particular a fetch is never
+/// persisted here before the controller has decided the load is still
+/// current and not invalidated (see
+/// [BooklistHtmlCache.wasInvalidatedAfter]) — the controller calls
+/// [storeBooksPage] at exactly the point where the store used to
+/// happen.
+class BooklistRepository {
+  BooklistRepository(this._api);
+
+  final ZLibraryApi _api;
+
+  final AppLogger _logger = AppLogger();
+
+  // ---- cache reads ----
+
+  /// Cached books of one detail JSON page (`#json-page=N`), or null
+  /// when never cached, stale or corrupt.
+  List<Book>? cachedBooksPage(
+    String url,
+    int page, {
+    String? accountId,
+  }) {
+    return BooklistHtmlCache.getBooksPage(url, page, accountId: accountId);
+  }
+
+  /// The cached raw detail HTML when it is usable — present and not a
+  /// challenge page — else null. A stored challenge page must never be
+  /// parsed as an (empty) first page.
+  String? cachedDetailHtml(String url, {String? accountId}) {
+    final cachedHtml = BooklistHtmlCache.get(url, accountId: accountId);
+    return (cachedHtml != null && !BooklistSolver.isChallengeHtml(cachedHtml))
+        ? cachedHtml
+        : null;
+  }
+
+  /// Parses a cached detail page's HTML into first-page books, or null
+  /// when the cached page fails to parse. The cache was written by an
+  /// older app run: a parse failure there must not escape the load
+  /// (which runs from a microtask) and leave the screen loading
+  /// forever — treat a broken cache like a cache miss.
+  List<Book>? parseCachedDetailBooks(
+    String html, {
+    required String baseUrl,
+  }) {
+    try {
+      return parseBooklistDetailBooks(html, baseUrl: baseUrl);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The cached own/discover list page parsed into its model, or null
+  /// when nothing usable is cached. The cached HTML is user-unreachable
+  /// data from an older app run: a parse failure there must not leave
+  /// the screen loading forever, so a broken cache is treated like a
+  /// cache miss and the caller falls through to the network path.
+  BooklistsPage? cachedListPage(String url, {String? accountId}) {
+    final cachedHtml = BooklistHtmlCache.get(url, accountId: accountId);
+    if (cachedHtml == null || BooklistSolver.isChallengeHtml(cachedHtml)) {
+      return null;
+    }
+    try {
+      return parseBooklistsPage(cachedHtml, baseUrl: Uri.parse(url).origin);
+    } catch (e) {
+      _logger.warning('Cached booklists page failed to parse, ignoring it',
+          tag: 'Booklists', error: e);
+      return null;
+    }
+  }
+
+  // ---- parsing (fresh pages) ----
+
+  /// Parses the detail page's HTML into first-page books. Unlike
+  /// [parseCachedDetailBooks] this is the network path's parse: a
+  /// failure propagates to the caller like any fetch error.
+  List<Book> parseDetailBooks(String html, {required String baseUrl}) =>
+      parseBooklistDetailBooks(html, baseUrl: baseUrl);
+
+  /// Parses one own/discover list page's HTML into its model.
+  BooklistsPage parseListPage(String html, {required String baseUrl}) =>
+      parseBooklistsPage(html, baseUrl: baseUrl);
+
+  // ---- cache writes / invalidation ----
+
+  /// Persists one parsed detail page (page 1 is HTML; page 2+ is JSON)
+  /// under [url]'s cache key. [fetchedAt] is when the fetch that
+  /// produced this page started, so a page older than the URL's last
+  /// invalidation is dropped instead of stored.
+  void storeBooksPage(
+    String url,
+    int page,
+    List<Book> books, {
+    String? accountId,
+    DateTime? fetchedAt,
+  }) {
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      page,
+      books,
+      accountId: accountId,
+      fetchedAt: fetchedAt,
+    );
+  }
+
+  /// True when a fetch that started at [fetchedAt] predates a write
+  /// (add/remove a book) to this URL family: its data must not be
+  /// applied to the visible list nor re-stored.
+  bool wasInvalidatedAfter(
+    String url,
+    DateTime fetchedAt, {
+    String? accountId,
+  }) {
+    return BooklistHtmlCache.wasInvalidatedAfter(
+      url,
+      fetchedAt,
+      accountId: accountId,
+    );
+  }
+
+  /// Drops every cached page of one booklist (the raw detail HTML plus
+  /// all parsed JSON pages) and records the invalidation tombstone. Use
+  /// after a successful write so the removed data cannot reappear from
+  /// cache on the next open.
+  void invalidateBooklist(String url, {String? accountId}) {
+    BooklistHtmlCache.invalidateBooklist(url, accountId: accountId);
+  }
+
+  // ---- API: fast Dio path ----
+
+  /// The detail page's own first page (the server-rendered document,
+  /// parsed by the plugin).
+  Future<ApiResponse<List<Book>>> fetchDetailBooks(Booklist list) =>
+      _api.getBooklistDetailBooks(list);
+
+  /// Detail JSON pages (2 and up; page 1 is server-rendered).
+  Future<ApiResponse<BooklistBooksPage>> fetchBooksPage(
+    String listId, {
+    int page = 2,
+  }) =>
+      _api.getBooklistBooks(listId, page: page);
+
+  /// One page of the signed-in user's own booklists.
+  Future<ApiResponse<BooklistsPage>> searchMyBooklists({
+    String query = '',
+    int page = 1,
+  }) =>
+      _api.searchMyBooklists(query: query, page: page);
+
+  /// One page of the public booklists to discover.
+  Future<ApiResponse<BooklistsPage>> searchPublicBooklists({
+    String query = '',
+    String? order,
+    int page = 1,
+  }) =>
+      _api.searchPublicBooklists(query: query, order: order, page: page);
+
+  /// The full URL of one own/discover list page — also the cache key
+  /// the list pages are stored under.
+  String booklistsPageUrl({
+    bool mine = true,
+    String query = '',
+    String? order,
+    int page = 1,
+  }) =>
+      _api.booklistsPageUrl(
+        mine: mine,
+        query: query,
+        order: order,
+        page: page,
+      );
+
+  /// The readlist ENTRY id of one (book, list) membership row — the id
+  /// remove-book takes, never the book id (see
+  /// [removeBookFromBooklist]).
+  Future<ApiResponse<int?>> resolveBookEntry({
+    required int booklistId,
+    required int bookId,
+  }) =>
+      _api.getReadlistBookId(booklistId: booklistId, bookId: bookId);
+
+  /// Removes one membership row from a booklist. Takes the readlist
+  /// ENTRY id from [resolveBookEntry], not the book id — sending the
+  /// book id is what the server 500s on.
+  Future<ApiResponse<bool>> removeBookFromBooklist({
+    required int booklistId,
+    required int readlistBookId,
+  }) =>
+      _api.removeBookFromBooklist(
+        booklistId: booklistId,
+        readlistBookId: readlistBookId,
+      );
+
+  /// Deletes one of the user's own booklists.
+  Future<ApiResponse<bool>> deleteBooklist(int booklistId) =>
+      _api.deleteBooklist(booklistId);
+
+  // ---- API: WebView solver fallback ----
+
+  /// The plugin's short error for a browser-check wall (plus the older
+  /// shapes a wall can surface as).
+  bool isChallengeError(String? error) =>
+      BooklistSolver.isChallengeError(error);
+
+  /// Fetches [url] through the WebView solver and returns the real
+  /// page HTML, or null when the solve failed. When [userId] and
+  /// [userKey] are both given, the login session is installed into the
+  /// WebView's CookieManager first (own-list pages need it). On success
+  /// the page is stored in the cache under [accountId], so the next
+  /// load skips the solver.
+  Future<String?> fetchViaSolver(
+    String url, {
+    String? accountId,
+    String? userId,
+    String? userKey,
+  }) =>
+      BooklistSolver.fetchHtml(
+        _api,
+        url,
+        accountId: accountId,
+        userId: userId,
+        userKey: userKey,
+      );
+}

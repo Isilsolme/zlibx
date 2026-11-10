@@ -4,8 +4,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../services/booklist_html_cache.dart';
-import '../services/booklist_solver.dart';
+import '../services/booklist_repository.dart';
 import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
 
@@ -146,12 +145,18 @@ class BooklistDetailController
   bool _alive = true;
   int _generation = 0;
 
+  /// Data layer: fetching, parsing, the page cache and invalidation
+  /// (see [BooklistRepository]). Holds no state of its own; rebuilt on
+  /// every (re)build from the shared API instance.
+  late BooklistRepository _repository;
+
   Booklist get _list => arg.booklist;
 
   String get _accountId => ref.read(authProvider).user?.id ?? 'signed-out';
 
   @override
   BooklistDetailState build(BooklistDetailArgs arg) {
+    _repository = BooklistRepository(ref.read(zlibraryApiProvider));
     _alive = true;
     ref.onDispose(() => _alive = false);
     Future<void>.microtask(loadFirst);
@@ -175,31 +180,23 @@ class BooklistDetailController
     // Page 1 is cached independently of the booklist-list preview. The
     // preview belongs to the (possibly stale) list-page response and
     // must never prevent reading a newer detail-page cache.
-    final cachedPage = BooklistHtmlCache.getBooksPage(
+    final cachedPage = _repository.cachedBooksPage(
       list.url,
       1,
       accountId: accountId,
     );
-    final cachedHtml = cachedPage == null
-        ? BooklistHtmlCache.get(list.url, accountId: accountId)
-        : null;
-    final usableHtml =
-        (cachedHtml != null && !BooklistSolver.isChallengeHtml(cachedHtml))
-        ? cachedHtml
+    final usableHtml = cachedPage == null
+        ? _repository.cachedDetailHtml(list.url, accountId: accountId)
         : null;
     List<Book>? htmlBooks;
     if (usableHtml != null) {
       // Same guard as BooklistsController.loadFirst: the cache was written
       // by an older run — a parse failure must not escape loadFirst (which
       // runs from a microtask) and leave the screen loading forever.
-      try {
-        htmlBooks = parseBooklistDetailBooks(
-          usableHtml,
-          baseUrl: Uri.parse(list.url).origin,
-        );
-      } catch (_) {
-        htmlBooks = null;
-      }
+      htmlBooks = _repository.parseCachedDetailBooks(
+        usableHtml,
+        baseUrl: Uri.parse(list.url).origin,
+      );
     }
     final initialBooks = cachedPage ?? htmlBooks ?? preview;
     final hasLocalSnapshot =
@@ -234,7 +231,7 @@ class BooklistDetailController
     // the next refresh. Retry once with a fresh fetch; a second
     // invalidation during the retry just drops again, no loop.
     if (_isCurrent(generation) &&
-        BooklistHtmlCache.wasInvalidatedAfter(
+        _repository.wasInvalidatedAfter(
           list.url,
           fetchedAt,
           accountId: accountId,
@@ -259,16 +256,15 @@ class BooklistDetailController
     required String accountId,
     required DateTime fetchedAt,
   }) async {
-    final api = ref.read(zlibraryApiProvider);
     final list = _list;
     try {
-      final response = await api.getBooklistDetailBooks(list);
+      final response = await _repository.fetchDetailBooks(list);
       if (!_isCurrent(generation)) return;
       // A refresh that started while a remove was still in flight
       // carries the pre-remove page: its fetch predates the
       // invalidation, so applying it would resurrect the removed book
       // in the visible list even though the generation is current.
-      if (BooklistHtmlCache.wasInvalidatedAfter(
+      if (_repository.wasInvalidatedAfter(
         list.url,
         fetchedAt,
         accountId: accountId,
@@ -279,7 +275,7 @@ class BooklistDetailController
       if (response.success && data != null) {
         // Persist the parsed first page so the next visit paints
         // immediately without depending on the list-page preview.
-        BooklistHtmlCache.storeBooksPage(
+        _repository.storeBooksPage(
           list.url,
           1,
           data,
@@ -290,7 +286,7 @@ class BooklistDetailController
         return;
       }
       final error = response.error ?? 'Failed to load booklist';
-      if (BooklistSolver.isChallengeError(response.error)) {
+      if (_repository.isChallengeError(response.error)) {
         await _loadViaSolver(
           error,
           background: background,
@@ -314,13 +310,11 @@ class BooklistDetailController
     required String accountId,
     required DateTime fetchedAt,
   }) async {
-    final api = ref.read(zlibraryApiProvider);
     final url = _list.url;
     // An own list's page needs the session; a public page loads the same
     // either way.
     final user = ref.read(authProvider).user;
-    final html = await BooklistSolver.fetchHtml(
-      api,
+    final html = await _repository.fetchViaSolver(
       url,
       accountId: accountId,
       userId: user?.id,
@@ -330,7 +324,7 @@ class BooklistDetailController
     // Same invalidation check as _loadDetailPage: the solver fetch
     // started with this load, so a write that completed meanwhile
     // makes its page stale.
-    if (BooklistHtmlCache.wasInvalidatedAfter(
+    if (_repository.wasInvalidatedAfter(
       url,
       fetchedAt,
       accountId: accountId,
@@ -341,8 +335,11 @@ class BooklistDetailController
       if (!background) _fail(originalError);
       return;
     }
-    final books = parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin);
-    BooklistHtmlCache.storeBooksPage(
+    final books = _repository.parseDetailBooks(
+      html,
+      baseUrl: Uri.parse(url).origin,
+    );
+    _repository.storeBooksPage(
       url,
       1,
       books,
@@ -369,10 +366,9 @@ class BooklistDetailController
     // See loadFirst: when this load's fetch started, for the
     // invalidation check on its cache store.
     final fetchedAt = DateTime.now();
-    final api = ref.read(zlibraryApiProvider);
     final list = _list;
     final accountId = _accountId;
-    final cachedPage = BooklistHtmlCache.getBooksPage(
+    final cachedPage = _repository.cachedBooksPage(
       list.url,
       page,
       accountId: accountId,
@@ -380,7 +376,7 @@ class BooklistDetailController
     if (cachedPage != null) _merge(cachedPage);
     state = state.copyWith(isLoadingMore: true, books: List.of(_books));
     try {
-      final response = await api.getBooklistBooks(list.id, page: page);
+      final response = await _repository.fetchBooksPage(list.id, page: page);
       if (!_isCurrent(generation)) return;
       // Same invalidation check as _loadDetailPage: a load-more that
       // started before a remove must not merge the removed book back.
@@ -390,7 +386,7 @@ class BooklistDetailController
       // another screen (add-to-booklist dialog), which has no
       // successor load to clear them — leaving them set would block
       // loadMore for the rest of this screen's lifetime.
-      if (BooklistHtmlCache.wasInvalidatedAfter(
+      if (_repository.wasInvalidatedAfter(
         list.url,
         fetchedAt,
         accountId: accountId,
@@ -400,7 +396,7 @@ class BooklistDetailController
       }
       final data = response.data;
       if (response.success && data != null) {
-        BooklistHtmlCache.storeBooksPage(
+        _repository.storeBooksPage(
           list.url,
           page,
           data.books,
@@ -462,7 +458,7 @@ class BooklistDetailController
       return ApiResponse.fail('book is already being removed');
     }
     try {
-      final entry = await ref.read(zlibraryApiProvider).getReadlistBookId(
+      final entry = await _repository.resolveBookEntry(
         booklistId: listId,
         bookId: book.id,
       );
@@ -498,16 +494,14 @@ class BooklistDetailController
         isLoading: false,
         isLoadingMore: false,
       );
-      final response = await ref
-          .read(zlibraryApiProvider)
-          .removeBookFromBooklist(
-            booklistId: listId,
-            readlistBookId: entryId,
-          );
+      final response = await _repository.removeBookFromBooklist(
+        booklistId: listId,
+        readlistBookId: entryId,
+      );
       if (response.success) {
         // Invalidate even when the controller is gone — the next
         // open must not paint the deleted book from a page cache.
-        BooklistHtmlCache.invalidateBooklist(
+        _repository.invalidateBooklist(
           _list.url,
           accountId: _accountId,
         );

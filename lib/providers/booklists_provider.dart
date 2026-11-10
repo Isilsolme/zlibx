@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../services/booklist_html_cache.dart';
-import '../services/booklist_solver.dart';
-import '../services/external_logger.dart';
+import '../services/booklist_repository.dart';
 import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
 
@@ -65,11 +63,10 @@ class BooklistsState {
 /// cached page paints instantly and is revalidated in the background
 /// (a failed background refresh keeps the cached lists); when Dio hits
 /// the browser-check wall the same page is fetched via the WebView
-/// solver ([BooklistSolver]).
+/// solver. Fetching, parsing, the page cache and invalidation live in
+/// [BooklistRepository]; this controller keeps the state machine.
 class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   static const int _pageSize = 10;
-
-  final AppLogger _logger = AppLogger();
 
   bool _alive = true;
 
@@ -84,8 +81,14 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   int _loadMoreToken = 0;
   int _loadMoreOwner = 0;
 
+  /// Data layer: fetching, parsing, the page cache and invalidation
+  /// (see [BooklistRepository]). Holds no state of its own; rebuilt on
+  /// every (re)build from the shared API instance.
+  late BooklistRepository _repository;
+
   @override
   BooklistsState build() {
+    _repository = BooklistRepository(ref.read(zlibraryApiProvider));
     _alive = true;
     ref.onDispose(() => _alive = false);
     Future<void>.microtask(loadFirst);
@@ -139,8 +142,7 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       lists: [...state.lists]..removeAt(index),
     );
     try {
-      final response =
-          await ref.read(zlibraryApiProvider).deleteBooklist(listId);
+      final response = await _repository.deleteBooklist(listId);
       if (!_alive) return response;
       if (response.success) return response;
       _restoreDeleted(generation, removed, index);
@@ -221,31 +223,13 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     final generation = ++_generation;
     final tab = state.tab;
     final accountId = _accountIdFor(tab);
-    final api = ref.read(zlibraryApiProvider);
-    final url = api.booklistsPageUrl(
+    final url = _repository.booklistsPageUrl(
       mine: tab == BooklistTab.mine,
       query: state.query,
       order: tab == BooklistTab.mine ? null : 'popular',
       page: 1,
     );
-    final cachedHtml = BooklistHtmlCache.get(url, accountId: accountId);
-    BooklistsPage? cachedPage;
-    if (cachedHtml != null && !BooklistSolver.isChallengeHtml(cachedHtml)) {
-      // The cached HTML is user-unreachable data from an older app run;
-      // a parse failure there must not leave the screen loading forever.
-      // Treat a broken cache like a cache miss and fall through to the
-      // network path.
-      try {
-        cachedPage = parseBooklistsPage(
-          cachedHtml,
-          baseUrl: Uri.parse(url).origin,
-        );
-      } catch (e) {
-        _logger.warning('Cached booklists page failed to parse, ignoring it',
-            tag: 'Booklists', error: e);
-        cachedPage = null;
-      }
-    }
+    final cachedPage = _repository.cachedListPage(url, accountId: accountId);
     if (cachedPage != null) {
       // Stale-while-revalidate: paint the last-known lists instantly,
       // then refresh page 1 in the background.
@@ -287,7 +271,6 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     required int generation,
     required String? accountId,
   }) async {
-    final api = ref.read(zlibraryApiProvider);
     final tab = state.tab;
     final query = state.query;
     final tracksLoadMore = page > 1;
@@ -300,8 +283,8 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     }
     try {
       final response = tab == BooklistTab.mine
-          ? await api.searchMyBooklists(query: query, page: page)
-          : await api.searchPublicBooklists(
+          ? await _repository.searchMyBooklists(query: query, page: page)
+          : await _repository.searchPublicBooklists(
               query: query,
               order: 'popular',
               page: page,
@@ -313,7 +296,7 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
         return;
       }
       final error = response.error ?? 'Failed to load booklists';
-      if (BooklistSolver.isChallengeError(response.error)) {
+      if (_repository.isChallengeError(response.error)) {
         await _loadViaSolver(
           page,
           error,
@@ -353,9 +336,8 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     required int generation,
     required String? accountId,
   }) async {
-    final api = ref.read(zlibraryApiProvider);
     final tab = state.tab;
-    final url = api.booklistsPageUrl(
+    final url = _repository.booklistsPageUrl(
       mine: tab == BooklistTab.mine,
       query: state.query,
       order: tab == BooklistTab.mine ? null : 'popular',
@@ -373,8 +355,7 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       }
       userId = user.id;
     }
-    final html = await BooklistSolver.fetchHtml(
-      api,
+    final html = await _repository.fetchViaSolver(
       url,
       accountId: accountId,
       userId: userId,
@@ -386,7 +367,7 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       return;
     }
     _applyPage(
-      parseBooklistsPage(html, baseUrl: Uri.parse(url).origin),
+      _repository.parseListPage(html, baseUrl: Uri.parse(url).origin),
       page,
       replace: replace,
     );
