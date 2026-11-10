@@ -29,7 +29,7 @@ void main() {
             localizationsDelegates: const [gen.AppLocalizations.delegate],
             home: Builder(
               builder: (context) =>
-                  Text(gen.AppLocalizations.of(context).settings),
+                  Text(gen.AppLocalizations.of(context)!.settings),
             ),
           ),
         );

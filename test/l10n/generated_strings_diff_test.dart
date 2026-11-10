@@ -6,9 +6,18 @@
 // every one of the 386 getters/methods, in all 5 locales, plus the 20
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
+//
+// The per-locale classes (AppLocalizationsEn, ...ZhHant) live in the
+// per-LANGUAGE files (app_localizations_zh.dart holds both Zh and
+// ZhHant); app_localizations.dart imports them but does not export
+// them, so each language file is imported below.
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zlibx/l10n/generated/app_localizations.dart';
+import 'package:zlibx/l10n/generated/app_localizations_en.dart';
+import 'package:zlibx/l10n/generated/app_localizations_ja.dart';
+import 'package:zlibx/l10n/generated/app_localizations_ko.dart';
+import 'package:zlibx/l10n/generated/app_localizations_zh.dart';
 
 void main() {
   test('generated en strings match the snapshot', () {
