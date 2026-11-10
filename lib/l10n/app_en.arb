@@ -1,0 +1,541 @@
+{
+  "@@locale": "en",
+  "about": "About",
+  "aboutAiBuiltTitle": "🤖 AI-Built Open Source Third-Party Client",
+  "aboutBody": "zlibx is an open-source project built with AI assistance.\n\n📱 This project only provides frontend interface\n📚 All book data comes from external library services\n🔓 100% open source, transparent code\n\n⚠️ Disclaimer:\n• zlibx is a third-party client, not an official client\n• Not affiliated with any official service\n• By using this app you understand and accept the above",
+  "aboutCredits": "Credits: based on olib-mobile by shiyi-0x7f, heavily modded.",
+  "aboutQuote": "\"Knowledge has no boundaries\"",
+  "aboutZlibrary": "About zlibx",
+  "account": "Account",
+  "accountActions": "Account actions",
+  "accountManagement": "Account management",
+  "accountRemoved": "Account removed",
+  "addAccount": "Add another account",
+  "addAccountSubtitle": "Sign in to save another account",
+  "addToBooklist": "Add to booklist",
+  "addToBooklistFailed": "Could not add to booklist: {error}",
+  "@addToBooklistFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addToBooklistSuccess": "Added to booklist",
+  "alreadyHaveAccount": "Already have an account? ",
+  "annasDonationKey": "Anna's Archive donation key",
+  "annasDonationKeyHint": "Enter your donation key to enable fast downloads. Leave empty to use slow downloads.",
+  "appName": "zlibx",
+  "appearance": "Appearance",
+  "author": "Author",
+  "badgeAiBuilt": "AI-Built",
+  "badgeOpenSource": "Open Source",
+  "batchRemove": "Remove Selected",
+  "blurEffect": "Blur effect",
+  "bookDetails": "Book Details",
+  "bookName": "Book Name",
+  "booklistBookCount": "{count} books",
+  "@booklistBookCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "booklistBookRemoved": "Book removed from booklist",
+  "booklistCreateFailed": "Could not create: {error}",
+  "@booklistCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistCreated": "Booklist created",
+  "booklistDeleteConfirm": "Delete this booklist?",
+  "booklistDeleteDesc": "This cannot be undone.",
+  "booklistDeleteFailed": "Could not delete booklist: {error}",
+  "@booklistDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistDeleted": "Booklist deleted",
+  "booklistDescriptionOptional": "Description (optional)",
+  "booklistRemoveBookConfirm": "Remove this book from the booklist?",
+  "booklistRemoveBookFailed": "Could not remove book from booklist: {error}",
+  "@booklistRemoveBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistTitle": "Booklist name",
+  "booklists": "Booklists",
+  "booklistsSubtitle": "Your booklists and public ones",
+  "booksDownloadedAnyDevice": "Books downloaded on any device",
+  "booksFound": "books",
+  "bookshelf": "Bookshelf",
+  "cancel": "Cancel",
+  "cannotOpenFolder": "Could not open folder",
+  "checkForUpdates": "Check for Updates",
+  "checkingUpdates": "Checking for updates...",
+  "chooseCustomDownloadDir": "Choose a custom download directory",
+  "chooseDownloadSource": "Choose a download source",
+  "clear": "Clear",
+  "close": "Close",
+  "codeSent": "Verification code sent to your email",
+  "commentDeleteConfirm": "Delete this comment?",
+  "commentDeleteDesc": "This cannot be undone.",
+  "commentDeleteFailed": "Failed to delete comment",
+  "commentFailed": "Failed to post comment",
+  "commentTooShort": "Comment is too short",
+  "comments": "Comments",
+  "commentsDisabled": "Comments are disabled for this book",
+  "completed": "Completed",
+  "confirmOk": "OK",
+  "confirmRemoveMsg": "Remove {count} book(s) from favorites?",
+  "@confirmRemoveMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmRemoveTitle": "Confirm Remove",
+  "continueAnyway": "Continue anyway",
+  "copyPath": "Copy Path",
+  "create": "Create",
+  "createAccount": "Create Account",
+  "createBooklist": "New booklist",
+  "currentAccount": "Current account",
+  "currentVersionLabel": "Current version: v{version}",
+  "@currentVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "customDomain": "Custom Domain",
+  "customDomainInvalid": "Invalid domain format. Enter a domain like example.com.",
+  "customDomainReloginHint": "Switched to a custom line. Please log in again.",
+  "customDomainSwitchAnyway": "Switch Anyway",
+  "customDomainWarningBody": "This domain is not in the built-in line list. Your saved login session will not be sent automatically after switching. Only continue if you trust this domain, and log in again after switching.",
+  "customDomainWarningTitle": "Custom Line Risk",
+  "customLine": "Custom Line",
+  "customLineDialogTitle": "Custom Domain",
+  "customLineEllipsis": "Custom line...",
+  "dark": "Dark",
+  "darkMode": "Dark mode",
+  "defaultAppDocuments": "Default (App Documents)",
+  "delete": "Delete",
+  "deleteConfirm": "Delete File?",
+  "deleteDesc": "This will delete the file from your device.",
+  "description": "Description",
+  "deselectAll": "Deselect All",
+  "detailUnavailable": "Full details are unavailable.",
+  "detailUnavailablePreview": "Full details are unavailable. The preview option may be missing.",
+  "details": "Details",
+  "discoverBooklists": "Discover Booklists",
+  "domainUrl": "Domain URL",
+  "done": "Done",
+  "dontHaveAccount": "Don't have an account? ",
+  "download": "Download",
+  "downloadAgain": "Download Again",
+  "downloadCancelled": "Cancelled",
+  "downloadDeleteFailed": "Could not delete the file. Check access and retry.",
+  "downloadDeleteFile": "Delete local file",
+  "downloadDirUpdated": "Download directory updated",
+  "downloadDirectory": "Download Directory",
+  "downloadFailed": "Download failed",
+  "downloadFileMissing": "The local file is missing. Remove this record and download it again.",
+  "downloadFreshLinkRequired": "This link expired. Return to the book page for a new link.",
+  "downloadHistory": "Download History (Cloud)",
+  "downloadPreparing": "Preparing download",
+  "downloadQuotaDesc": "This Z-Library account has used all of today's downloads. They reset tomorrow, or you can switch to another account in Settings.",
+  "downloadQuotaExceeded": "Daily downloads used up. Try tomorrow or switch accounts.",
+  "downloadQuotaTitle": "Daily downloads used up",
+  "downloadRemoveRecord": "Remove record",
+  "downloadRemoveRecordHint": "Remove this entry from the download list.",
+  "downloadedBooksHere": "Downloaded books will appear here",
+  "downloading": "Downloading...",
+  "downloads": "Downloads",
+  "downloadsAppearHere": "Your ongoing downloads will appear here",
+  "downloadsLeftToday": "downloads left today",
+  "downloadsSavedHint": "Downloaded books will be saved to the system Downloads folder, accessible via file manager.",
+  "edit": "Edit",
+  "email": "Email",
+  "enterAPassword": "Please enter a password",
+  "enterCode": "Please enter verification code",
+  "enterContent": "Share your thoughts...",
+  "enterEmail": "Please enter your email",
+  "enterName": "Please enter your name",
+  "enterPassword": "Please enter your password",
+  "enterSearchHint": "Enter title, author or keyword",
+  "enterTitle": "e.g. My Favorite Sci-Fi",
+  "error": "Error",
+  "failedSendCode": "Failed to send code",
+  "favoriteFailed": "Could not update favorites. Please try again.",
+  "favoriteRemoved": "Removed from Favorites",
+  "favorites": "Favorites",
+  "fileDetails": "File Details",
+  "fileExistsDesc": "This book has already been downloaded.\n\nYou can open the existing file or download again.",
+  "fileExistsTitle": "File Already Exists",
+  "fileSize": "File Size",
+  "floatingNav": "Floating navigation bar",
+  "followDevice": "Follow device language",
+  "githubOpenSource": "GitHub Open Source",
+  "goodMorning": "Good morning,",
+  "gotIt": "OK",
+  "greetingAfternoon": "Good afternoon,",
+  "greetingEvening": "Good evening,",
+  "greetingLateNight": "Late night,",
+  "greetingNoon": "Good afternoon,",
+  "gridView": "Grid view",
+  "hideNavOnScroll": "Hide on scroll down",
+  "historyEmptyMessage": "Books you downloaded on other devices will appear here",
+  "home": "Home",
+  "incorrectCredentials": "Incorrect email or password",
+  "language": "Language",
+  "languageSetting": "Language",
+  "later": "Later",
+  "light": "Light",
+  "like": "Like",
+  "likeFailed": "Failed to update like",
+  "lineCachedLoginHint": "Using cached login. Tap to switch line.",
+  "lineStatusUnavailable": "Unavailable",
+  "lineUnavailable": "Line Unavailable",
+  "lineUnavailableCurrent": "Current line unavailable",
+  "listView": "List view",
+  "loading": "Loading...",
+  "loadingDownloads": "Loading downloads...",
+  "loadingFavorites": "Loading favorites...",
+  "loadingSimilarBooks": "Loading similar books...",
+  "loadingTrendingBooks": "Loading trending books...",
+  "login": "Login",
+  "loginBadCredentials": "User not registered or incorrect credentials",
+  "loginFailed": "Login failed",
+  "loginLineBlockedCf": "Current line is blocked by Cloudflare. Please switch to another line and try again.",
+  "loginLineConnectFailed": "Current line failed to connect (blocked or down) — not a credential error. Please switch lines and retry.",
+  "loginNoAccountHint": "No account? Please register on official site. This app doesn't provide registration.",
+  "loginSkipExplore": "Skip login, explore first",
+  "loginToContinue": "Login to continue",
+  "loginToViewBooklists": "Log in to view booklists",
+  "loginToViewComments": "Log in to view comments",
+  "loginUnknownFailure": "Login failed for an unknown reason.\nLine: {line}\nTime: {time}\n\nError details: {detail}\n\nPlease screenshot this dialog and send it with your feedback.",
+  "@loginUnknownFailure": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "loginUseZsiteAccount": "Please login with your z-site account",
+  "logout": "Logout",
+  "logoutAction": "Log out",
+  "logoutConfirmDesc": "You will need to log in again with your credentials.",
+  "logoutConfirmTitle": "Log out?",
+  "manageAccounts": "Switch or manage accounts",
+  "mediastoreDesc": "Uses MediaStore API to save to public Downloads",
+  "mirrorAutoDesc": "Easiest protection first, then fastest. Recommended.",
+  "mirrorAutoOrder": "Automatic mirror order",
+  "mirrorDeviceMs": "Device {ms}ms",
+  "@mirrorDeviceMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorListUnreachable": "Could not reach open-slum.org — no mirror list available",
+  "mirrorListUpToDate": "Mirror list is up to date",
+  "mirrorListUpdated": "Mirror list updated: {count} change(s)",
+  "@mirrorListUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorManualDesc": "Manual: use the arrows to set your own order.",
+  "mirrorMoveDown": "Move down",
+  "mirrorMoveUp": "Move up",
+  "mirrorRefreshFailed": "Refresh failed",
+  "mirrorServiceAnnasDesc": "Reading, details and downloads",
+  "mirrorServiceLibgenDesc": "Fast, challenge-free downloads when a mirror is up",
+  "mirrorServiceWelibDesc": "Cloudflare-gated search, open book pages",
+  "mirrorServiceZlibraryDesc": "DiamWall mirrors solve headlessly",
+  "mirrorSpeedTest": "Speed test",
+  "mirrorSpeedTestDone": "Speed test done",
+  "mirrorSpeedTestFailed": "Speed test failed",
+  "mirrorTrustBody": "{host} is a community-run mirror, not an official site. Your email, password and login session will be sent to its operator. Continue only if you trust it.",
+  "@mirrorTrustBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "mirrorTrustConfirm": "I trust it",
+  "mirrorTrustTitle": "Use a community mirror?",
+  "mirrors": "Mirrors",
+  "mirrorsDownHint": "reported down — never contacted",
+  "mirrorsFooterNote": "Mirror addresses and their status come from open-slum.org and refresh automatically. A mirror reported DOWN is never contacted.",
+  "mirrorsLoadFailed": "Could not load mirrors",
+  "mirrorsNoMirrors": "No mirrors reported",
+  "mirrorsNoMirrorsHint": "open-slum.org has no entry (yet) or could not be reached.",
+  "mirrorsSubtitle": "Mirror status from open-slum.org",
+  "more": "More actions",
+  "myBooklists": "My Booklists",
+  "myComments": "My Comments",
+  "myCommentsPending": "Endpoint pending",
+  "myCommentsSubtitle": "Comments you posted",
+  "myLibrary": "My Library",
+  "myLibrarySubtitle": "Books you saved",
+  "name": "Name",
+  "network": "Network",
+  "networkLine": "Network Line",
+  "newReleases": "New Releases",
+  "newVersionFound": "New version {version} available",
+  "@newVersionFound": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveDownloads": "No active downloads",
+  "noBooklistBooks": "No books in this booklist yet",
+  "noBooklists": "No booklists yet",
+  "noBooksFound": "No books found",
+  "noComments": "No comments yet",
+  "noCompletedDownloads": "No completed downloads",
+  "noFavorites": "No favorites yet",
+  "noHistory": "No history",
+  "noMoreComments": "No more comments",
+  "noResults": "No Results",
+  "noSavedAccounts": "No saved accounts",
+  "noSavedAccountsMessage": "Accounts you log in to will appear here.",
+  "noSimilarBooks": "No similar books found",
+  "noSimilarBooksMessage": "We could not find any similar books for this title",
+  "ongoing": "Ongoing",
+  "openBookFailed": "Could not open book details",
+  "openDownloadFolder": "Open Download Folder",
+  "openFile": "Open File",
+  "openFileFailed": "Could not open file",
+  "openFolder": "Open Folder",
+  "openFolderFailed": "Could not open download folder directly. Please check your \"Download\" folder app.",
+  "original": "Original",
+  "page": "Page",
+  "pages": "Pages",
+  "password": "Password",
+  "passwordMinLength": "Password must be at least 6 characters",
+  "path": "Path",
+  "pathCopied": "Path copied to clipboard",
+  "preview": "Preview",
+  "publicationInfo": "Publication Details",
+  "publisher": "Publisher",
+  "reader": "Reader",
+  "readerExportResourceLog": "Export resource log",
+  "readerLogExportFailed": "Failed to export log: {error}",
+  "@readerLogExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerResourceLogCount": "{count} resource log entries",
+  "@readerResourceLogCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerSessionWriteFailed": "Failed to write reader session. Please log in again and retry.",
+  "recentAccount": "Recent account",
+  "recheck": "Re-check",
+  "recommended": "Recommended",
+  "refreshFailed": "Failed to refresh",
+  "register": "Register",
+  "registrationFailed": "Registration failed",
+  "remove": "Remove",
+  "removeAccount": "Remove account",
+  "removeAccountMessage": "Its saved login details will be removed from this device.",
+  "removeAccountTitle": "Remove this account?",
+  "removeFavorite": "Remove Favorite",
+  "reply": "Reply",
+  "replyTo": "Reply to",
+  "resetToDefault": "Reset to Default",
+  "resetToDefaultDirDone": "Reset to default directory",
+  "resolvingDownloadLink": "Resolving download link…",
+  "retest": "Re-test",
+  "retry": "Retry",
+  "save": "Save",
+  "saveBooksHint": "Save books to see them here",
+  "search": "Search",
+  "searchBooklists": "Search booklists",
+  "searchBooks": "Search Books",
+  "searchFailed": "Search failed",
+  "searchForBooks": "Search for books...",
+  "searchFree": "Free",
+  "searchHistoryClear": "Clear all",
+  "searchHistoryRemove": "Remove this search",
+  "searchHistorySaveFailed": "Could not save search history. Please try again.",
+  "searchHistoryTitle": "Recent searches",
+  "searchMoreFailed": "Could not load more results",
+  "searchNoResultsSwitch": "No results found. Try a different keyword.",
+  "searchPageProgress": "Page {current}/{total}",
+  "@searchPageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPaid": "Paid",
+  "searchResultsCount": "Showing {count} books",
+  "@searchResultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchRetry": "Retry",
+  "searchSource": "Default source",
+  "searchTrySource": "Search",
+  "searchingBooks": "Searching for books...",
+  "selectAll": "Select All",
+  "selectBooklist": "Choose a booklist",
+  "selectFolder": "Select Folder",
+  "selectNetwork": "Select Network",
+  "sendCode": "Send Verification Code",
+  "sendComment": "Send comment",
+  "settings": "Settings",
+  "share": "Share",
+  "shareFailed": "Could not share file",
+  "shelfAddToCategory": "Add to category",
+  "shelfAllCategories": "All categories",
+  "shelfCategoryInvalid": "Enter a unique category name",
+  "shelfCategoryName": "Category name",
+  "shelfCategorySaveFailed": "Could not save category. Try again.",
+  "shelfCategorySaved": "Category saved",
+  "shelfClearFilters": "Clear filters",
+  "shelfContinueReading": "Continue reading",
+  "shelfCount": "{count} books",
+  "@shelfCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shelfDeleteCategory": "Delete this category?",
+  "shelfDeleteCategoryHint": "Its books become uncategorized. The books are not deleted.",
+  "shelfDownloaded": "Downloaded",
+  "shelfEmpty": "Your library is empty",
+  "shelfEmptyMessage": "Save books from Library",
+  "shelfFindBooks": "Find books",
+  "shelfLongPressHint": "Long press for actions",
+  "shelfManageCategories": "Manage categories",
+  "shelfNewCategory": "New category",
+  "shelfNoMatches": "No matching books",
+  "shelfRenameCategory": "Rename category",
+  "shelfRetryHint": "Pull to refresh or tap Retry",
+  "shelfSearchHint": "Search titles or authors",
+  "shelfSelected": "selected",
+  "shelfSort": "Sort",
+  "shelfSortAuthor": "By author",
+  "shelfSortDefault": "Default order",
+  "shelfSortTitle": "By title",
+  "shelfSourceLoadFailed": "Some books could not load. Try again.",
+  "shelfTitle": "My Library",
+  "shelfTryOtherFilter": "Try another search, source or category",
+  "shelfUncategorized": "Uncategorized",
+  "shelfView": "Bookshelf view",
+  "shelfViewDetails": "View details",
+  "showLess": "Show Less",
+  "showMore": "Read More",
+  "similarBooks": "Similar Books",
+  "skip": "Skip",
+  "sort": "Sort",
+  "source": "Source",
+  "sourceAnnasArchive": "Anna's Archive",
+  "sourceLibgen": "LibGen",
+  "sourceZlibrary": "Z-Library",
+  "speedTesting": "Testing",
+  "speedUntested": "Untested",
+  "splashLineUnreachable": "Current line cannot reach the site. Please switch to another line and retry.",
+  "startSearching": "Start Searching",
+  "success": "Success",
+  "switchAccount": "Switch account",
+  "switchAccountFailed": "Failed to switch account. Please try again.",
+  "switchLine": "Switch Line",
+  "system": "System",
+  "systemDownloadsFolder": "System Downloads Folder",
+  "systemDownloadsMediastore": "System Downloads (MediaStore)",
+  "trending": "Trending",
+  "trendingOnOpenLibrary": "Trending on Open Library",
+  "tryDifferentKeywords": "Try different keywords",
+  "unfavorited": "Removed from favorites",
+  "unknown": "Unknown",
+  "unknownAuthor": "Unknown Author",
+  "upToDateDesc": "You are using the latest version.",
+  "upToDateTitle": "Up to Date",
+  "update": "Update",
+  "updateCurrentLatest": "Current v{current} · Latest v{latest}",
+  "@updateCurrentLatest": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDroppedLinks": "{count} download channel(s) were ignored: host not on the allow-list",
+  "@updateDroppedLinks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFoundTitle": "Version {version} available",
+  "@updateFoundTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequired": "Update Required",
+  "updateUnsupported": "This version is no longer supported. Search and download are disabled until you update.",
+  "useAnotherAccount": "Use another account",
+  "useDefaultDocumentsDir": "Use app default documents directory",
+  "validEmail": "Please enter a valid email",
+  "verificationCode": "Verification Code",
+  "verifyingAccess": "Verifying access...",
+  "verifyingAccessHint": "Complete the check in the browser page; the app returns automatically once it passes.",
+  "version": "Version",
+  "websiteDownload": "Website",
+  "welcomeBack": "Welcome Back",
+  "writeComment": "Write a comment",
+  "year": "Year"
+}

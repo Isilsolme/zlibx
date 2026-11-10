@@ -62,6 +62,8 @@ keystore_base64.txt
 # Generated files
 *.freezed.dart
 *.g.dart
+# gen-l10n output (item 8, step 1): generated at `flutter pub get`, never committed.
+lib/l10n/generated/
 
 # Large binary files
 *.apk
@@ -76,6 +78,7 @@ test/*
 !test/widgets/
 !test/parsers/
 !test/services/
+!test/l10n/
 debug/
 publish_page/
 dev_docs/*

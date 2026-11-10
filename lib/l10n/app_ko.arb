@@ -1,0 +1,541 @@
+{
+  "@@locale": "ko",
+  "about": "정보",
+  "aboutAiBuiltTitle": "🤖 AI로 만든 오픈소스 서드파티 클라이언트",
+  "aboutBody": "zlibx는 AI의 도움으로 만든 오픈소스 프로젝트입니다.\n\n📱 이 프로젝트는 프런트엔드 인터페이스만 제공합니다\n📚 모든 도서 데이터는 외부 도서관 서비스에서 가져옵니다\n🔓 100% 오픈소스이며 코드는 투명하게 공개됩니다\n\n⚠️ 면책 조항:\n• zlibx는 서드파티 클라이언트이며 공식 클라이언트가 아닙니다\n• 어떤 공식 서비스와도 관련이 없습니다\n• 이 앱을 사용하면 위 내용을 이해하고 동의한 것으로 간주됩니다",
+  "aboutCredits": "감사의 글: 이 앱은 shiyi-0x7f의 olib-mobile을 대폭 수정한 것입니다.",
+  "aboutQuote": "“지식에는 경계가 없다”",
+  "aboutZlibrary": "zlibx 정보",
+  "account": "계정",
+  "accountActions": "계정 작업",
+  "accountManagement": "계정 관리",
+  "accountRemoved": "계정이 삭제되었습니다",
+  "addAccount": "다른 계정 추가",
+  "addAccountSubtitle": "로그인하면 다른 계정을 저장할 수 있습니다",
+  "addToBooklist": "북리스트에 추가",
+  "addToBooklistFailed": "북리스트에 추가하지 못했습니다: {error}",
+  "@addToBooklistFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addToBooklistSuccess": "북리스트에 추가했습니다",
+  "alreadyHaveAccount": "이미 계정이 있으신가요?",
+  "annasDonationKey": "Anna's Archive 기부 키",
+  "annasDonationKeyHint": "기부 키를 입력하면 빠른 다운로드를 사용할 수 있습니다. 비워 두면 느린 다운로드를 사용합니다.",
+  "appName": "zlibx",
+  "appearance": "모양",
+  "author": "저자",
+  "badgeAiBuilt": "AI로 제작",
+  "badgeOpenSource": "오픈소스",
+  "batchRemove": "선택한 항목 삭제",
+  "blurEffect": "블러 효과",
+  "bookDetails": "책 상세 정보",
+  "bookName": "책 이름",
+  "booklistBookCount": "{count}권",
+  "@booklistBookCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "booklistBookRemoved": "북리스트에서 제거했습니다",
+  "booklistCreateFailed": "만들지 못했습니다: {error}",
+  "@booklistCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistCreated": "북리스트를 만들었습니다",
+  "booklistDeleteConfirm": "이 북리스트를 삭제하시겠습니까?",
+  "booklistDeleteDesc": "삭제하면 복구할 수 없습니다.",
+  "booklistDeleteFailed": "북리스트를 삭제하지 못했습니다: {error}",
+  "@booklistDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistDeleted": "북리스트를 삭제했습니다",
+  "booklistDescriptionOptional": "설명 (선택)",
+  "booklistRemoveBookConfirm": "이 책을 북리스트에서 제거하시겠습니까?",
+  "booklistRemoveBookFailed": "북리스트에서 제거하지 못했습니다: {error}",
+  "@booklistRemoveBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistTitle": "북리스트 이름",
+  "booklists": "책 목록",
+  "booklistsSubtitle": "내 책 목록과 공개 목록",
+  "booksDownloadedAnyDevice": "모든 기기에서 다운로드한 책",
+  "booksFound": "권",
+  "bookshelf": "책장",
+  "cancel": "취소",
+  "cannotOpenFolder": "폴더를 열 수 없습니다",
+  "checkForUpdates": "업데이트 확인",
+  "checkingUpdates": "업데이트를 확인하는 중...",
+  "chooseCustomDownloadDir": "사용자 지정 다운로드 폴더 선택",
+  "chooseDownloadSource": "다운로드 경로 선택",
+  "clear": "지우기",
+  "close": "닫기",
+  "codeSent": "인증 코드를 이메일로 보냈습니다",
+  "commentDeleteConfirm": "이 댓글을 삭제하시겠습니까?",
+  "commentDeleteDesc": "삭제하면 복구할 수 없습니다.",
+  "commentDeleteFailed": "댓글 삭제에 실패했습니다",
+  "commentFailed": "댓글 게시에 실패했습니다",
+  "commentTooShort": "댓글이 너무 짧습니다",
+  "comments": "댓글",
+  "commentsDisabled": "이 책의 댓글은 비활성화되어 있습니다",
+  "completed": "완료됨",
+  "confirmOk": "확인",
+  "confirmRemoveMsg": "즐겨찾기에서 {count}권을 삭제하시겠습니까?",
+  "@confirmRemoveMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmRemoveTitle": "삭제 확인",
+  "continueAnyway": "그래도 계속",
+  "copyPath": "경로 복사",
+  "create": "만들기",
+  "createAccount": "계정 만들기",
+  "createBooklist": "새 북리스트",
+  "currentAccount": "현재 계정",
+  "currentVersionLabel": "현재 버전: v{version}",
+  "@currentVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "customDomain": "사용자 지정 도메인",
+  "customDomainInvalid": "도메인 형식이 올바르지 않습니다. example.com과 같은 도메인을 입력해 주세요.",
+  "customDomainReloginHint": "사용자 지정 회선으로 전환했습니다. 다시 로그인해 주세요.",
+  "customDomainSwitchAnyway": "그래도 전환",
+  "customDomainWarningBody": "이 도메인은 내장 회선 목록에 없습니다. 전환 후 저장된 로그인 세션이 자동으로 전송되지 않습니다. 신뢰할 수 있는 도메인인 경우에만 계속하시고, 전환 후 다시 로그인해 주세요.",
+  "customDomainWarningTitle": "사용자 지정 회선 위험",
+  "customLine": "사용자 지정 회선",
+  "customLineDialogTitle": "사용자 지정 회선",
+  "customLineEllipsis": "사용자 지정 회선...",
+  "dark": "어둡게",
+  "darkMode": "다크 모드",
+  "defaultAppDocuments": "기본값(앱 문서 폴더)",
+  "delete": "삭제",
+  "deleteConfirm": "파일을 삭제하시겠습니까?",
+  "deleteDesc": "이 파일이 기기에서 삭제됩니다.",
+  "description": "소개",
+  "deselectAll": "선택 해제",
+  "detailUnavailable": "전체 상세 정보를 불러올 수 없습니다.",
+  "detailUnavailablePreview": "전체 상세 정보를 불러올 수 없어 미리보기 항목이 표시되지 않을 수 있습니다.",
+  "details": "상세 정보",
+  "discoverBooklists": "책 목록 둘러보기",
+  "domainUrl": "도메인 URL",
+  "done": "완료",
+  "dontHaveAccount": "계정이 없으신가요?",
+  "download": "다운로드",
+  "downloadAgain": "다시 다운로드",
+  "downloadCancelled": "취소됨",
+  "downloadDeleteFailed": "파일을 삭제할 수 없습니다. 권한을 확인하고 다시 시도해 주세요.",
+  "downloadDeleteFile": "로컬 파일 삭제",
+  "downloadDirUpdated": "다운로드 폴더를 업데이트했습니다",
+  "downloadDirectory": "다운로드 폴더",
+  "downloadFailed": "다운로드에 실패했습니다",
+  "downloadFileMissing": "로컬 파일이 없습니다. 기록을 삭제하고 다시 다운로드해 주세요.",
+  "downloadFreshLinkRequired": "이 링크가 만료되었습니다. 책 페이지로 돌아가 새 링크를 받으세요.",
+  "downloadHistory": "다운로드 기록 (클라우드)",
+  "downloadPreparing": "다운로드 준비 중",
+  "downloadQuotaDesc": "이 Z-Library 계정의 오늘 다운로드 횟수를 모두 사용했습니다. 내일 초기화됩니다. 설정에서 다른 계정으로 전환할 수도 있습니다.",
+  "downloadQuotaExceeded": "오늘 다운로드 횟수를 모두 사용했습니다. 내일 다시 시도하거나 계정을 전환해 주세요.",
+  "downloadQuotaTitle": "오늘 다운로드 횟수를 모두 사용했습니다",
+  "downloadRemoveRecord": "기록 삭제",
+  "downloadRemoveRecordHint": "다운로드 목록에서 이 항목을 삭제합니다.",
+  "downloadedBooksHere": "다운로드한 책이 여기에 표시됩니다",
+  "downloading": "다운로드 중...",
+  "downloads": "다운로드",
+  "downloadsAppearHere": "진행 중인 다운로드가 여기에 표시됩니다",
+  "downloadsLeftToday": "오늘 남은 다운로드 횟수",
+  "downloadsSavedHint": "다운로드한 책은 시스템 ‘다운로드’ 폴더에 저장되며 파일 관리자에서 찾을 수 있습니다.",
+  "edit": "편집",
+  "email": "이메일",
+  "enterAPassword": "비밀번호를 입력해 주세요",
+  "enterCode": "인증 코드를 입력해 주세요",
+  "enterContent": "생각을 공유해 보세요...",
+  "enterEmail": "이메일을 입력해 주세요",
+  "enterName": "이름을 입력해 주세요",
+  "enterPassword": "비밀번호를 입력해 주세요",
+  "enterSearchHint": "제목, 저자 또는 키워드 입력",
+  "enterTitle": "예: 내가 좋아하는 SF",
+  "error": "오류",
+  "failedSendCode": "코드 전송에 실패했습니다",
+  "favoriteFailed": "즐겨찾기를 업데이트할 수 없습니다. 다시 시도해 주세요.",
+  "favoriteRemoved": "즐겨찾기에서 삭제했습니다",
+  "favorites": "즐겨찾기",
+  "fileDetails": "파일 상세 정보",
+  "fileExistsDesc": "이 책은 이미 다운로드되었습니다.\n\n기존 파일을 열거나 다시 다운로드할 수 있습니다.",
+  "fileExistsTitle": "파일이 이미 있습니다",
+  "fileSize": "파일 크기",
+  "floatingNav": "플로팅 탐색 모음",
+  "followDevice": "기기 언어 따르기",
+  "githubOpenSource": "GitHub 오픈소스",
+  "goodMorning": "좋은 아침입니다,",
+  "gotIt": "확인",
+  "greetingAfternoon": "안녕하세요,",
+  "greetingEvening": "좋은 저녁이에요,",
+  "greetingLateNight": "늦은 밤이에요,",
+  "greetingNoon": "안녕하세요,",
+  "gridView": "격자 보기",
+  "hideNavOnScroll": "아래로 스크롤 시 숨기기",
+  "historyEmptyMessage": "다른 기기에서 다운로드한 책이 여기에 표시됩니다",
+  "home": "홈",
+  "incorrectCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+  "language": "언어",
+  "languageSetting": "언어",
+  "later": "나중에",
+  "light": "밝게",
+  "like": "즐겨찾기",
+  "likeFailed": "좋아요에 실패했습니다",
+  "lineCachedLoginHint": "저장된 로그인 정보를 사용 중입니다. 눌러서 회선 전환",
+  "lineStatusUnavailable": "사용 불가",
+  "lineUnavailable": "회선을 사용할 수 없음",
+  "lineUnavailableCurrent": "현재 회선을 사용할 수 없음",
+  "listView": "목록 보기",
+  "loading": "로딩 중...",
+  "loadingDownloads": "다운로드 기록을 불러오는 중...",
+  "loadingFavorites": "즐겨찾기를 불러오는 중...",
+  "loadingSimilarBooks": "비슷한 책을 불러오는 중...",
+  "loadingTrendingBooks": "인기 도서를 불러오는 중...",
+  "login": "로그인",
+  "loginBadCredentials": "등록되지 않은 사용자이거나 계정 정보가 올바르지 않습니다",
+  "loginFailed": "로그인에 실패했습니다",
+  "loginLineBlockedCf": "현재 회선이 Cloudflare에 의해 차단되었습니다. 다른 회선으로 전환한 후 다시 시도하세요.",
+  "loginLineConnectFailed": "현재 회선에 연결하지 못했습니다(차단되었거나 회선 문제). 계정 정보 오류가 아닙니다. 회선을 전환한 후 다시 시도하세요.",
+  "loginNoAccountHint": "계정이 없으신가요? 공식 사이트에서 직접 가입해 주세요. 이 앱은 가입 기능을 제공하지 않습니다.",
+  "loginSkipExplore": "로그인 없이 둘러보기",
+  "loginToContinue": "계속하려면 로그인하세요",
+  "loginToViewBooklists": "로그인하여 책 목록 보기",
+  "loginToViewComments": "로그인하여 댓글 보기",
+  "loginUnknownFailure": "로그인에 실패했으며 원인을 확인할 수 없습니다.\n회선: {line}\n시간: {time}\n\n오류 상세: {detail}\n\n이 대화상자를 캡처하여 피드백해 주세요.",
+  "@loginUnknownFailure": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "loginUseZsiteAccount": "Z-Library 공식 계정으로 로그인하세요",
+  "logout": "로그아웃",
+  "logoutAction": "로그아웃",
+  "logoutConfirmDesc": "로그아웃하면 계정 정보로 다시 로그인해야 합니다.",
+  "logoutConfirmTitle": "로그아웃하시겠어요?",
+  "manageAccounts": "계정 전환 및 관리",
+  "mediastoreDesc": "MediaStore API로 공용 다운로드 폴더에 저장합니다",
+  "mirrorAutoDesc": "보호가 약한 순, 그 다음 빠른 순. 권장.",
+  "mirrorAutoOrder": "미러 자동 정렬",
+  "mirrorDeviceMs": "이 기기 {ms}ms",
+  "@mirrorDeviceMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorListUnreachable": "open-slum.org에 연결할 수 없습니다. 미러 목록이 없습니다",
+  "mirrorListUpToDate": "미러 목록이 최신 상태입니다",
+  "mirrorListUpdated": "미러 목록 업데이트됨: {count}개 변경",
+  "@mirrorListUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorManualDesc": "수동: 화살표로 순서를 정하세요.",
+  "mirrorMoveDown": "아래로 이동",
+  "mirrorMoveUp": "위로 이동",
+  "mirrorRefreshFailed": "새로고침 실패",
+  "mirrorServiceAnnasDesc": "읽기, 상세 정보 및 다운로드",
+  "mirrorServiceLibgenDesc": "미러가 작동 중일 때는 빠르고 인증 없는 다운로드",
+  "mirrorServiceWelibDesc": "검색은 Cloudflare 보호 하에 있으며 도서 페이지는 열립니다",
+  "mirrorServiceZlibraryDesc": "DiamWall 미러는 헤드리스로 통과 가능",
+  "mirrorSpeedTest": "속도 측정",
+  "mirrorSpeedTestDone": "속도 측정 완료",
+  "mirrorSpeedTestFailed": "속도 측정 실패",
+  "mirrorTrustBody": "{host}는 커뮤니티에서 운영하는 미러 사이트이며 공식 사이트가 아닙니다. 로그인 시 이메일과 비밀번호, 이후 로그인 세션이 운영자에게 전송됩니다. 신뢰하는 경우에만 계속하세요.",
+  "@mirrorTrustBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "mirrorTrustConfirm": "신뢰합니다",
+  "mirrorTrustTitle": "커뮤니티 미러를 사용하시겠습니까?",
+  "mirrors": "미러",
+  "mirrorsDownHint": "다운 상태로 보고됨. 연결하지 않음",
+  "mirrorsFooterNote": "미러 주소와 상태는 open-slum.org에서 가져오며 자동으로 새로고침됩니다. 다운 상태로 보고된 미러에는 연결하지 않습니다.",
+  "mirrorsLoadFailed": "미러를 불러올 수 없습니다",
+  "mirrorsNoMirrors": "보고된 미러가 없습니다",
+  "mirrorsNoMirrorsHint": "open-slum.org에 기록이 없거나 연결할 수 없습니다.",
+  "mirrorsSubtitle": "open-slum.org의 미러 상태",
+  "more": "추가 작업",
+  "myBooklists": "내 책 목록",
+  "myComments": "내 댓글",
+  "myCommentsPending": "확인 중",
+  "myCommentsSubtitle": "내가 작성한 댓글",
+  "myLibrary": "내 서재",
+  "myLibrarySubtitle": "저장한 책",
+  "name": "이름",
+  "network": "네트워크",
+  "networkLine": "네트워크 회선",
+  "newReleases": "신간",
+  "newVersionFound": "새 버전 {version}을(를) 사용할 수 있습니다",
+  "@newVersionFound": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveDownloads": "진행 중인 다운로드가 없습니다",
+  "noBooklistBooks": "이 책 목록에는 아직 책이 없습니다",
+  "noBooklists": "책 목록이 없습니다",
+  "noBooksFound": "책을 찾을 수 없습니다",
+  "noComments": "댓글이 아직 없습니다",
+  "noCompletedDownloads": "완료된 다운로드가 없습니다",
+  "noFavorites": "아직 즐겨찾기가 없습니다",
+  "noHistory": "기록이 없습니다",
+  "noMoreComments": "더 이상 댓글이 없습니다",
+  "noResults": "결과가 없습니다",
+  "noSavedAccounts": "저장된 계정이 없습니다",
+  "noSavedAccountsMessage": "로그인한 계정이 여기에 표시됩니다.",
+  "noSimilarBooks": "비슷한 책을 찾을 수 없습니다",
+  "noSimilarBooksMessage": "이 책과 비슷한 책을 찾을 수 없습니다",
+  "ongoing": "진행 중",
+  "openBookFailed": "책 정보를 열 수 없습니다",
+  "openDownloadFolder": "다운로드 폴더 열기",
+  "openFile": "파일 열기",
+  "openFileFailed": "파일을 열 수 없습니다",
+  "openFolder": "폴더 열기",
+  "openFolderFailed": "다운로드 폴더를 직접 열 수 없습니다. 다운로드 폴더 앱을 확인해 주세요.",
+  "original": "원본",
+  "page": "페이지",
+  "pages": "페이지 수",
+  "password": "비밀번호",
+  "passwordMinLength": "비밀번호는 6자 이상이어야 합니다",
+  "path": "경로",
+  "pathCopied": "경로가 클립보드에 복사되었습니다",
+  "preview": "미리보기",
+  "publicationInfo": "출판 정보",
+  "publisher": "출판사",
+  "reader": "독자",
+  "readerExportResourceLog": "리소스 로그 내보내기",
+  "readerLogExportFailed": "로그 내보내기 실패: {error}",
+  "@readerLogExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerResourceLogCount": "리소스 기록 {count}개",
+  "@readerResourceLogCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerSessionWriteFailed": "리더 세션을 기록하지 못했습니다. 다시 로그인한 후 시도하세요.",
+  "recentAccount": "최근 사용한 계정",
+  "recheck": "다시 확인",
+  "recommended": "추천",
+  "refreshFailed": "새로고침에 실패했습니다",
+  "register": "회원가입",
+  "registrationFailed": "회원가입에 실패했습니다",
+  "remove": "제거",
+  "removeAccount": "계정 삭제",
+  "removeAccountMessage": "이 기기에 저장된 로그인 정보가 삭제됩니다.",
+  "removeAccountTitle": "이 계정을 삭제하시겠습니까?",
+  "removeFavorite": "즐겨찾기에서 삭제",
+  "reply": "답글",
+  "replyTo": "답글",
+  "resetToDefault": "기본값으로 재설정",
+  "resetToDefaultDirDone": "기본 폴더로 재설정했습니다",
+  "resolvingDownloadLink": "다운로드 링크 확인 중…",
+  "retest": "다시 측정",
+  "retry": "다시 시도",
+  "save": "저장",
+  "saveBooksHint": "책을 즐겨찾기에 저장하면 여기에 표시됩니다",
+  "search": "검색",
+  "searchBooklists": "책 목록 검색",
+  "searchBooks": "책 검색",
+  "searchFailed": "검색에 실패했습니다",
+  "searchForBooks": "책 검색...",
+  "searchFree": "무료",
+  "searchHistoryClear": "모두 지우기",
+  "searchHistoryRemove": "이 검색 기록 삭제",
+  "searchHistorySaveFailed": "검색 기록을 저장할 수 없습니다. 다시 시도해 주세요.",
+  "searchHistoryTitle": "최근 검색",
+  "searchMoreFailed": "추가 결과를 불러올 수 없습니다",
+  "searchNoResultsSwitch": "결과를 찾을 수 없습니다. 다른 키워드를 시도해 보세요.",
+  "searchPageProgress": "{current}/{total}페이지",
+  "@searchPageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPaid": "유료",
+  "searchResultsCount": "{count}권의 책을 표시 중",
+  "@searchResultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchRetry": "다시 시도",
+  "searchSource": "기본 검색 소스",
+  "searchTrySource": "검색",
+  "searchingBooks": "책을 검색하는 중...",
+  "selectAll": "모두 선택",
+  "selectBooklist": "북리스트 선택",
+  "selectFolder": "폴더 선택",
+  "selectNetwork": "네트워크 선택",
+  "sendCode": "인증 코드 보내기",
+  "sendComment": "댓글 보내기",
+  "settings": "설정",
+  "share": "공유",
+  "shareFailed": "파일을 공유할 수 없습니다",
+  "shelfAddToCategory": "카테고리에 추가",
+  "shelfAllCategories": "모든 카테고리",
+  "shelfCategoryInvalid": "고유한 카테고리 이름을 입력해 주세요",
+  "shelfCategoryName": "카테고리 이름",
+  "shelfCategorySaveFailed": "카테고리를 저장할 수 없습니다. 다시 시도해 주세요.",
+  "shelfCategorySaved": "카테고리가 저장되었습니다",
+  "shelfClearFilters": "필터 지우기",
+  "shelfContinueReading": "계속 읽기",
+  "shelfCount": "{count}권",
+  "@shelfCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shelfDeleteCategory": "이 카테고리를 삭제하시겠습니까?",
+  "shelfDeleteCategoryHint": "카테고리의 책은 미분류가 됩니다. 책 자체는 삭제되지 않습니다.",
+  "shelfDownloaded": "다운로드됨",
+  "shelfEmpty": "서재가 비어 있습니다",
+  "shelfEmptyMessage": "서재에서 책을 저장하세요",
+  "shelfFindBooks": "책 찾기",
+  "shelfLongPressHint": "길게 눌러 관리",
+  "shelfManageCategories": "카테고리 관리",
+  "shelfNewCategory": "새 카테고리",
+  "shelfNoMatches": "일치하는 책이 없습니다",
+  "shelfRenameCategory": "카테고리 이름 변경",
+  "shelfRetryHint": "아래로 당겨서 새로고침하거나 다시 시도를 눌러 주세요",
+  "shelfSearchHint": "제목 또는 저자 검색",
+  "shelfSelected": "권 선택됨",
+  "shelfSort": "정렬",
+  "shelfSortAuthor": "저자순",
+  "shelfSortDefault": "기본 순서",
+  "shelfSortTitle": "제목순",
+  "shelfSourceLoadFailed": "일부 책을 불러올 수 없습니다. 다시 시도해 주세요.",
+  "shelfTitle": "내 서재",
+  "shelfTryOtherFilter": "다른 검색어, 소스 또는 카테고리를 시도해 보세요",
+  "shelfUncategorized": "미분류",
+  "shelfView": "책장 보기",
+  "shelfViewDetails": "상세 정보 보기",
+  "showLess": "접기",
+  "showMore": "더 보기",
+  "similarBooks": "비슷한 책",
+  "skip": "건너뛰기",
+  "sort": "정렬",
+  "source": "출처",
+  "sourceAnnasArchive": "Anna's Archive",
+  "sourceLibgen": "LibGen",
+  "sourceZlibrary": "Z-Library",
+  "speedTesting": "측정 중",
+  "speedUntested": "측정 안 됨",
+  "splashLineUnreachable": "현재 회선으로 사이트에 연결할 수 없습니다. 다른 회선으로 전환한 후 다시 시도하세요.",
+  "startSearching": "검색 시작",
+  "success": "성공",
+  "switchAccount": "계정 전환",
+  "switchAccountFailed": "계정 전환에 실패했습니다. 다시 시도해 주세요.",
+  "switchLine": "회선 전환",
+  "system": "시스템",
+  "systemDownloadsFolder": "시스템 다운로드 폴더",
+  "systemDownloadsMediastore": "시스템 다운로드 폴더 (MediaStore)",
+  "trending": "인기",
+  "trendingOnOpenLibrary": "Open Library 인기",
+  "tryDifferentKeywords": "다른 키워드를 시도해 보세요",
+  "unfavorited": "즐겨찾기에서 삭제했습니다",
+  "unknown": "알 수 없음",
+  "unknownAuthor": "저자 미상",
+  "upToDateDesc": "현재 최신 버전을 사용 중입니다",
+  "upToDateTitle": "최신 버전입니다",
+  "update": "업데이트",
+  "updateCurrentLatest": "현재 v{current} · 최신 v{latest}",
+  "@updateCurrentLatest": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDroppedLinks": "{count}개의 다운로드 채널이 호스트가 허용 목록에 없어 무시되었습니다",
+  "@updateDroppedLinks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFoundTitle": "버전 v{version} 사용 가능",
+  "@updateFoundTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequired": "계속 사용하려면 업데이트가 필요합니다",
+  "updateUnsupported": "이 버전은 더 이상 지원되지 않습니다. 업데이트하기 전까지 검색과 다운로드가 비활성화됩니다.",
+  "useAnotherAccount": "다른 계정으로 로그인",
+  "useDefaultDocumentsDir": "앱 기본 문서 폴더 사용",
+  "validEmail": "유효한 이메일을 입력해 주세요",
+  "verificationCode": "인증 코드",
+  "verifyingAccess": "액세스 확인 중…",
+  "verifyingAccessHint": "브라우저 페이지에서 확인을 완료하세요. 통과하면 자동으로 돌아갑니다.",
+  "version": "버전",
+  "websiteDownload": "공식 사이트에서 다운로드",
+  "welcomeBack": "다시 오신 것을 환영합니다",
+  "writeComment": "댓글 쓰기",
+  "year": "출판 연도"
+}

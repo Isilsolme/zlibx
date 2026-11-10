@@ -1,0 +1,11 @@
+# gen-l10n configuration (item 8, gen-l10n migration, step 1).
+#
+# Generated code goes to lib/l10n/generated/ (synthetic-package: false)
+# so it never collides with the hand-written lib/l10n/app_localizations.dart,
+# which stays wired until the step-3 cutover.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+synthetic-package: false
+output-dir: lib/l10n/generated

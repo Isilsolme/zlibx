@@ -1,0 +1,541 @@
+{
+  "@@locale": "ja",
+  "about": "このアプリについて",
+  "aboutAiBuiltTitle": "🤖 AIで構築されたオープンソースのサードパーティクライアント",
+  "aboutBody": "zlibx は AI の支援で作られたオープンソースプロジェクトです。\n\n📱 本プロジェクトが提供するのはフロントエンドのみです\n📚 書籍データはすべて外部の図書館サービスから取得されます\n🔓 100% オープンソースで、コードは公開されています\n\n⚠️ 免責事項：\n• zlibx はサードパーティ製クライアントであり、公式クライアントではありません\n• いかなる公式サービスとも提携していません\n• 本アプリを使用することで、上記の内容を理解し同意したものとみなされます",
+  "aboutCredits": "謝辞：本アプリは shiyi-0x7f 氏の olib-mobile をもとに大幅に改造したものです。",
+  "aboutQuote": "「知識に境界はない」",
+  "aboutZlibrary": "zlibx について",
+  "account": "アカウント",
+  "accountActions": "アカウント操作",
+  "accountManagement": "アカウント管理",
+  "accountRemoved": "アカウントを削除しました",
+  "addAccount": "別のアカウントを追加",
+  "addAccountSubtitle": "ログインすると別のアカウントを保存できます",
+  "addToBooklist": "ブックリストに追加",
+  "addToBooklistFailed": "ブックリストへの追加に失敗しました：{error}",
+  "@addToBooklistFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addToBooklistSuccess": "ブックリストに追加しました",
+  "alreadyHaveAccount": "すでにアカウントをお持ちですか？",
+  "annasDonationKey": "Anna's Archive 寄付キー",
+  "annasDonationKeyHint": "寄付キーを入力すると高速ダウンロードが使えます。空欄の場合は低速ダウンロードになります。",
+  "appName": "zlibx",
+  "appearance": "外観",
+  "author": "著者",
+  "badgeAiBuilt": "AI製",
+  "badgeOpenSource": "オープンソース",
+  "batchRemove": "選択した本を削除",
+  "blurEffect": "ぼかし効果",
+  "bookDetails": "本の詳細",
+  "bookName": "本のタイトル",
+  "booklistBookCount": "{count} 冊",
+  "@booklistBookCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "booklistBookRemoved": "ブックリストから削除しました",
+  "booklistCreateFailed": "作成に失敗しました：{error}",
+  "@booklistCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistCreated": "ブックリストを作成しました",
+  "booklistDeleteConfirm": "このブックリストを削除しますか？",
+  "booklistDeleteDesc": "削除すると元に戻せません。",
+  "booklistDeleteFailed": "ブックリストの削除に失敗しました：{error}",
+  "@booklistDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistDeleted": "ブックリストを削除しました",
+  "booklistDescriptionOptional": "説明（任意）",
+  "booklistRemoveBookConfirm": "この本をブックリストから削除しますか？",
+  "booklistRemoveBookFailed": "ブックリストからの削除に失敗しました：{error}",
+  "@booklistRemoveBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistTitle": "ブックリスト名",
+  "booklists": "ブックリスト",
+  "booklistsSubtitle": "自分のブックリストと公開リスト",
+  "booksDownloadedAnyDevice": "どのデバイスでもダウンロードした本",
+  "booksFound": "冊",
+  "bookshelf": "本棚",
+  "cancel": "キャンセル",
+  "cannotOpenFolder": "フォルダを開けません",
+  "checkForUpdates": "アップデートを確認",
+  "checkingUpdates": "アップデートを確認中...",
+  "chooseCustomDownloadDir": "カスタムのダウンロード先を選択",
+  "chooseDownloadSource": "ダウンロード元を選択",
+  "clear": "クリア",
+  "close": "閉じる",
+  "codeSent": "認証コードをメールで送信しました",
+  "commentDeleteConfirm": "このコメントを削除しますか？",
+  "commentDeleteDesc": "削除すると元に戻せません。",
+  "commentDeleteFailed": "コメントの削除に失敗しました",
+  "commentFailed": "コメントの投稿に失敗しました",
+  "commentTooShort": "コメントが短すぎます",
+  "comments": "コメント",
+  "commentsDisabled": "この本のコメントは無効です",
+  "completed": "完了",
+  "confirmOk": "OK",
+  "confirmRemoveMsg": "お気に入りから{count}冊を削除しますか？",
+  "@confirmRemoveMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmRemoveTitle": "削除の確認",
+  "continueAnyway": "このまま続行",
+  "copyPath": "パスをコピー",
+  "create": "作成",
+  "createAccount": "アカウントを作成",
+  "createBooklist": "ブックリストを作成",
+  "currentAccount": "現在のアカウント",
+  "currentVersionLabel": "現在のバージョン: v{version}",
+  "@currentVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "customDomain": "カスタムドメイン",
+  "customDomainInvalid": "ドメインの形式が正しくありません。example.com のようなドメインを入力してください。",
+  "customDomainReloginHint": "カスタム回線に切り替えました。再度ログインしてください。",
+  "customDomainSwitchAnyway": "それでも切り替える",
+  "customDomainWarningBody": "このドメインは内蔵の回線一覧にありません。切り替え後、保存済みのログインセッションは自動で送信されません。信頼できるドメインの場合のみ続行し、切り替え後に再度ログインしてください。",
+  "customDomainWarningTitle": "カスタム回線のリスク",
+  "customLine": "カスタム回線",
+  "customLineDialogTitle": "カスタム回線",
+  "customLineEllipsis": "カスタム回線...",
+  "dark": "ダーク",
+  "darkMode": "ダークモード",
+  "defaultAppDocuments": "デフォルト（アプリのドキュメントフォルダ）",
+  "delete": "削除",
+  "deleteConfirm": "ファイルを削除しますか？",
+  "deleteDesc": "このファイルはデバイスから削除されます。",
+  "description": "あらすじ",
+  "deselectAll": "選択を解除",
+  "detailUnavailable": "詳細情報を取得できません。",
+  "detailUnavailablePreview": "詳細情報を取得できません。プレビューが表示されない場合があります。",
+  "details": "詳細",
+  "discoverBooklists": "ブックリストを探す",
+  "domainUrl": "ドメインURL",
+  "done": "完了",
+  "dontHaveAccount": "アカウントをお持ちでないですか？",
+  "download": "ダウンロード",
+  "downloadAgain": "再ダウンロード",
+  "downloadCancelled": "キャンセルしました",
+  "downloadDeleteFailed": "ファイルを削除できませんでした。アクセス権を確認して再試行してください。",
+  "downloadDeleteFile": "ローカルファイルを削除",
+  "downloadDirUpdated": "ダウンロード先を更新しました",
+  "downloadDirectory": "ダウンロード先",
+  "downloadFailed": "ダウンロードに失敗しました",
+  "downloadFileMissing": "ローカルファイルが見つかりません。記録を削除して再度ダウンロードしてください。",
+  "downloadFreshLinkRequired": "このリンクは期限切れです。本のページに戻って新しいリンクを取得してください。",
+  "downloadHistory": "ダウンロード履歴（クラウド）",
+  "downloadPreparing": "ダウンロードを準備中",
+  "downloadQuotaDesc": "この Z-Library アカウントは本日のダウンロード回数を使い切りました。明日リセットされます。設定で別のアカウントに切り替えることもできます。",
+  "downloadQuotaExceeded": "本日のダウンロード回数を使い切りました。明日お試しいただくか、アカウントを切り替えてください。",
+  "downloadQuotaTitle": "本日のダウンロード回数を使い切りました",
+  "downloadRemoveRecord": "記録を削除",
+  "downloadRemoveRecordHint": "この項目をダウンロードリストから削除します。",
+  "downloadedBooksHere": "ダウンロードした本がここに表示されます",
+  "downloading": "ダウンロード中...",
+  "downloads": "ダウンロード",
+  "downloadsAppearHere": "進行中のダウンロードがここに表示されます",
+  "downloadsLeftToday": "本日の残りダウンロード数",
+  "downloadsSavedHint": "ダウンロードした本はシステムの「ダウンロード」フォルダに保存され、ファイルマネージャーで確認できます。",
+  "edit": "編集",
+  "email": "メールアドレス",
+  "enterAPassword": "パスワードを入力してください",
+  "enterCode": "認証コードを入力してください",
+  "enterContent": "感想を共有...",
+  "enterEmail": "メールアドレスを入力してください",
+  "enterName": "名前を入力してください",
+  "enterPassword": "パスワードを入力してください",
+  "enterSearchHint": "タイトル、著者、キーワードを入力",
+  "enterTitle": "例：お気に入りのSF",
+  "error": "エラー",
+  "failedSendCode": "コードの送信に失敗しました",
+  "favoriteFailed": "お気に入りを更新できませんでした。もう一度お試しください。",
+  "favoriteRemoved": "お気に入りから削除しました",
+  "favorites": "お気に入り",
+  "fileDetails": "ファイルの詳細",
+  "fileExistsDesc": "この本はすでにダウンロード済みです。\n\n既存のファイルを開くか、再ダウンロードできます。",
+  "fileExistsTitle": "ファイルは既に存在します",
+  "fileSize": "ファイルサイズ",
+  "floatingNav": "フローティングバー",
+  "followDevice": "デバイスの言語に従う",
+  "githubOpenSource": "GitHub オープンソース",
+  "goodMorning": "おはようございます、",
+  "gotIt": "OK",
+  "greetingAfternoon": "こんにちは、",
+  "greetingEvening": "こんばんは、",
+  "greetingLateNight": "夜遅くですね、",
+  "greetingNoon": "こんにちは、",
+  "gridView": "グリッド表示",
+  "hideNavOnScroll": "下スクロールで非表示",
+  "historyEmptyMessage": "他のデバイスでダウンロードした本がここに表示されます",
+  "home": "ホーム",
+  "incorrectCredentials": "メールアドレスまたはパスワードが正しくありません",
+  "language": "言語",
+  "languageSetting": "言語",
+  "later": "あとで",
+  "light": "ライト",
+  "like": "お気に入り",
+  "likeFailed": "いいねに失敗しました",
+  "lineCachedLoginHint": "キャッシュ済みのログイン情報を使用中。タップして回線を切り替え",
+  "lineStatusUnavailable": "利用不可",
+  "lineUnavailable": "回線を利用できません",
+  "lineUnavailableCurrent": "現在の回線は利用できません",
+  "listView": "リスト表示",
+  "loading": "読み込み中...",
+  "loadingDownloads": "ダウンロード履歴を読み込み中...",
+  "loadingFavorites": "お気に入りを読み込み中...",
+  "loadingSimilarBooks": "似た本を読み込み中...",
+  "loadingTrendingBooks": "トレンドの本を読み込み中...",
+  "login": "ログイン",
+  "loginBadCredentials": "ユーザーが未登録、またはアカウント情報が正しくありません",
+  "loginFailed": "ログインに失敗しました",
+  "loginLineBlockedCf": "現在の回線は Cloudflare にブロックされています。別の回線に切り替えて再試行してください。",
+  "loginLineConnectFailed": "現在の回線に接続できませんでした（ブロックまたは回線障害の可能性）。認証情報の誤りではありません。回線を切り替えて再試行してください。",
+  "loginNoAccountHint": "アカウントをお持ちでない場合は公式サイトで登録してください。本アプリには登録機能がありません。",
+  "loginSkipExplore": "ログインせずに見てみる",
+  "loginToContinue": "続けるにはログインしてください",
+  "loginToViewBooklists": "ログインしてブックリストを見る",
+  "loginToViewComments": "ログインしてコメントを見る",
+  "loginUnknownFailure": "ログインに失敗しました。原因を特定できません。\n回線：{line}\n日時：{time}\n\nエラー詳細：{detail}\n\nこのダイアログのスクリーンショットを添えてフィードバックしてください。",
+  "@loginUnknownFailure": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "loginUseZsiteAccount": "Z-Libraryの公式アカウントでログインしてください",
+  "logout": "ログアウト",
+  "logoutAction": "ログアウト",
+  "logoutConfirmDesc": "ログアウトすると、再度アカウント情報でログインする必要があります。",
+  "logoutConfirmTitle": "ログアウトしますか？",
+  "manageAccounts": "アカウントの切り替え・管理",
+  "mediastoreDesc": "MediaStore API を使って公開ダウンロードフォルダに保存します",
+  "mirrorAutoDesc": "保護の弱い順、次に速い順。推奨。",
+  "mirrorAutoOrder": "ミラーの自動並び替え",
+  "mirrorDeviceMs": "この端末 {ms}ms",
+  "@mirrorDeviceMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorListUnreachable": "open-slum.org に接続できませんでした。ミラーリストがありません",
+  "mirrorListUpToDate": "ミラーリストは最新です",
+  "mirrorListUpdated": "ミラーリストを更新しました：{count} 件の変更",
+  "@mirrorListUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorManualDesc": "手動：矢印で順序を調整。",
+  "mirrorMoveDown": "下に移動",
+  "mirrorMoveUp": "上に移動",
+  "mirrorRefreshFailed": "更新に失敗しました",
+  "mirrorServiceAnnasDesc": "閲覧、詳細、ダウンロード",
+  "mirrorServiceLibgenDesc": "ミラーが稼働中は高速で認証不要のダウンロード",
+  "mirrorServiceWelibDesc": "検索は Cloudflare 保護下、書籍ページは開けます",
+  "mirrorServiceZlibraryDesc": "DiamWall ミラーはヘッドレスで突破可能",
+  "mirrorSpeedTest": "速度測定",
+  "mirrorSpeedTestDone": "速度測定が完了しました",
+  "mirrorSpeedTestFailed": "速度測定に失敗しました",
+  "mirrorTrustBody": "{host} はコミュニティが運営するミラーサイトであり、公式サイトではありません。ログイン時のメールアドレスとパスワード、およびその後のログインセッションは運営者に送信されます。信頼できる場合のみ続行してください。",
+  "@mirrorTrustBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "mirrorTrustConfirm": "信頼する",
+  "mirrorTrustTitle": "コミュニティミラーを使用しますか？",
+  "mirrors": "ミラー",
+  "mirrorsDownHint": "ダウン報告あり。接続しません",
+  "mirrorsFooterNote": "ミラーのアドレスと状態は open-slum.org から取得し、自動で更新されます。ダウン報告のあるミラーには接続しません。",
+  "mirrorsLoadFailed": "ミラーを読み込めませんでした",
+  "mirrorsNoMirrors": "ミラーがありません",
+  "mirrorsNoMirrorsHint": "open-slum.org に記録がないか、接続できませんでした。",
+  "mirrorsSubtitle": "open-slum.org からのミラー状態",
+  "more": "その他の操作",
+  "myBooklists": "マイブックリスト",
+  "myComments": "マイコメント",
+  "myCommentsPending": "確認中",
+  "myCommentsSubtitle": "投稿したコメント",
+  "myLibrary": "マイライブラリ",
+  "myLibrarySubtitle": "保存した本",
+  "name": "名前",
+  "network": "ネットワーク",
+  "networkLine": "回線",
+  "newReleases": "新着",
+  "newVersionFound": "新しいバージョン {version} があります",
+  "@newVersionFound": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveDownloads": "進行中のダウンロードはありません",
+  "noBooklistBooks": "このブックリストにはまだ本がありません",
+  "noBooklists": "ブックリストがありません",
+  "noBooksFound": "本が見つかりませんでした",
+  "noComments": "コメントはまだありません",
+  "noCompletedDownloads": "完了したダウンロードはありません",
+  "noFavorites": "お気に入りはまだありません",
+  "noHistory": "履歴がありません",
+  "noMoreComments": "これ以上コメントはありません",
+  "noResults": "結果がありません",
+  "noSavedAccounts": "保存されたアカウントがありません",
+  "noSavedAccountsMessage": "ログインしたアカウントがここに表示されます。",
+  "noSimilarBooks": "似た本が見つかりませんでした",
+  "noSimilarBooksMessage": "この本に似た本は見つかりませんでした",
+  "ongoing": "進行中",
+  "openBookFailed": "書籍の詳細を開けませんでした",
+  "openDownloadFolder": "ダウンロードフォルダを開く",
+  "openFile": "ファイルを開く",
+  "openFileFailed": "ファイルを開けませんでした",
+  "openFolder": "フォルダを開く",
+  "openFolderFailed": "ダウンロードフォルダを直接開けませんでした。ダウンロードフォルダアプリをご確認ください。",
+  "original": "オリジナル",
+  "page": "ページ",
+  "pages": "ページ数",
+  "password": "パスワード",
+  "passwordMinLength": "パスワードは6文字以上で入力してください",
+  "path": "パス",
+  "pathCopied": "パスをコピーしました",
+  "preview": "プレビュー",
+  "publicationInfo": "出版情報",
+  "publisher": "出版社",
+  "reader": "読者",
+  "readerExportResourceLog": "リソースログをエクスポート",
+  "readerLogExportFailed": "ログのエクスポートに失敗しました: {error}",
+  "@readerLogExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerResourceLogCount": "リソース記録 {count} 件",
+  "@readerResourceLogCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerSessionWriteFailed": "リーダーセッションの書き込みに失敗しました。再度ログインしてお試しください。",
+  "recentAccount": "最近使用したアカウント",
+  "recheck": "再確認",
+  "recommended": "おすすめ",
+  "refreshFailed": "更新に失敗しました",
+  "register": "新規登録",
+  "registrationFailed": "登録に失敗しました",
+  "remove": "削除する",
+  "removeAccount": "アカウントを削除",
+  "removeAccountMessage": "このデバイスに保存されたログイン情報が削除されます。",
+  "removeAccountTitle": "このアカウントを削除しますか？",
+  "removeFavorite": "お気に入りから削除",
+  "reply": "返信",
+  "replyTo": "返信",
+  "resetToDefault": "デフォルトに戻す",
+  "resetToDefaultDirDone": "デフォルトのフォルダに戻しました",
+  "resolvingDownloadLink": "ダウンロードリンクを解析中…",
+  "retest": "再測定",
+  "retry": "再試行",
+  "save": "保存",
+  "saveBooksHint": "本をお気に入りに追加するとここに表示されます",
+  "search": "検索",
+  "searchBooklists": "ブックリストを検索",
+  "searchBooks": "本を検索",
+  "searchFailed": "検索に失敗しました",
+  "searchForBooks": "本を検索...",
+  "searchFree": "無料",
+  "searchHistoryClear": "すべて削除",
+  "searchHistoryRemove": "この検索履歴を削除",
+  "searchHistorySaveFailed": "検索履歴を保存できませんでした。もう一度お試しください。",
+  "searchHistoryTitle": "最近の検索",
+  "searchMoreFailed": "追加の結果を読み込めませんでした",
+  "searchNoResultsSwitch": "結果が見つかりませんでした。別のキーワードをお試しください。",
+  "searchPageProgress": "{current}/{total}ページ",
+  "@searchPageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPaid": "有料",
+  "searchResultsCount": "{count}冊を表示中",
+  "@searchResultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchRetry": "再試行",
+  "searchSource": "既定の検索元",
+  "searchTrySource": "検索",
+  "searchingBooks": "検索中...",
+  "selectAll": "すべて選択",
+  "selectBooklist": "ブックリストを選択",
+  "selectFolder": "フォルダを選択",
+  "selectNetwork": "回線を選択",
+  "sendCode": "認証コードを送信",
+  "sendComment": "コメントを送信",
+  "settings": "設定",
+  "share": "共有",
+  "shareFailed": "ファイルを共有できませんでした",
+  "shelfAddToCategory": "カテゴリに追加",
+  "shelfAllCategories": "すべてのカテゴリ",
+  "shelfCategoryInvalid": "一意のカテゴリ名を入力してください",
+  "shelfCategoryName": "カテゴリ名",
+  "shelfCategorySaveFailed": "カテゴリを保存できませんでした。もう一度お試しください。",
+  "shelfCategorySaved": "カテゴリを保存しました",
+  "shelfClearFilters": "フィルターをクリア",
+  "shelfContinueReading": "続きを読む",
+  "shelfCount": "{count}冊",
+  "@shelfCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shelfDeleteCategory": "このカテゴリを削除しますか？",
+  "shelfDeleteCategoryHint": "カテゴリ内の本は未分類になります。本自体は削除されません。",
+  "shelfDownloaded": "ダウンロード済み",
+  "shelfEmpty": "ライブラリは空です",
+  "shelfEmptyMessage": "ライブラリから本を保存してください",
+  "shelfFindBooks": "本を探す",
+  "shelfLongPressHint": "長押しで操作",
+  "shelfManageCategories": "カテゴリを管理",
+  "shelfNewCategory": "新しいカテゴリ",
+  "shelfNoMatches": "一致する本がありません",
+  "shelfRenameCategory": "カテゴリ名を変更",
+  "shelfRetryHint": "下にスワイプして更新するか、再試行をタップしてください",
+  "shelfSearchHint": "タイトルや著者を検索",
+  "shelfSelected": "冊選択中",
+  "shelfSort": "並び替え",
+  "shelfSortAuthor": "著者順",
+  "shelfSortDefault": "既定の順序",
+  "shelfSortTitle": "タイトル順",
+  "shelfSourceLoadFailed": "一部の本を読み込めませんでした。もう一度お試しください。",
+  "shelfTitle": "マイライブラリ",
+  "shelfTryOtherFilter": "別の検索、ソース、カテゴリをお試しください",
+  "shelfUncategorized": "未分類",
+  "shelfView": "本棚表示",
+  "shelfViewDetails": "詳細を見る",
+  "showLess": "閉じる",
+  "showMore": "もっと見る",
+  "similarBooks": "似た本",
+  "skip": "スキップ",
+  "sort": "並べ替え",
+  "source": "ソース",
+  "sourceAnnasArchive": "Anna's Archive",
+  "sourceLibgen": "LibGen",
+  "sourceZlibrary": "Z-Library",
+  "speedTesting": "測定中",
+  "speedUntested": "未測定",
+  "splashLineUnreachable": "現在の回線ではサイトに接続できません。別の回線に切り替えて再試行してください。",
+  "startSearching": "検索する",
+  "success": "成功",
+  "switchAccount": "アカウントを切り替える",
+  "switchAccountFailed": "アカウントの切り替えに失敗しました。もう一度お試しください。",
+  "switchLine": "回線を切り替え",
+  "system": "システム",
+  "systemDownloadsFolder": "システムのダウンロードフォルダ",
+  "systemDownloadsMediastore": "システムのダウンロードフォルダ (MediaStore)",
+  "trending": "トレンド",
+  "trendingOnOpenLibrary": "Open Library のトレンド",
+  "tryDifferentKeywords": "別のキーワードをお試しください",
+  "unfavorited": "お気に入りから削除しました",
+  "unknown": "不明",
+  "unknownAuthor": "著者不明",
+  "upToDateDesc": "現在のバージョンは最新です",
+  "upToDateTitle": "最新バージョンです",
+  "update": "アップデート",
+  "updateCurrentLatest": "現在 v{current} · 最新 v{latest}",
+  "@updateCurrentLatest": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDroppedLinks": "{count} 件のダウンロード先が、ホストが許可リストにないため無視されました",
+  "@updateDroppedLinks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFoundTitle": "バージョン v{version} が利用可能です",
+  "@updateFoundTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequired": "引き続き使用するにはアップデートが必要です",
+  "updateUnsupported": "このバージョンはサポートが終了しました。アップデートするまで検索とダウンロードは無効です。",
+  "useAnotherAccount": "別のアカウントでログイン",
+  "useDefaultDocumentsDir": "アプリのデフォルトのドキュメントフォルダを使用",
+  "validEmail": "有効なメールアドレスを入力してください",
+  "verificationCode": "認証コード",
+  "verifyingAccess": "アクセスを確認中…",
+  "verifyingAccessHint": "ブラウザページで確認を完了してください。完了すると自動的に戻ります。",
+  "version": "バージョン",
+  "websiteDownload": "公式サイトからダウンロード",
+  "welcomeBack": "おかえりなさい",
+  "writeComment": "コメントを書く",
+  "year": "出版年"
+}

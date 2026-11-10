@@ -1,0 +1,541 @@
+{
+  "@@locale": "zh",
+  "about": "关于",
+  "aboutAiBuiltTitle": "🤖 AI构建的开源第三方客户端",
+  "aboutBody": "zlibx 是一个由AI辅助构建的开源项目。\n\n📱 本项目仅提供前端界面\n📚 所有书籍数据来源于外部图书馆服务\n🔓 100% 开源，代码公开透明\n\n⚠️ 声明：\n• zlibx 是第三方客户端，非官方客户端\n• 与任何官方服务无关联\n• 使用本应用即表示您理解并接受以上内容",
+  "aboutCredits": "致谢：本应用基于 shiyi-0x7f 的 olib-mobile 魔改。",
+  "aboutQuote": "\"知识无边界\"",
+  "aboutZlibrary": "关于 zlibx",
+  "account": "账号",
+  "accountActions": "账号操作",
+  "accountManagement": "账号管理",
+  "accountRemoved": "账号已移除",
+  "addAccount": "添加其他账号",
+  "addAccountSubtitle": "登录后即可保存并切换账号",
+  "addToBooklist": "加入书单",
+  "addToBooklistFailed": "加入书单失败：{error}",
+  "@addToBooklistFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addToBooklistSuccess": "已加入书单",
+  "alreadyHaveAccount": "已有账户？",
+  "annasDonationKey": "Anna's Archive 捐赠 Key",
+  "annasDonationKeyHint": "填入捐赠 Key 可用快速下载，留空则使用慢速下载。",
+  "appName": "zlibx",
+  "appearance": "外观",
+  "author": "作者",
+  "badgeAiBuilt": "AI构建",
+  "badgeOpenSource": "开源",
+  "batchRemove": "批量移除",
+  "blurEffect": "模糊效果",
+  "bookDetails": "书籍详情",
+  "bookName": "书名",
+  "booklistBookCount": "{count} 本书",
+  "@booklistBookCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "booklistBookRemoved": "已从书单移除",
+  "booklistCreateFailed": "创建失败：{error}",
+  "@booklistCreateFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistCreated": "书单已创建",
+  "booklistDeleteConfirm": "删除这个书单？",
+  "booklistDeleteDesc": "删除后将无法恢复。",
+  "booklistDeleteFailed": "删除书单失败：{error}",
+  "@booklistDeleteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistDeleted": "书单已删除",
+  "booklistDescriptionOptional": "描述（可选）",
+  "booklistRemoveBookConfirm": "从书单中移除这本书？",
+  "booklistRemoveBookFailed": "从书单移除失败：{error}",
+  "@booklistRemoveBookFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistTitle": "书单名称",
+  "booklists": "书单",
+  "booklistsSubtitle": "你的书单和大家的书单",
+  "booksDownloadedAnyDevice": "在任何设备上下载的书籍",
+  "booksFound": "本书",
+  "bookshelf": "书架",
+  "cancel": "取消",
+  "cannotOpenFolder": "无法打开文件夹",
+  "checkForUpdates": "检查更新",
+  "checkingUpdates": "正在检查更新...",
+  "chooseCustomDownloadDir": "选择自定义下载目录",
+  "chooseDownloadSource": "选择下载渠道",
+  "clear": "清除",
+  "close": "关闭",
+  "codeSent": "验证码已发送到您的邮箱",
+  "commentDeleteConfirm": "删除这条评论？",
+  "commentDeleteDesc": "删除后将无法恢复。",
+  "commentDeleteFailed": "删除评论失败",
+  "commentFailed": "评论发布失败",
+  "commentTooShort": "评论太短了",
+  "comments": "评论",
+  "commentsDisabled": "这本书的评论已关闭",
+  "completed": "已完成",
+  "confirmOk": "确定",
+  "confirmRemoveMsg": "确定从收藏中移除 {count} 本书？",
+  "@confirmRemoveMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmRemoveTitle": "确认移除",
+  "continueAnyway": "仍然继续",
+  "copyPath": "复制路径",
+  "create": "创建",
+  "createAccount": "创建账户",
+  "createBooklist": "新建书单",
+  "currentAccount": "当前账号",
+  "currentVersionLabel": "当前版本: v{version}",
+  "@currentVersionLabel": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "customDomain": "自定义域名",
+  "customDomainInvalid": "域名格式无效，请输入如 example.com 的域名",
+  "customDomainReloginHint": "已切换到自定义线路，请重新登录",
+  "customDomainSwitchAnyway": "仍要切换",
+  "customDomainWarningBody": "该域名不在内置线路列表中。切换后不会自动发送已保存的登录会话，请确认你信任这个域名，并在切换后重新登录。",
+  "customDomainWarningTitle": "自定义线路风险",
+  "customLine": "自定义线路",
+  "customLineDialogTitle": "自定义线路",
+  "customLineEllipsis": "自定义线路...",
+  "dark": "深色",
+  "darkMode": "深色模式",
+  "defaultAppDocuments": "默认（应用文档目录）",
+  "delete": "删除",
+  "deleteConfirm": "删除文件？",
+  "deleteDesc": "这将从您的设备中删除该文件。",
+  "description": "简介",
+  "deselectAll": "取消全选",
+  "detailUnavailable": "完整详情暂不可用。",
+  "detailUnavailablePreview": "完整详情暂不可用，预览入口可能无法显示。",
+  "details": "详情",
+  "discoverBooklists": "发现书单",
+  "domainUrl": "域名地址",
+  "done": "完成",
+  "dontHaveAccount": "还没有账户？",
+  "download": "下载",
+  "downloadAgain": "重新下载",
+  "downloadCancelled": "已取消",
+  "downloadDeleteFailed": "删除失败，请检查文件权限后重试",
+  "downloadDeleteFile": "删除本地文件",
+  "downloadDirUpdated": "下载目录已更新",
+  "downloadDirectory": "下载目录",
+  "downloadFailed": "下载失败",
+  "downloadFileMissing": "本地文件已不存在，可移除记录后重新下载。",
+  "downloadFreshLinkRequired": "下载链接已失效，请返回原书页重新获取。",
+  "downloadHistory": "下载历史（云端）",
+  "downloadPreparing": "准备下载",
+  "downloadQuotaDesc": "当前 Z-Library 账号今天的下载次数已用完，明天会自动恢复。也可以在设置中切换其他账号继续下载。",
+  "downloadQuotaExceeded": "今日下载次数已用完，明天再试或切换账号。",
+  "downloadQuotaTitle": "今日下载次数已用完",
+  "downloadRemoveRecord": "移除记录",
+  "downloadRemoveRecordHint": "将从下载列表移除这条记录。",
+  "downloadedBooksHere": "已下载的书籍将显示在这里",
+  "downloading": "下载中...",
+  "downloads": "下载",
+  "downloadsAppearHere": "下载内容将显示在这里",
+  "downloadsLeftToday": "今日剩余下载次数",
+  "downloadsSavedHint": "下载的书籍将保存到系统\"下载\"文件夹，可在文件管理器中找到。",
+  "edit": "编辑",
+  "email": "邮箱",
+  "enterAPassword": "请输入密码",
+  "enterCode": "请输入验证码",
+  "enterContent": "分享你的想法...",
+  "enterEmail": "请输入邮箱",
+  "enterName": "请输入姓名",
+  "enterPassword": "请输入密码",
+  "enterSearchHint": "输入书名、作者或关键词",
+  "enterTitle": "例如：科幻精选",
+  "error": "错误",
+  "failedSendCode": "发送验证码失败",
+  "favoriteFailed": "收藏更新失败，请稍后重试。",
+  "favoriteRemoved": "已取消收藏",
+  "favorites": "收藏",
+  "fileDetails": "文件详情",
+  "fileExistsDesc": "这本书已经下载过了。\n\n您可以打开现有文件或重新下载。",
+  "fileExistsTitle": "文件已存在",
+  "fileSize": "文件大小",
+  "floatingNav": "悬浮栏",
+  "followDevice": "跟随设备语言",
+  "githubOpenSource": "GitHub 开源",
+  "goodMorning": "早上好，",
+  "gotIt": "好的",
+  "greetingAfternoon": "下午好，",
+  "greetingEvening": "晚上好，",
+  "greetingLateNight": "夜深了，",
+  "greetingNoon": "中午好，",
+  "gridView": "大图模式",
+  "hideNavOnScroll": "随下滑收起",
+  "historyEmptyMessage": "在其他设备上下载的书籍将显示在这里",
+  "home": "首页",
+  "incorrectCredentials": "邮箱或密码错误",
+  "language": "语言",
+  "languageSetting": "语言",
+  "later": "稍后再说",
+  "light": "浅色",
+  "like": "收藏",
+  "likeFailed": "点赞失败",
+  "lineCachedLoginHint": "已使用缓存登录信息，点此切换线路",
+  "lineStatusUnavailable": "不可用",
+  "lineUnavailable": "线路不可用",
+  "lineUnavailableCurrent": "当前线路不可用",
+  "listView": "列表模式",
+  "loading": "加载中...",
+  "loadingDownloads": "加载下载记录中...",
+  "loadingFavorites": "加载收藏中...",
+  "loadingSimilarBooks": "正在加载相似书籍...",
+  "loadingTrendingBooks": "正在加载热门书籍...",
+  "login": "登录",
+  "loginBadCredentials": "用户未注册或账号密码错误",
+  "loginFailed": "登录失败",
+  "loginLineBlockedCf": "当前线路被 Cloudflare 拦截，请切换其他线路后重试。",
+  "loginLineConnectFailed": "当前线路连接失败（可能被拦截或线路不通），并非账号密码错误。请切换其他线路后重试。",
+  "loginNoAccountHint": "没有账号？请自行前往官网注册，本软件不提供注册方式。",
+  "loginSkipExplore": "跳过登录，先逛逛",
+  "loginToContinue": "登录以继续",
+  "loginToViewBooklists": "登录后查看书单",
+  "loginToViewComments": "登录后查看评论",
+  "loginUnknownFailure": "登录失败，暂时无法确认原因。\n线路：{line}\n时间：{time}\n\n错误详情：{detail}\n\n请截图此弹窗反馈。",
+  "@loginUnknownFailure": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "loginUseZsiteAccount": "请使用 z站 官网账号登录",
+  "logout": "退出登录",
+  "logoutAction": "退出",
+  "logoutConfirmDesc": "退出后需要重新输入账号密码登录。",
+  "logoutConfirmTitle": "退出登录？",
+  "manageAccounts": "切换或管理账号",
+  "mediastoreDesc": "使用 MediaStore API 保存到公共下载目录",
+  "mirrorAutoDesc": "先按防护难易度，再按速度排序。推荐。",
+  "mirrorAutoOrder": "自动排序镜像",
+  "mirrorDeviceMs": "本机 {ms}ms",
+  "@mirrorDeviceMs": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorListUnreachable": "无法连接 open-slum.org，暂无镜像列表",
+  "mirrorListUpToDate": "镜像列表已是最新",
+  "mirrorListUpdated": "镜像列表已更新：{count} 处变化",
+  "@mirrorListUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mirrorManualDesc": "手动：用箭头调整顺序。",
+  "mirrorMoveDown": "下移",
+  "mirrorMoveUp": "上移",
+  "mirrorRefreshFailed": "刷新失败",
+  "mirrorServiceAnnasDesc": "阅读、详情与下载",
+  "mirrorServiceLibgenDesc": "镜像可用时下载快速、无验证",
+  "mirrorServiceWelibDesc": "搜索受 Cloudflare 保护，详情页可打开",
+  "mirrorServiceZlibraryDesc": "DiamWall 镜像可无界面验证",
+  "mirrorSpeedTest": "测速",
+  "mirrorSpeedTestDone": "测速完成",
+  "mirrorSpeedTestFailed": "测速失败",
+  "mirrorTrustBody": "{host} 是社区运营的镜像站，并非官方站点。登录时你的邮箱和密码，以及之后的登录会话，都会发送给它的运营者。仅在你信任它时继续。",
+  "@mirrorTrustBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "mirrorTrustConfirm": "我信任它",
+  "mirrorTrustTitle": "使用社区镜像？",
+  "mirrors": "镜像",
+  "mirrorsDownHint": "报告已下线，不会连接",
+  "mirrorsFooterNote": "镜像地址和状态来自 open-slum.org，会自动刷新。报告已下线的镜像不会被连接。",
+  "mirrorsLoadFailed": "无法加载镜像",
+  "mirrorsNoMirrors": "暂无镜像",
+  "mirrorsNoMirrorsHint": "open-slum.org 暂无记录，或无法连接。",
+  "mirrorsSubtitle": "镜像状态来自 open-slum.org",
+  "more": "更多操作",
+  "myBooklists": "我的书单",
+  "myComments": "我的评论",
+  "myCommentsPending": "接口确认中",
+  "myCommentsSubtitle": "你发表过的评论",
+  "myLibrary": "我的图书馆",
+  "myLibrarySubtitle": "已收藏的书",
+  "name": "姓名",
+  "network": "网络",
+  "networkLine": "网络线路",
+  "newReleases": "新书",
+  "newVersionFound": "发现新版本 {version}",
+  "@newVersionFound": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveDownloads": "没有正在进行的下载",
+  "noBooklistBooks": "这个书单里还没有书",
+  "noBooklists": "暂无书单",
+  "noBooksFound": "未找到书籍",
+  "noComments": "暂无评论",
+  "noCompletedDownloads": "没有已完成的下载",
+  "noFavorites": "暂无收藏",
+  "noHistory": "暂无历史",
+  "noMoreComments": "没有更多评论了",
+  "noResults": "没有结果",
+  "noSavedAccounts": "暂无已保存账号",
+  "noSavedAccountsMessage": "登录过的账号会显示在这里。",
+  "noSimilarBooks": "未找到相似书籍",
+  "noSimilarBooksMessage": "我们没有找到相关的相似书籍推荐",
+  "ongoing": "进行中",
+  "openBookFailed": "无法打开书籍详情",
+  "openDownloadFolder": "打开下载文件夹",
+  "openFile": "打开文件",
+  "openFileFailed": "无法打开文件",
+  "openFolder": "打开文件夹",
+  "openFolderFailed": "无法直接打开下载文件夹。请检查您的文件管理应用。",
+  "original": "原版",
+  "page": "页",
+  "pages": "页数",
+  "password": "密码",
+  "passwordMinLength": "密码至少6个字符",
+  "path": "路径",
+  "pathCopied": "路径已复制到剪贴板",
+  "preview": "预览",
+  "publicationInfo": "出版信息",
+  "publisher": "出版社",
+  "reader": "读者",
+  "readerExportResourceLog": "导出资源日志",
+  "readerLogExportFailed": "日志导出失败: {error}",
+  "@readerLogExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "readerResourceLogCount": "{count} 条资源记录",
+  "@readerResourceLogCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "readerSessionWriteFailed": "阅读器会话写入失败，请重新登录再试",
+  "recentAccount": "最近使用",
+  "recheck": "重新检测",
+  "recommended": "推荐",
+  "refreshFailed": "刷新失败",
+  "register": "注册",
+  "registrationFailed": "注册失败",
+  "remove": "移除",
+  "removeAccount": "移除账号",
+  "removeAccountMessage": "将从此设备中删除该账号保存的登录信息。",
+  "removeAccountTitle": "移除这个账号？",
+  "removeFavorite": "取消收藏",
+  "reply": "回复",
+  "replyTo": "回复",
+  "resetToDefault": "恢复默认",
+  "resetToDefaultDirDone": "已恢复默认目录",
+  "resolvingDownloadLink": "正在解析下载链接…",
+  "retest": "重新测速",
+  "retry": "重试",
+  "save": "保存",
+  "saveBooksHint": "收藏书籍后会显示在这里",
+  "search": "搜索",
+  "searchBooklists": "搜索书单",
+  "searchBooks": "搜索书籍",
+  "searchFailed": "搜索失败",
+  "searchForBooks": "搜索书籍...",
+  "searchFree": "免费",
+  "searchHistoryClear": "清空",
+  "searchHistoryRemove": "删除这条搜索记录",
+  "searchHistorySaveFailed": "搜索记录保存失败，请重试",
+  "searchHistoryTitle": "最近搜索",
+  "searchMoreFailed": "加载更多失败",
+  "searchNoResultsSwitch": "没有找到结果，换个关键词再试。",
+  "searchPageProgress": "第 {current}/{total} 页",
+  "@searchPageProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "searchPaid": "付费",
+  "searchResultsCount": "已显示 {count} 本书",
+  "@searchResultsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchRetry": "重试",
+  "searchSource": "默认搜索源",
+  "searchTrySource": "搜索",
+  "searchingBooks": "搜索中...",
+  "selectAll": "全选",
+  "selectBooklist": "选择书单",
+  "selectFolder": "选择文件夹",
+  "selectNetwork": "选择线路",
+  "sendCode": "发送验证码",
+  "sendComment": "发送评论",
+  "settings": "设置",
+  "share": "分享",
+  "shareFailed": "无法分享文件",
+  "shelfAddToCategory": "加入分类",
+  "shelfAllCategories": "所有分类",
+  "shelfCategoryInvalid": "分类名称不能为空，也不能与现有分类重复",
+  "shelfCategoryName": "分类名称",
+  "shelfCategorySaveFailed": "分类保存失败，请重试",
+  "shelfCategorySaved": "分类已保存",
+  "shelfClearFilters": "清除筛选",
+  "shelfContinueReading": "继续阅读",
+  "shelfCount": "共 {count} 本",
+  "@shelfCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shelfDeleteCategory": "删除这个分类？",
+  "shelfDeleteCategoryHint": "分类中的书会变为未分类，书籍本身不会删除。",
+  "shelfDownloaded": "已下载",
+  "shelfEmpty": "图书馆空空如也",
+  "shelfEmptyMessage": "收藏图书馆的书",
+  "shelfFindBooks": "去找书",
+  "shelfLongPressHint": "长按书籍管理",
+  "shelfManageCategories": "管理分类",
+  "shelfNewCategory": "新建分类",
+  "shelfNoMatches": "没有找到符合条件的书",
+  "shelfRenameCategory": "重命名分类",
+  "shelfRetryHint": "下拉刷新或点击重试",
+  "shelfSearchHint": "搜索书名或作者",
+  "shelfSelected": "本已选",
+  "shelfSort": "排序",
+  "shelfSortAuthor": "按作者",
+  "shelfSortDefault": "默认顺序",
+  "shelfSortTitle": "按书名",
+  "shelfSourceLoadFailed": "部分书籍加载失败，请重试",
+  "shelfTitle": "我的图书馆",
+  "shelfTryOtherFilter": "试试其他关键词、来源或分类",
+  "shelfUncategorized": "未分类",
+  "shelfView": "书架模式",
+  "shelfViewDetails": "查看详情",
+  "showLess": "收起简介",
+  "showMore": "展开简介",
+  "similarBooks": "相似书籍",
+  "skip": "跳过",
+  "sort": "排序",
+  "source": "来源",
+  "sourceAnnasArchive": "Anna's Archive",
+  "sourceLibgen": "LibGen",
+  "sourceZlibrary": "z站",
+  "speedTesting": "测速中",
+  "speedUntested": "未测速",
+  "splashLineUnreachable": "当前线路无法连接到 z站，请切换到其他线路后重试。",
+  "startSearching": "开始搜索",
+  "success": "成功",
+  "switchAccount": "切换账号",
+  "switchAccountFailed": "账号切换失败，请稍后重试。",
+  "switchLine": "切换线路",
+  "system": "跟随系统",
+  "systemDownloadsFolder": "系统下载文件夹",
+  "systemDownloadsMediastore": "系统下载文件夹 (MediaStore)",
+  "trending": "热门",
+  "trendingOnOpenLibrary": "Open Library 热门",
+  "tryDifferentKeywords": "试试其他关键词",
+  "unfavorited": "已取消收藏",
+  "unknown": "未知",
+  "unknownAuthor": "未知作者",
+  "upToDateDesc": "当前版本已是最新版本",
+  "upToDateTitle": "已是最新版本",
+  "update": "更新",
+  "updateCurrentLatest": "当前版本 v{current} · 最新版本 v{latest}",
+  "@updateCurrentLatest": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "updateDroppedLinks": "另有 {count} 个下载渠道因域名不在白名单中被忽略",
+  "@updateDroppedLinks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "updateFoundTitle": "发现新版本 v{version}",
+  "@updateFoundTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateRequired": "需要更新后才能继续使用",
+  "updateUnsupported": "当前版本已停止支持，搜索和下载功能已禁用，请下载新版本安装后再使用。",
+  "useAnotherAccount": "使用其他账号",
+  "useDefaultDocumentsDir": "使用应用默认文档目录",
+  "validEmail": "请输入有效的邮箱",
+  "verificationCode": "验证码",
+  "verifyingAccess": "正在验证访问…",
+  "verifyingAccessHint": "请在浏览器页内完成验证，通过后会自动返回。",
+  "version": "版本",
+  "websiteDownload": "官网下载",
+  "welcomeBack": "欢迎回来",
+  "writeComment": "写评论",
+  "year": "年份"
+}
