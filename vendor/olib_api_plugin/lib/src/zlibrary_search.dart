@@ -151,7 +151,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
+    return ApiResponse.ok(ZLibraryApiBase._booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   Future<ApiResponse<List<Book>>> getUserSaved({
@@ -176,7 +176,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
+    return ApiResponse.ok(ZLibraryApiBase._booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   Future<ApiResponse<List<Book>>> getUserDownloaded({
@@ -197,7 +197,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
+    return ApiResponse.ok(ZLibraryApiBase._booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Save to "My library". Mirrors the confirmed unsave path.
@@ -265,7 +265,7 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(_booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
+    return ApiResponse.ok(ZLibraryApiBase._booksOf(raw.json!), meta: ZLibraryApiBase._metaOf(raw.json!));
   }
 
   /// Book comments, view-only. The site's own `papi/` JSON API, NOT eapi:
