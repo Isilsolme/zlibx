@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 386 getters/methods, in all 5 locales, plus the 20
+// every one of the 393 getters/methods, in all 5 locales, plus the 20
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -170,6 +170,13 @@ void main() {
     expect(loc.gridView, 'Grid view');
     expect(loc.hideNavOnScroll, 'Hide on scroll down');
     expect(loc.historyEmptyMessage, 'Books you downloaded on other devices will appear here');
+    expect(loc.historySortDateAsc, 'Download date ↑');
+    expect(loc.historySortDateDesc, 'Download date ↓');
+    expect(loc.historySortDefault, 'default');
+    expect(loc.historySortSizeAsc, 'File size ↑');
+    expect(loc.historySortSizeDesc, 'File size ↓');
+    expect(loc.historySortTitleAsc, 'Name (A-Z)');
+    expect(loc.historySortTitleDesc, 'Name (Z-A)');
     expect(loc.home, 'Home');
     expect(loc.incorrectCredentials, 'Incorrect email or password');
     expect(loc.language, 'Language');
@@ -560,6 +567,13 @@ void main() {
     expect(loc.gridView, 'グリッド表示');
     expect(loc.hideNavOnScroll, '下スクロールで非表示');
     expect(loc.historyEmptyMessage, '他のデバイスでダウンロードした本がここに表示されます');
+    expect(loc.historySortDateAsc, 'ダウンロード日 ↑');
+    expect(loc.historySortDateDesc, 'ダウンロード日 ↓');
+    expect(loc.historySortDefault, 'default');
+    expect(loc.historySortSizeAsc, 'ファイルサイズ ↑');
+    expect(loc.historySortSizeDesc, 'ファイルサイズ ↓');
+    expect(loc.historySortTitleAsc, '名前 (A-Z)');
+    expect(loc.historySortTitleDesc, '名前 (Z-A)');
     expect(loc.home, 'ホーム');
     expect(loc.incorrectCredentials, 'メールアドレスまたはパスワードが正しくありません');
     expect(loc.language, '言語');
@@ -950,6 +964,13 @@ void main() {
     expect(loc.gridView, '격자 보기');
     expect(loc.hideNavOnScroll, '아래로 스크롤 시 숨기기');
     expect(loc.historyEmptyMessage, '다른 기기에서 다운로드한 책이 여기에 표시됩니다');
+    expect(loc.historySortDateAsc, '다운로드 날짜 ↑');
+    expect(loc.historySortDateDesc, '다운로드 날짜 ↓');
+    expect(loc.historySortDefault, 'default');
+    expect(loc.historySortSizeAsc, '파일 크기 ↑');
+    expect(loc.historySortSizeDesc, '파일 크기 ↓');
+    expect(loc.historySortTitleAsc, '이름 (A-Z)');
+    expect(loc.historySortTitleDesc, '이름 (Z-A)');
     expect(loc.home, '홈');
     expect(loc.incorrectCredentials, '이메일 또는 비밀번호가 올바르지 않습니다');
     expect(loc.language, '언어');
@@ -1340,6 +1361,13 @@ void main() {
     expect(loc.gridView, '大图模式');
     expect(loc.hideNavOnScroll, '随下滑收起');
     expect(loc.historyEmptyMessage, '在其他设备上下载的书籍将显示在这里');
+    expect(loc.historySortDateAsc, '下载日期 ↑');
+    expect(loc.historySortDateDesc, '下载日期 ↓');
+    expect(loc.historySortDefault, 'default');
+    expect(loc.historySortSizeAsc, '文件大小 ↑');
+    expect(loc.historySortSizeDesc, '文件大小 ↓');
+    expect(loc.historySortTitleAsc, '名称 (A-Z)');
+    expect(loc.historySortTitleDesc, '名称 (Z-A)');
     expect(loc.home, '首页');
     expect(loc.incorrectCredentials, '邮箱或密码错误');
     expect(loc.language, '语言');
@@ -1730,6 +1758,13 @@ void main() {
     expect(loc.gridView, '大圖模式');
     expect(loc.hideNavOnScroll, '隨下滑收起');
     expect(loc.historyEmptyMessage, '在其他裝置上下載的書籍將顯示在這裡');
+    expect(loc.historySortDateAsc, '下載日期 ↑');
+    expect(loc.historySortDateDesc, '下載日期 ↓');
+    expect(loc.historySortDefault, 'default');
+    expect(loc.historySortSizeAsc, '檔案大小 ↑');
+    expect(loc.historySortSizeDesc, '檔案大小 ↓');
+    expect(loc.historySortTitleAsc, '名稱 (A-Z)');
+    expect(loc.historySortTitleDesc, '名稱 (Z-A)');
     expect(loc.home, '首頁');
     expect(loc.incorrectCredentials, '電子郵件或密碼錯誤');
     expect(loc.language, '語言');

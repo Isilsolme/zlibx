@@ -11,17 +11,48 @@ import '../../routes/app_routes.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 import '../../utils/cover_cache.dart';
-class HistoryScreen extends ConsumerWidget {
+
+/// Sort order for the cloud download history list. The default
+/// ([dateDesc]) is the server's own order (newest download first);
+/// the list carries no per-book download timestamp, so "date" sorting
+/// is that order and its reverse.
+enum _HistorySort {
+  dateDesc,
+  dateAsc,
+  titleAsc,
+  titleDesc,
+  year,
+  sizeDesc,
+  sizeAsc,
+}
+
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+  _HistorySort _sort = _HistorySort.dateDesc;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     // This provider gets "downloaded" books from account (Cloud history)
     final downloadedBooksAsync = ref.watch(downloadedBooksProvider);
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.downloadHistory),
+      appBar: GradientAppBar(
+        title: l10n.downloadHistory,
+        actions: [
+          IconButton(
+            tooltip: l10n.sort,
+            icon: const Icon(Icons.sort_rounded),
+            onPressed: _showSortDialog,
+          ),
+        ],
+      ),
       body: downloadedBooksAsync.when(
         data: (books) {
           if (books.isEmpty) {
@@ -32,12 +63,13 @@ class HistoryScreen extends ConsumerWidget {
             );
           }
 
+          final sorted = _sortedBooks(books);
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: books.length,
+            itemCount: sorted.length,
             itemBuilder: (context, index) {
-              final book = books[index];
-              
+              final book = sorted[index];
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
@@ -73,6 +105,110 @@ class HistoryScreen extends ConsumerWidget {
           icon: Icons.error_outline,
           title: l10n.error,
           message: error.toString(),
+        ),
+      ),
+    );
+  }
+
+  List<Book> _sortedBooks(List<Book> books) {
+    switch (_sort) {
+      case _HistorySort.dateDesc:
+        // Server order is already newest first.
+        return books;
+      case _HistorySort.dateAsc:
+        return books.reversed.toList();
+      case _HistorySort.titleAsc:
+      case _HistorySort.titleDesc:
+        final sorted = [...books]
+          ..sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+          );
+        return _sort == _HistorySort.titleAsc
+            ? sorted
+            : sorted.reversed.toList();
+      case _HistorySort.year:
+        return [...books]..sort(_compareYear);
+      case _HistorySort.sizeDesc:
+        return [...books]
+          ..sort((a, b) => _compareSize(a, b, descending: true));
+      case _HistorySort.sizeAsc:
+        return [...books]
+          ..sort((a, b) => _compareSize(a, b, descending: false));
+    }
+  }
+
+  /// Year, newest first; books without a year sort last.
+  static int _compareYear(Book a, Book b) {
+    final x = a.year;
+    final y = b.year;
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return y.compareTo(x);
+  }
+
+  /// File size; books without a known size sort last either way.
+  static int _compareSize(Book a, Book b, {required bool descending}) {
+    final x = a.filesize;
+    final y = b.filesize;
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return descending ? y.compareTo(x) : x.compareTo(y);
+  }
+
+  String _sortLabel(AppLocalizations l10n, _HistorySort sort) =>
+      switch (sort) {
+        _HistorySort.dateDesc => l10n.historySortDateDesc,
+        _HistorySort.dateAsc => l10n.historySortDateAsc,
+        _HistorySort.titleAsc => l10n.historySortTitleAsc,
+        _HistorySort.titleDesc => l10n.historySortTitleDesc,
+        _HistorySort.year => l10n.year,
+        _HistorySort.sizeDesc => l10n.historySortSizeDesc,
+        _HistorySort.sizeAsc => l10n.historySortSizeAsc,
+      };
+
+  Future<void> _showSortDialog() async {
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: Text(l10n.sort),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _HistorySort.values.map((sort) {
+              return RadioListTile<_HistorySort>(
+                title: Text(_sortLabel(l10n, sort)),
+                value: sort,
+                groupValue: _sort,
+                // The default row carries the "default" tag, like the
+                // sort dialog the user pointed at.
+                secondary: sort == _HistorySort.dateDesc
+                    ? Text(
+                        l10n.historySortDefault,
+                        style: Theme.of(dialogContext).textTheme.bodySmall
+                            ?.copyWith(
+                              color: Theme.of(
+                                dialogContext,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      )
+                    : null,
+                onChanged: (value) {
+                  if (value == null) return;
+                  setDialogState(() {});
+                  setState(() => _sort = value);
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.close),
+            ),
+          ],
         ),
       ),
     );
