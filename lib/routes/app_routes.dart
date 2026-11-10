@@ -112,6 +112,82 @@ class AppRoutes {
     BuildContext context,
     ReaderArgs args,
   ) => Navigator.of(context).pushNamed<T>(reader, arguments: args);
+
+  // ── Typed navigation helpers (routes without arguments) ────────────
+
+  /// The login page, pushed on top of the current page.
+  static Future<T?> openLogin<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(login);
+
+  /// The home page, pushed on top of the current page. Not used by any
+  /// caller yet (home is only ever reached by replacement, see
+  /// [goHomeAfterLogin] / [splashToHome]); kept so every named route
+  /// has a typed entry point.
+  static Future<T?> openHome<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(home);
+
+  /// The search page.
+  static Future<T?> openSearch<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(search);
+
+  /// The favorites page.
+  static Future<T?> openFavorites<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(favorites);
+
+  /// The signed-in user's own comments page.
+  static Future<T?> openMyComments<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(myComments);
+
+  /// The signed-in user's booklists page.
+  static Future<T?> openBooklists<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(booklists);
+
+  /// The download-history page.
+  static Future<T?> openHistory<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamed<T>(history);
+
+  /// After a successful sign-in, or "skip login": replace the login page
+  /// with the home page.
+  static Future<T?> goHomeAfterLogin<T extends Object?>(
+    BuildContext context,
+  ) => Navigator.of(context).pushReplacementNamed<T, Object?>(home);
+
+  /// After sign-out: go to the login page and clear the whole back stack
+  /// (the predicate always returns false, so every route is removed).
+  static Future<T?> logoutToLogin<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushNamedAndRemoveUntil<T>(
+        login,
+        (route) => false,
+      );
+
+  /// Splash exits with a fade, not a slide: the splash is full dark-green
+  /// while home/login are full white, so a slide reads as a flash.
+  /// (Moved verbatim from `SplashScreen._goHome`.)
+  static Future<T?> splashToHome<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushReplacement<T, Object?>(
+        PageRouteBuilder<T>(
+          transitionDuration: const Duration(milliseconds: 300),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const HomeScreen(),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) =>
+                  FadeTransition(opacity: animation, child: child),
+        ),
+      );
+
+  /// Same 300 ms fade as [splashToHome], into the login page.
+  /// (Moved verbatim from `SplashScreen._goLogin`.)
+  static Future<T?> splashToLogin<T extends Object?>(BuildContext context) =>
+      Navigator.of(context).pushReplacement<T, Object?>(
+        PageRouteBuilder<T>(
+          transitionDuration: const Duration(milliseconds: 300),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const LoginScreen(),
+          transitionsBuilder:
+              (context, animation, secondaryAnimation, child) =>
+                  FadeTransition(opacity: animation, child: child),
+        ),
+      );
 }
 
 /// The app's named-route table (passed to `MaterialApp.routes`).

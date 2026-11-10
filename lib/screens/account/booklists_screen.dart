@@ -247,8 +247,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
               icon: Icons.login_rounded,
               title: l10n.loginToViewBooklists,
               action: FilledButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.login),
+                onPressed: () => AppRoutes.openLogin(context),
                 child: Text(l10n.login),
               ),
             ),

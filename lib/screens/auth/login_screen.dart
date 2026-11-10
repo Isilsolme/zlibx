@@ -206,7 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (widget.addAccountMode) {
       Navigator.of(context).pop(true);
     } else {
-      Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+      AppRoutes.goHomeAfterLogin(context);
     }
   }
 
@@ -548,7 +548,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return TextButton(
       onPressed: () {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.home);
+        AppRoutes.goHomeAfterLogin(context);
       },
       child: Text(
         AppLocalizations.of(context)!.loginSkipExplore,

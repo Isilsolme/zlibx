@@ -350,9 +350,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                   icon: Icons.login_rounded,
                   title: l10n.loginToViewComments,
                   action: FilledButton(
-                    onPressed: () => Navigator.of(
-                      context,
-                    ).pushNamed(AppRoutes.login),
+                    onPressed: () => AppRoutes.openLogin(context),
                     child: Text(l10n.login),
                   ),
                 )

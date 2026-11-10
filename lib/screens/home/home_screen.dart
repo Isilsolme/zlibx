@@ -592,8 +592,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
           children: [
             // Search Bar Trigger
             GestureDetector(
-              onTap: () =>
-                  Navigator.of(context).pushNamed(AppRoutes.search),
+              onTap: () => AppRoutes.openSearch(context),
               child: Container(
                 height: searchBarHeight,
                 padding: const EdgeInsets.symmetric(horizontal: 20),

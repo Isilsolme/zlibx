@@ -45,7 +45,7 @@ class AccountScreen extends ConsumerWidget {
                 title: l10n.loginToContinue,
                 action: FilledButton(
                   onPressed: () =>
-                      Navigator.of(context).pushNamed(AppRoutes.login),
+                      AppRoutes.openLogin(context),
                   child: Text(l10n.login),
                 ),
               )
@@ -66,7 +66,7 @@ class AccountScreen extends ConsumerWidget {
                     title: l10n.myLibrary,
                     subtitle: l10n.myLibrarySubtitle,
                     onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.favorites),
+                        AppRoutes.openFavorites(context),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
@@ -74,7 +74,7 @@ class AccountScreen extends ConsumerWidget {
                     title: l10n.myComments,
                     subtitle: l10n.myCommentsSubtitle,
                     onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.myComments),
+                        AppRoutes.openMyComments(context),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
@@ -82,7 +82,7 @@ class AccountScreen extends ConsumerWidget {
                     title: l10n.booklists,
                     subtitle: l10n.booklistsSubtitle,
                     onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.booklists),
+                        AppRoutes.openBooklists(context),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
@@ -90,7 +90,7 @@ class AccountScreen extends ConsumerWidget {
                     title: l10n.downloadHistory,
                     subtitle: l10n.booksDownloadedAnyDevice,
                     onTap: () =>
-                        Navigator.of(context).pushNamed(AppRoutes.history),
+                        AppRoutes.openHistory(context),
                   ),
                   const SizedBox(height: 28),
                   Center(
@@ -148,9 +148,7 @@ class AccountScreen extends ConsumerWidget {
       btnOkOnPress: () async {
         await ref.read(authProvider.notifier).logout();
         if (context.mounted) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+          AppRoutes.logoutToLogin(context);
         }
       },
     ).show();
