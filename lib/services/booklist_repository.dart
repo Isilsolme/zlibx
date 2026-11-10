@@ -165,7 +165,7 @@ class BooklistRepository {
   /// One page of the public booklists to discover.
   Future<ApiResponse<BooklistsPage>> searchPublicBooklists({
     String query = '',
-    String? order,
+    String order = 'popular',
     int page = 1,
   }) =>
       _api.searchPublicBooklists(query: query, order: order, page: page);
