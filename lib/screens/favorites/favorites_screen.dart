@@ -13,19 +13,13 @@ import '../../providers/shelf_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../screens/search/search_screen.dart';
 import '../../services/media_store.dart';
-import 'widgets/shelf_book_item.dart';
+import 'category_actions.dart';
+import 'widgets/shelf_book_sliver.dart';
 import 'widgets/shelf_chip.dart';
 import '../../widgets/loading_widget.dart';
 
 import '../../utils/app_snack.dart';
 enum _ShelfSort { defaultOrder, title, author }
-
-class _CategoryCommand {
-  const _CategoryCommand(this.action, [this.category]);
-
-  final String action;
-  final ShelfCategory? category;
-}
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -34,15 +28,22 @@ class FavoritesScreen extends ConsumerStatefulWidget {
   ConsumerState<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
-  static const _uncategorized = '__uncategorized__';
-
+/// Orchestrator only: watches the shelf / categories providers, owns
+/// the select mode, the filters and the action wiring, and delegates
+/// the category dialogs to [ShelfCategoryActions] and the list /
+/// grid body to [ShelfBookSliver].
+class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
+    implements ShelfCategoryHost {
   final _searchController = TextEditingController();
   bool _isListView = false;
   bool _isSelectMode = false;
   final Set<int> _selectedBookIds = {};
   String? _selectedCategoryId;
   _ShelfSort _sort = _ShelfSort.defaultOrder;
+
+  /// The category flows (create / rename / delete / assign / manage),
+  /// extracted to category_actions.dart.
+  late final ShelfCategoryActions _actions = ShelfCategoryActions(this);
 
   @override
   void dispose() {
@@ -110,7 +111,16 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       child: _emptyState(l, hasSourceError),
                     )
                   else ...[
-                    _bookSliver(visible, categories, categoryNameById),
+                    ShelfBookSliver(
+                      items: visible,
+                      categories: categories,
+                      categoryNameById: categoryNameById,
+                      isListView: _isListView,
+                      isSelectMode: _isSelectMode,
+                      selectedBookIds: _selectedBookIds,
+                      onItemTap: _onItemTap,
+                      onItemLongPress: _onItemLongPress,
+                    ),
                     const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
                   ],
                 ],
@@ -129,11 +139,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final query = _searchController.text.trim().toLowerCase();
     final result = all.where((item) {
       final assigned = categories.categoryFor(item);
-      if (_selectedCategoryId == _uncategorized && assigned != null) {
+      if (_selectedCategoryId == kShelfUncategorizedId && assigned != null) {
         return false;
       }
       if (_selectedCategoryId != null &&
-          _selectedCategoryId != _uncategorized &&
+          _selectedCategoryId != kShelfUncategorizedId &&
           assigned != _selectedCategoryId) {
         return false;
       }
@@ -192,7 +202,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         IconButton(
           tooltip: l.shelfManageCategories,
           icon: const Icon(Icons.label_outline_rounded),
-          onPressed: _manageCategories,
+          onPressed: _actions.manageCategories,
         ),
         IconButton(
           tooltip: _isListView
@@ -268,7 +278,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
           _categoryChip(l.shelfAllCategories, null, scoped.length),
           _categoryChip(
             l.shelfUncategorized,
-            _uncategorized,
+            kShelfUncategorizedId,
             scoped.where((item) => state.categoryFor(item) == null).length,
           ),
           for (final category in state.categories)
@@ -281,7 +291,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
             tooltip: l.shelfNewCategory,
             visualDensity: VisualDensity.compact,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
-            onPressed: _createCategory,
+            onPressed: _actions.createCategory,
             icon: const Icon(Icons.add_rounded, size: 20),
           ),
         ],
@@ -375,112 +385,6 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     ),
   );
 
-  static const _gridPadding = 16.0;
-  static const _gridSpacing = 14.0;
-
-  Widget _bookSliver(
-    List<UnifiedShelfItem> items,
-    ShelfCategoriesState categories,
-    Map<String, String> categoryNameById,
-  ) {
-    final columns = _shelfColumns;
-    final cellWidth =
-        (MediaQuery.sizeOf(context).width -
-            _gridPadding * 2 -
-            _gridSpacing * (columns - 1)) /
-        columns;
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(_gridPadding, 4, _gridPadding, 12),
-      sliver: _isListView
-          ? SliverList.separated(
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
-              itemBuilder: (_, index) => _listItem(
-                items[index],
-                categories,
-                categoryNameById,
-              ),
-            )
-          : SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                crossAxisSpacing: _gridSpacing,
-                mainAxisSpacing: 16,
-                mainAxisExtent:
-                    cellWidth / ShelfGridItem.coverAspectRatio +
-                    ShelfGridItem.captionHeight,
-              ),
-              itemCount: items.length,
-              itemBuilder: (_, index) => _gridItem(
-                items[index],
-                categories,
-                categoryNameById,
-              ),
-            ),
-    );
-  }
-
-  int get _shelfColumns =>
-      ((MediaQuery.sizeOf(context).width - _gridPadding * 2) / 115)
-          .floor()
-          .clamp(3, 8);
-
-  String? _categoryName(
-    UnifiedShelfItem item,
-    ShelfCategoriesState categories,
-    Map<String, String> categoryNameById,
-  ) {
-    final id = categories.categoryFor(item);
-    if (id == null) return null;
-    return categoryNameById[id];
-  }
-
-  Widget _gridItem(
-    UnifiedShelfItem item,
-    ShelfCategoriesState categories,
-    Map<String, String> categoryNameById,
-  ) {
-    final id = _libraryId(item);
-    return _ShelfItemTile(
-      item: item,
-      isListView: false,
-      isSelectMode: _isSelectMode,
-      isSelected: id != null && _selectedBookIds.contains(id),
-      categoryName: _categoryName(item, categories, categoryNameById),
-      onTap: () => _onItemTap(item),
-      onLongPress: (it, local) {
-        if (id == null) {
-          _showSingleBookActions(it, local);
-        } else {
-          _enterSelectMode(id);
-        }
-      },
-    );
-  }
-
-  Widget _listItem(
-    UnifiedShelfItem item,
-    ShelfCategoriesState categories,
-    Map<String, String> categoryNameById,
-  ) {
-    final id = _libraryId(item);
-    return _ShelfItemTile(
-      item: item,
-      isListView: true,
-      isSelectMode: _isSelectMode,
-      isSelected: id != null && _selectedBookIds.contains(id),
-      categoryName: _categoryName(item, categories, categoryNameById),
-      onTap: () => _onItemTap(item),
-      onLongPress: (it, local) {
-        if (id == null) {
-          _showSingleBookActions(it, local);
-        } else {
-          _enterSelectMode(id);
-        }
-      },
-    );
-  }
-
   Widget _emptyState(AppLocalizations l, bool hasSourceError) {
     final searched = _searchController.text.trim().isNotEmpty;
     final filtered = searched || _selectedCategoryId != null;
@@ -562,7 +466,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 _selectionAction(
                   icon: Icons.label_outline_rounded,
                   label: l.shelfAddToCategory,
-                  onPressed: () => _showCategoryPicker(
+                  onPressed: () => _actions.showCategoryPicker(
                     visible
                         .where(
                           (item) =>
@@ -620,6 +524,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     final book = item.displayBook.original;
     if (book is Book) {
       AppRoutes.openBookDetailForBook(context, book);
+    }
+  }
+
+  /// Long-press on a shelf row: library items enter select mode;
+  /// non-library items (no library id) open the single-book sheet.
+  void _onItemLongPress(UnifiedShelfItem item, DownloadTask? local) {
+    final id = _libraryId(item);
+    if (id == null) {
+      _showSingleBookActions(item, local);
+    } else {
+      _enterSelectMode(id);
     }
   }
 
@@ -709,7 +624,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     if (action == 'quick') {
       await _quickAction(item, local);
     } else if (action == 'category') {
-      await _showCategoryPicker([item]);
+      await _actions.showCategoryPicker([item]);
     } else if (action == 'detail') {
       _onItemTap(item);
     }
@@ -769,288 +684,20 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     });
   }
 
-  Future<String?> _categoryNameDialog({String? initial}) async {
-    final l = AppLocalizations.of(context)!;
-    var name = initial ?? '';
-    final navigator = Navigator.of(context, rootNavigator: true);
-    final route = DialogRoute<String>(
-      context: context,
-      themes: InheritedTheme.capture(from: context, to: navigator.context),
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          initial == null
-              ? l.shelfNewCategory
-              : l.shelfRenameCategory,
-        ),
-        content: TextFormField(
-          initialValue: initial,
-          autofocus: true,
-          maxLength: 24,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(hintText: l.shelfCategoryName),
-          onChanged: (value) => name = value,
-          onFieldSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(l.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, name),
-            child: Text(l.save),
-          ),
-        ],
-      ),
-    );
-    final result = await navigator.push(route);
-    await route.completed;
-    return result;
-  }
+  // ── ShelfCategoryHost: hooks for the extracted category flows ──
 
-  Future<String?> _createCategory() async {
-    final name = await _categoryNameDialog();
-    if (name == null || !mounted) return null;
-    try {
-      await ref.read(shelfCategoriesProvider.notifier).create(name);
-      final created = ref.read(shelfCategoriesProvider).categories.last;
-      return created.id;
-    } catch (error) {
-      if (mounted) {
-        _message(AppLocalizations.of(context)!.shelfCategoryInvalid);
-      }
-      return null;
-    }
-  }
+  @override
+  AppLocalizations l10n() => AppLocalizations.of(context)!;
 
-  Future<void> _showCategoryPicker(List<UnifiedShelfItem> items) async {
-    if (items.isEmpty) return;
-    final l = AppLocalizations.of(context)!;
-    final categories = ref.read(shelfCategoriesProvider);
-    final current = items.length == 1
-        ? categories.categoryFor(items.single)
-        : null;
-    ModalRoute<dynamic>? sheetRoute;
-    final chosen = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        sheetRoute = ModalRoute.of(sheetContext);
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              ListTile(title: Text(l.shelfAddToCategory)),
-              ListTile(
-                leading: const Icon(Icons.remove_circle_outline_rounded),
-                title: Text(l.shelfUncategorized),
-                trailing: current == null ? const Icon(Icons.check) : null,
-                onTap: () => Navigator.pop(sheetContext, _uncategorized),
-              ),
-              for (final category in categories.categories)
-                ListTile(
-                  leading: const Icon(Icons.label_outline_rounded),
-                  title: Text(category.name),
-                  trailing: current == category.id
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.pop(sheetContext, category.id),
-                ),
-              ListTile(
-                leading: const Icon(Icons.add_rounded),
-                title: Text(l.shelfNewCategory),
-                onTap: () => Navigator.pop(sheetContext, '__new__'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    await sheetRoute?.completed;
-    if (chosen == null || !mounted) return;
-    final id = chosen == '__new__' ? await _createCategory() : chosen;
-    if (id == null || !mounted) return;
-    try {
-      await ref
-          .read(shelfCategoriesProvider.notifier)
-          .assign(items, id == _uncategorized ? null : id);
-      if (mounted) _message(l.shelfCategorySaved);
-    } catch (error) {
-      if (mounted) _message(l.shelfCategorySaveFailed);
-    }
-  }
+  @override
+  void showMessage(String message) => _message(message);
 
-  Future<void> _manageCategories() async {
-    final l = AppLocalizations.of(context)!;
-    final categories = ref.read(shelfCategoriesProvider).categories;
-    ModalRoute<dynamic>? sheetRoute;
-    final command = await showModalBottomSheet<_CategoryCommand>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        sheetRoute = ModalRoute.of(sheetContext);
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              ListTile(title: Text(l.shelfManageCategories)),
-              for (final category in categories)
-                ListTile(
-                  leading: const Icon(Icons.label_outline_rounded),
-                  title: Text(category.name),
-                  trailing: PopupMenuButton<String>(
-                    tooltip: l.more,
-                    onSelected: (value) {
-                      Navigator.pop(
-                        sheetContext,
-                        _CategoryCommand(value, category),
-                      );
-                    },
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'rename',
-                        child: Text(l.shelfRenameCategory),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text(l.delete),
-                      ),
-                    ],
-                  ),
-                ),
-              ListTile(
-                leading: const Icon(Icons.add_rounded),
-                title: Text(l.shelfNewCategory),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  const _CategoryCommand('create'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-    await sheetRoute?.completed;
-    if (!mounted || command == null) return;
-    if (command.action == 'create') {
-      await _createCategory();
-    } else if (command.action == 'rename' && command.category != null) {
-      await _renameCategory(command.category!);
-    } else if (command.action == 'delete' && command.category != null) {
-      await _deleteCategory(command.category!);
-    }
-  }
-
-  Future<void> _renameCategory(ShelfCategory category) async {
-    final name = await _categoryNameDialog(initial: category.name);
-    if (name == null || !mounted) return;
-    try {
-      await ref
-          .read(shelfCategoriesProvider.notifier)
-          .rename(category.id, name);
-    } catch (error) {
-      if (mounted) {
-        _message(AppLocalizations.of(context)!.shelfCategoryInvalid);
-      }
-    }
-  }
-
-  Future<void> _deleteCategory(ShelfCategory category) async {
-    final l = AppLocalizations.of(context)!;
-    final navigator = Navigator.of(context, rootNavigator: true);
-    final route = DialogRoute<bool>(
-      context: context,
-      themes: InheritedTheme.capture(from: context, to: navigator.context),
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.shelfDeleteCategory),
-        content: Text(l.shelfDeleteCategoryHint),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.delete),
-          ),
-        ],
-      ),
-    );
-    final confirmed = await navigator.push(route);
-    await route.completed;
-    if (confirmed != true || !mounted) return;
-    try {
-      await ref.read(shelfCategoriesProvider.notifier).delete(category.id);
-      if (mounted && _selectedCategoryId == category.id) {
-        setState(() => _selectedCategoryId = null);
-      }
-    } catch (error) {
-      if (mounted) _message(l.shelfCategorySaveFailed);
+  @override
+  void onCategoryDeleted(String categoryId) {
+    if (mounted && _selectedCategoryId == categoryId) {
+      setState(() => _selectedCategoryId = null);
     }
   }
 
   void _message(String message) => showAppSnack(context, message);
-}
-
-/// One shelf row that watches only its own download task. A progress
-/// tick for another book rebuilds neither this tile nor the shelf
-/// above it — the parent never watches the download list at all.
-/// The completed-only filter replicates the old completedById map:
-/// only a finished task with a file counts as downloaded, and only
-/// that task is handed to the action sheet / quick-open.
-class _ShelfItemTile extends ConsumerWidget {
-  const _ShelfItemTile({
-    required this.item,
-    required this.isListView,
-    required this.isSelectMode,
-    required this.isSelected,
-    required this.categoryName,
-    required this.onTap,
-    required this.onLongPress,
-  });
-
-  final UnifiedShelfItem item;
-  final bool isListView;
-  final bool isSelectMode;
-  final bool isSelected;
-  final String? categoryName;
-  final VoidCallback onTap;
-
-  /// Called with the item and its completed download task (null when
-  /// the book has no finished download).
-  final void Function(UnifiedShelfItem, DownloadTask?) onLongPress;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Only library items have a download task; the task id is the
-    // book id string. Non-library items never watch a task.
-    final DownloadTask? task = item.source == ShelfSource.library
-        ? ref.watch(downloadTaskProvider(item.rawBookId))
-        : null;
-    final DownloadTask? local =
-        (task?.status == DownloadStatus.completed && task?.filePath != null)
-        ? task
-        : null;
-    if (isListView) {
-      return ShelfListItem(
-        item: item,
-        isSelectMode: isSelectMode,
-        isSelected: isSelected,
-        categoryName: categoryName,
-        isDownloaded: local != null,
-        onTap: onTap,
-        onLongPress: () => onLongPress(item, local),
-      );
-    }
-    return ShelfGridItem(
-      item: item,
-      isSelectMode: isSelectMode,
-      isSelected: isSelected,
-      categoryName: categoryName,
-      isDownloaded: local != null,
-      onTap: onTap,
-      onLongPress: () => onLongPress(item, local),
-    );
-  }
 }
