@@ -49,7 +49,12 @@ class DownloadHtmlException implements Exception {
   String toString() => message;
 }
 
-abstract class _ZLibraryApiBase {
+/// Shared session and HTTP infrastructure for [ZLibraryApi] and its
+/// domain mixins. Public — not library-private — on purpose:
+/// [ZLibraryApi] extends this class and [ZLibraryAuth] constrains
+/// on it, so a private base would put a private type in the
+/// public API.
+abstract class ZLibraryApiBase {
   static const String _defaultDomain = 'bookroom.lifestyle';
 
   final Dio _dio;
@@ -68,7 +73,7 @@ abstract class _ZLibraryApiBase {
 
   /// [dio] is a test seam: a caller-provided client (with a fake
   /// adapter) replaces the default one. Production code never passes it.
-  _ZLibraryApiBase({String? domain, Dio? dio})
+  ZLibraryApiBase({String? domain, Dio? dio})
     : _domain = _cleanDomain(domain ?? _defaultDomain),
       _dio = dio ??
           Dio(
@@ -360,7 +365,7 @@ abstract class _ZLibraryApiBase {
 ///   send_code, verify_code. Those methods fall back or fail loudly rather
 ///   than silently returning wrong data; see their doc comments.
 
-class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
+class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth {
   ZLibraryApi({String? domain, Dio? dio}) : super(domain: domain, dio: dio);
 
   /// Called with the raw HTML of every booklist page the plugin loads
@@ -376,7 +381,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
 
   /// Switch the mirror host. Accepts a bare host or a full URL.
   void setDomain(String domain) {
-    _domain = _cleanDomain(domain);
+    _domain = ZLibraryApiBase._cleanDomain(domain);
   }
 
   /// POST a raw string body as `text/plain`, following redirects by
@@ -658,7 +663,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'search failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'search failed',
@@ -722,7 +727,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ?? 'book info failed',
         statusCode: raw.status,
@@ -762,7 +767,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
     if (raw.json == null) {
       return search(order: 'popular', limit: 20);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return search(order: 'popular', limit: 20);
     }
     final books = _booksOf(raw.json!);
@@ -784,7 +789,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
     }
     if (raw.status == 404) return getMostPopular();
     if (raw.json == null) return getMostPopular();
-    if (!_isSuccess(raw.json!)) return getMostPopular();
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) return getMostPopular();
     final books = _booksOf(raw.json!);
     if (books.isEmpty) return getMostPopular();
     return ApiResponse.ok(books, meta: _metaOf(raw.json!));
@@ -805,7 +810,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'recently failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'recently failed',
@@ -830,7 +835,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'saved books failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'saved books failed',
@@ -851,7 +856,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'downloaded books failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'downloaded books failed',
@@ -868,7 +873,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'save failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'save failed',
@@ -885,7 +890,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'unsave failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'unsave failed',
@@ -919,7 +924,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       return ApiResponse.fail(raw.error ?? 'similar failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'similar failed',
@@ -947,7 +952,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ?? 'comments failed',
         statusCode: raw.status,
@@ -1023,7 +1028,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ??
             'my comments failed',
@@ -1083,7 +1088,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ??
             'post comment failed',
@@ -1117,7 +1122,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ?? 'like failed',
         statusCode: raw.status,
@@ -1146,7 +1151,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ??
             'delete comment failed',
@@ -1269,7 +1274,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
     // status): it parses to an empty list, which would look like "no
     // booklists". Fail loudly instead so the caller can fall back to
     // the WebView solver like it does for the 503 case.
-    if (_looksLikeChallengePage(html)) {
+    if (ZLibraryApiBase._looksLikeChallengePage(html)) {
       return ApiResponse.fail(
         'HTTP $status: browser check page',
         statusCode: status,
@@ -1336,7 +1341,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: status,
       );
     }
-    if (_looksLikeChallengePage(html)) {
+    if (ZLibraryApiBase._looksLikeChallengePage(html)) {
       return ApiResponse.fail(
         'HTTP $status: browser check page',
         statusCode: status,
@@ -1389,7 +1394,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: status,
       );
     }
-    if (_looksLikeChallengePage(html)) {
+    if (ZLibraryApiBase._looksLikeChallengePage(html)) {
       return ApiResponse.fail(
         'HTTP $status: browser check page',
         statusCode: status,
@@ -1423,7 +1428,7 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ?? 'booklist failed',
         statusCode: raw.status,
@@ -1500,9 +1505,9 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: status,
       );
     }
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
-        _plainError(
+        ZLibraryApiBase._plainError(
           (json['error'] ?? json['message'])?.toString(),
           'create booklist failed',
         ),
@@ -1535,9 +1540,9 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
       );
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
-        _plainError(
+        ZLibraryApiBase._plainError(
           (json['error'] ?? json['message'])?.toString(),
           'add to booklist failed',
         ),
@@ -1583,9 +1588,9 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: raw.status,
       );
     }
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
-        _plainError(
+        ZLibraryApiBase._plainError(
           (json['error'] ?? json['message'])?.toString(),
           'get booklist entry failed',
         ),
@@ -1646,9 +1651,9 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: status,
       );
     }
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
-        _plainError(
+        ZLibraryApiBase._plainError(
           (json['error'] ?? json['message'])?.toString(),
           'remove from booklist failed',
         ),
@@ -1684,9 +1689,9 @@ class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
         statusCode: status,
       );
     }
-    if (!_isSuccess(json)) {
+    if (!ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
-        _plainError(
+        ZLibraryApiBase._plainError(
           (json['error'] ?? json['message'])?.toString(),
           'delete booklist failed',
         ),
