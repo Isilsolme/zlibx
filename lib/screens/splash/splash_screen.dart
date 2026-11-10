@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../providers/speed_test_provider.dart';
@@ -11,7 +11,6 @@ import '../../widgets/domain_selector.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 
-import '../../l10n/s_keys.dart';
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -151,7 +150,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Step 2: Wait for auth state
     if (!mounted) return;
     setState(
-      () => _statusText = AppLocalizations.of(context).get(S.loading),
+      () => _statusText = AppLocalizations.of(context)!.loading,
     );
     await _waitForAuth();
   }
@@ -162,22 +161,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(AppLocalizations.of(context).get(S.lineUnavailable)),
+        title: Text(AppLocalizations.of(context)!.lineUnavailable),
         content: Text(
-          AppLocalizations.of(context).get(S.splashLineUnreachable),
+          AppLocalizations.of(context)!.splashLineUnreachable,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.skip),
-            child: Text(AppLocalizations.of(context).get(S.skip)),
+            child: Text(AppLocalizations.of(context)!.skip),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.proceed),
-            child: Text(AppLocalizations.of(context).get(S.continueAnyway)),
+            child: Text(AppLocalizations.of(context)!.continueAnyway),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, _LineAction.retry),
-            child: Text(AppLocalizations.of(context).get(S.searchRetry)),
+            child: Text(AppLocalizations.of(context)!.searchRetry),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -191,7 +190,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               backgroundColor: cs.primary,
               foregroundColor: Colors.white,
             ),
-            child: Text(AppLocalizations.of(context).get(S.switchLine)),
+            child: Text(AppLocalizations.of(context)!.switchLine),
           ),
         ],
       ),

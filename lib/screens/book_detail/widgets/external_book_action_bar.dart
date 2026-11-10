@@ -16,7 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'package:open_filex/open_filex.dart';
 
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
 import '../../../providers/download_provider.dart';
 import '../../../services/annas_archieve.dart';
@@ -24,7 +24,6 @@ import '../../../services/external_download.dart';
 import '../../../services/media_store.dart';
 import '../../../utils/app_snack.dart';
 
-import '../../../l10n/s_keys.dart';
 class ExternalBookActionBar extends ConsumerStatefulWidget {
   final DisplayBook displayBook;
   final BookInfoData info;
@@ -47,7 +46,7 @@ class _ExternalBookActionBarState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = theme.colorScheme;
     // Same synthetic Book the download engine and the detail page's
     // progress lookup use; cheap to rebuild (pure value mapping).
@@ -64,16 +63,16 @@ class _ExternalBookActionBarState
     final String label;
     if (isCompleted) {
       icon = Icons.folder_open_rounded;
-      label = l10n.get(S.openFile);
+      label = l10n.openFile;
     } else if (isDownloading) {
       icon = Icons.downloading_rounded;
       label = '${(downloadTask!.progress * 100).toStringAsFixed(0)}%';
     } else if (_resolving) {
       icon = Icons.download_rounded;
-      label = l10n.get(S.resolvingDownloadLink);
+      label = l10n.resolvingDownloadLink;
     } else {
       icon = Icons.download_rounded;
-      label = l10n.get(S.download);
+      label = l10n.download;
     }
 
     final busy = _resolving || isDownloading;
@@ -154,16 +153,16 @@ class _ExternalBookActionBarState
         context: context,
         dialogType: DialogType.info,
         animType: AnimType.bottomSlide,
-        title: AppLocalizations.of(context).get(S.fileExistsTitle),
-        desc: AppLocalizations.of(context).get(S.fileExistsDesc),
-        btnCancelText: AppLocalizations.of(context).get(S.openFile),
+        title: AppLocalizations.of(context)!.fileExistsTitle,
+        desc: AppLocalizations.of(context)!.fileExistsDesc,
+        btnCancelText: AppLocalizations.of(context)!.openFile,
         btnCancelColor: Theme.of(context).colorScheme.primary,
         btnCancelOnPress: () async {
           // The dialog outlives this bar: re-check before using context.
           if (!context.mounted) return;
           await _openDownloadedFile(context, existingPath);
         },
-        btnOkText: AppLocalizations.of(context).get(S.downloadAgain),
+        btnOkText: AppLocalizations.of(context)!.downloadAgain,
         btnOkColor: Theme.of(context).colorScheme.primary,
         btnOkOnPress: () {
           if (!context.mounted) return;
@@ -192,7 +191,7 @@ class _ExternalBookActionBarState
       setState(() => _resolving = false);
       if (!target.hasUrl) {
         if (context.mounted) {
-          _toast(context, AppLocalizations.of(context).get(S.downloadFailed));
+          _toast(context, AppLocalizations.of(context)!.downloadFailed);
         }
         return;
       }
@@ -200,14 +199,14 @@ class _ExternalBookActionBarState
           .read(downloadProvider.notifier)
           .startDownload(book, presetUrl: target.url!);
       if (context.mounted) {
-        _toast(context, AppLocalizations.of(context).get(S.downloading));
+        _toast(context, AppLocalizations.of(context)!.downloading);
       }
     } catch (error) {
       logIgnored('external_book_action_bar', error);
       if (!mounted) return;
       setState(() => _resolving = false);
       if (context.mounted) {
-        _toast(context, AppLocalizations.of(context).get(S.downloadFailed));
+        _toast(context, AppLocalizations.of(context)!.downloadFailed);
       }
     }
   }
@@ -223,7 +222,7 @@ class _ExternalBookActionBarState
         if (!opened && context.mounted) {
           _toast(
             context,
-            AppLocalizations.of(context).get(S.openFileFailed),
+            AppLocalizations.of(context)!.openFileFailed,
           );
         }
         return;
@@ -232,7 +231,7 @@ class _ExternalBookActionBarState
       if (result.type != ResultType.done && context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get(S.openFileFailed),
+          AppLocalizations.of(context)!.openFileFailed,
         );
       }
     } catch (error) {
@@ -240,7 +239,7 @@ class _ExternalBookActionBarState
       if (context.mounted) {
         _toast(
           context,
-          AppLocalizations.of(context).get(S.openFileFailed),
+          AppLocalizations.of(context)!.openFileFailed,
         );
       }
     }

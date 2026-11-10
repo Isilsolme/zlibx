@@ -3,7 +3,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../../core/book_description.dart';
 import '../../../models/display_book.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/book_categories.dart';
 import '../../../routes/app_routes.dart';
 import '../../similar/similar_books_screen.dart';
@@ -11,7 +11,6 @@ import '../../comments/book_comments_screen.dart';
 import 'add_to_booklist_dialog.dart';
 import 'book_detail_content.dart';
 
-import '../../../l10n/s_keys.dart';
 class BookInfoSection extends StatelessWidget {
   final Book book;
 
@@ -19,7 +18,7 @@ class BookInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final tags = <Widget>[
       if (book.extension?.isNotEmpty ?? false)
@@ -48,11 +47,11 @@ class BookInfoSection extends StatelessWidget {
     ];
     final fields = <String, String>{
       if (book.publisher?.isNotEmpty ?? false)
-        l10n.get(S.publisher): book.publisher!,
+        l10n.publisher: book.publisher!,
       if (book.pages != null && book.pages != 0)
-        l10n.get(S.pages): '${book.pages}',
+        l10n.pages: '${book.pages}',
       if (book.language?.isNotEmpty ?? false)
-        l10n.get(S.language): book.language!,
+        l10n.language: book.language!,
     };
     // A missing description must stay absent rather than rendering as
     // the literal word "null".
@@ -104,7 +103,7 @@ class BookInfoSection extends StatelessWidget {
                   size: 22,
                 ),
                 title: Text(
-                  l10n.get(S.similarBooks),
+                  l10n.similarBooks,
                   style: const TextStyle(fontSize: 15),
                 ),
                 trailing: const Icon(Icons.chevron_right_rounded, size: 20),
@@ -132,7 +131,7 @@ class BookInfoSection extends StatelessWidget {
                 size: 22,
               ),
               title: Text(
-                l10n.get(S.comments),
+                l10n.comments,
                 style: const TextStyle(fontSize: 15),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),
@@ -158,7 +157,7 @@ class BookInfoSection extends StatelessWidget {
                 size: 22,
               ),
               title: Text(
-                l10n.get(S.addToBooklist),
+                l10n.addToBooklist,
                 style: const TextStyle(fontSize: 15),
               ),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),

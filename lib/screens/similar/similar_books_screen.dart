@@ -9,9 +9,8 @@ import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../routes/app_routes.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 
-import '../../l10n/s_keys.dart';
 /// Arguments for SimilarBooksScreen
 class SimilarBooksArgs {
   final int bookId;
@@ -85,11 +84,11 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments as SimilarBooksArgs;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: GradientAppBar(
-        title: l10n.get(S.similarBooks),
+        title: l10n.similarBooks,
       ),
       body: Column(
         children: [
@@ -128,18 +127,18 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
           // Results
           Expanded(
             child: _isLoading
-                ? LoadingWidget(message: l10n.get(S.loadingSimilarBooks))
+                ? LoadingWidget(message: l10n.loadingSimilarBooks)
                 : _hasError
                     ? EmptyState(
                         icon: Icons.error_outline,
-                        title: l10n.get(S.error),
+                        title: l10n.error,
                         message: _errorMessage,
                       )
                     : _books.isEmpty
                         ? EmptyState(
                             icon: Icons.search_off,
-                            title: l10n.get(S.noSimilarBooks),
-                            message: l10n.get(S.noSimilarBooksMessage),
+                            title: l10n.noSimilarBooks,
+                            message: l10n.noSimilarBooksMessage,
                           )
                         : Column(
                             children: [
@@ -150,7 +149,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${_books.length} ${l10n.get(S.booksFound)}',
+                                      '${_books.length} ${l10n.booksFound}',
                                       style: TextStyle(
                                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                                         fontSize: 13,
@@ -163,7 +162,7 @@ class _SimilarBooksScreenState extends ConsumerState<SimilarBooksScreen> {
                                         color: Theme.of(context).colorScheme.primary,
                                         size: 22,
                                       ),
-                                      tooltip: _isListView ? l10n.get(S.gridView) : l10n.get(S.listView),
+                                      tooltip: _isListView ? l10n.gridView : l10n.listView,
                                       onPressed: () {
                                         setState(() {
                                           _isListView = !_isListView;

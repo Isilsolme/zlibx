@@ -25,12 +25,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 // Project imports:
-import 'package:zlibx/l10n/app_localizations.dart';
+import 'package:zlibx/l10n/generated/app_localizations.dart';
 import 'package:zlibx/services/challenge_html_cache.dart';
 import 'package:zlibx/services/external_logger.dart';
 import 'package:zlibx/services/webview_challenge_solver.dart';
 
-import '../../l10n/s_keys.dart';
 class ChallengeSolverScreen extends StatefulWidget {
   const ChallengeSolverScreen({super.key, required this.url});
 
@@ -105,10 +104,10 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.get(S.verifyingAccess)),
+        title: Text(l10n.verifyingAccess),
       ),
       body: SafeArea(
         child: Column(
@@ -117,7 +116,7 @@ class _ChallengeSolverScreenState extends State<ChallengeSolverScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
-                l10n.get(S.verifyingAccessHint),
+                l10n.verifyingAccessHint,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),

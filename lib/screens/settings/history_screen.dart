@@ -8,28 +8,27 @@ import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../routes/app_routes.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 
-import '../../l10n/s_keys.dart';
 import '../../utils/cover_cache.dart';
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     // This provider gets "downloaded" books from account (Cloud history)
     final downloadedBooksAsync = ref.watch(downloadedBooksProvider);
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get(S.downloadHistory)),
+      appBar: GradientAppBar(title: l10n.downloadHistory),
       body: downloadedBooksAsync.when(
         data: (books) {
           if (books.isEmpty) {
             return EmptyState(
               icon: Icons.history,
-              title: l10n.get(S.noHistory),
-              message: l10n.get(S.historyEmptyMessage),
+              title: l10n.noHistory,
+              message: l10n.historyEmptyMessage,
             );
           }
 
@@ -72,10 +71,10 @@ class HistoryScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => LoadingWidget(message: l10n.get(S.loadingDownloads)),
+        loading: () => LoadingWidget(message: l10n.loadingDownloads),
         error: (error, stack) => EmptyState(
           icon: Icons.error_outline,
-          title: l10n.get(S.error),
+          title: l10n.error,
           message: error.toString(),
         ),
       ),

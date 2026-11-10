@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
-import '../../../l10n/s_keys.dart';
 class AboutSection extends StatelessWidget {
   const AboutSection({super.key});
 
@@ -17,14 +16,14 @@ class AboutSection extends StatelessWidget {
       children: [
         SectionHeader(
           icon: Icons.info_outline_rounded,
-          title: AppLocalizations.of(context).get(S.about),
+          title: AppLocalizations.of(context)!.about,
         ),
         SettingsCard(
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.info_outline),
-                title: Text(AppLocalizations.of(context).get(S.version)),
+                title: Text(AppLocalizations.of(context)!.version),
                 trailing: FutureBuilder<PackageInfo>(
                   future: PackageInfo.fromPlatform(),
                   builder: (context, snapshot) {
@@ -37,14 +36,14 @@ class AboutSection extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.book_outlined),
                 title: Text(
-                    AppLocalizations.of(context).get(S.aboutZlibrary)),
+                    AppLocalizations.of(context)!.aboutZlibrary),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _showAboutApp(context),
               ),
               const SettingsDivider(),
               ListTile(
                 leading: const Icon(Icons.code),
-                title: Text(AppLocalizations.of(context).get(S.githubOpenSource)),
+                title: Text(AppLocalizations.of(context)!.githubOpenSource),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () =>
                     _launchUrl('https://github.com/minglaiyo/zlibx'),
@@ -101,7 +100,7 @@ class AboutSection extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context).get(S.aboutAiBuiltTitle),
+                AppLocalizations.of(context)!.aboutAiBuiltTitle,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -110,7 +109,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                AppLocalizations.of(context).get(S.aboutBody),
+                AppLocalizations.of(context)!.aboutBody,
                 style: TextStyle(
                   fontSize: 14,
                   color: cs.onSurfaceVariant,
@@ -119,7 +118,7 @@ class AboutSection extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                AppLocalizations.of(context).get(S.aboutCredits),
+                AppLocalizations.of(context)!.aboutCredits,
                 style: TextStyle(
                   fontSize: 13,
                   color: cs.onSurfaceVariant,
@@ -134,7 +133,7 @@ class AboutSection extends StatelessWidget {
                       onPressed: () => _launchUrl(
                           'https://github.com/shiyi-0x7f/olib-mobile'),
                       icon: const Icon(Icons.code, size: 16),
-                      label: Text(AppLocalizations.of(context).get(S.original)),
+                      label: Text(AppLocalizations.of(context)!.original),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -162,7 +161,7 @@ class AboutSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context).get(S.aboutQuote),
+                        AppLocalizations.of(context)!.aboutQuote,
                         style: TextStyle(
                           fontStyle: FontStyle.italic,
                           color: cs.onSurface,
@@ -178,7 +177,7 @@ class AboutSection extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).get(S.close)),
+            child: Text(AppLocalizations.of(context)!.close),
           ),
         ],
       ),

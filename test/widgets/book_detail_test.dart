@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'package:zlibx/l10n/app_localizations.dart';
+import 'package:zlibx/l10n/generated/app_localizations.dart' as gen;
 import 'package:zlibx/models/display_book.dart';
 import 'package:zlibx/providers/download_provider.dart';
 import 'package:zlibx/screens/book_detail/widgets/book_action_bar.dart';
@@ -18,6 +19,9 @@ Widget app(Widget body, {Brightness brightness = Brightness.light,
     supportedLocales: supportedLocales,
     localizationsDelegates: const [
       AppLocalizations.delegate,
+      // Step 2: generated delegate alongside the old one, so converted
+      // widgets under test resolve the generated localizations.
+      gen.AppLocalizations.delegate,
       GlobalMaterialLocalizations.delegate,
       GlobalWidgetsLocalizations.delegate,
       GlobalCupertinoLocalizations.delegate,

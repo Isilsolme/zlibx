@@ -2,7 +2,7 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/empty_state.dart';
@@ -11,7 +11,6 @@ import '../auth/login_screen.dart';
 import '../auth/widgets/account_manager_sheet.dart';
 import '../settings/widgets/settings_card.dart';
 
-import '../../l10n/s_keys.dart';
 /// Account tab (third nav destination): the signed-in user's profile
 /// hero card (the one from Settings — avatar, name, email,
 /// downloads-left chip, switch-account button) plus four entry cards
@@ -31,7 +30,7 @@ class AccountScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(authProvider).user;
 
     // Material instead of a nested Scaffold (see SettingsScreen).
@@ -43,11 +42,11 @@ class AccountScreen extends ConsumerWidget {
         child: user == null
             ? EmptyState(
                 icon: Icons.person_outlined,
-                title: l10n.get(S.loginToContinue),
+                title: l10n.loginToContinue,
                 action: FilledButton(
                   onPressed: () =>
                       Navigator.of(context).pushNamed(AppRoutes.login),
-                  child: Text(l10n.get(S.login)),
+                  child: Text(l10n.login),
                 ),
               )
             : ListView(
@@ -64,32 +63,32 @@ class AccountScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   _EntryCard(
                     icon: Icons.library_books_outlined,
-                    title: l10n.get(S.myLibrary),
-                    subtitle: l10n.get(S.myLibrarySubtitle),
+                    title: l10n.myLibrary,
+                    subtitle: l10n.myLibrarySubtitle,
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.favorites),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
                     icon: Icons.comment_outlined,
-                    title: l10n.get(S.myComments),
-                    subtitle: l10n.get(S.myCommentsSubtitle),
+                    title: l10n.myComments,
+                    subtitle: l10n.myCommentsSubtitle,
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.myComments),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
                     icon: Icons.collections_bookmark_outlined,
-                    title: l10n.get(S.booklists),
-                    subtitle: l10n.get(S.booklistsSubtitle),
+                    title: l10n.booklists,
+                    subtitle: l10n.booklistsSubtitle,
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.booklists),
                   ),
                   const SizedBox(height: 12),
                   _EntryCard(
                     icon: Icons.history,
-                    title: l10n.get(S.downloadHistory),
-                    subtitle: l10n.get(S.booksDownloadedAnyDevice),
+                    title: l10n.downloadHistory,
+                    subtitle: l10n.booksDownloadedAnyDevice,
                     onTap: () =>
                         Navigator.of(context).pushNamed(AppRoutes.history),
                   ),
@@ -98,7 +97,7 @@ class AccountScreen extends ConsumerWidget {
                     child: TextButton.icon(
                       onPressed: () => _confirmLogout(context, ref),
                       icon: const Icon(Icons.logout, size: 18),
-                      label: Text(l10n.get(S.logout)),
+                      label: Text(l10n.logout),
                       style: TextButton.styleFrom(
                         foregroundColor: Theme.of(context).colorScheme.error,
                         padding: const EdgeInsets.symmetric(
@@ -140,11 +139,11 @@ class AccountScreen extends ConsumerWidget {
       context: context,
       dialogType: DialogType.warning,
       animType: AnimType.bottomSlide,
-      title: AppLocalizations.of(context).get(S.logoutConfirmTitle),
-      desc: AppLocalizations.of(context).get(S.logoutConfirmDesc),
-      btnCancelText: AppLocalizations.of(context).get(S.cancel),
+      title: AppLocalizations.of(context)!.logoutConfirmTitle,
+      desc: AppLocalizations.of(context)!.logoutConfirmDesc,
+      btnCancelText: AppLocalizations.of(context)!.cancel,
       btnCancelOnPress: () {},
-      btnOkText: AppLocalizations.of(context).get(S.logoutAction),
+      btnOkText: AppLocalizations.of(context)!.logoutAction,
       btnOkColor: Theme.of(context).colorScheme.error,
       btnOkOnPress: () async {
         await ref.read(authProvider.notifier).logout();

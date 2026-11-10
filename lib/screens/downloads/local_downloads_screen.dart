@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
@@ -14,13 +14,12 @@ import '../../widgets/empty_state.dart';
 
 import '../../utils/app_snack.dart';
 import '../../utils/date_text.dart';
-import '../../l10n/s_keys.dart';
 class LocalDownloadsScreen extends ConsumerWidget {
   const LocalDownloadsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     // Structural watch only: the id lists (and so the tab counts and
     // order) change only when a task is added/removed, changes status,
     // or completes. Progress ticks do not rebuild this screen; each
@@ -33,20 +32,20 @@ class LocalDownloadsScreen extends ConsumerWidget {
     // under the home Scaffold (extendBody: true), so the lists can run
     // behind the floating nav. The header is a plain AppBar in a Column.
     final appBar = AppBar(
-      title: Text(l.get(S.downloads)),
+      title: Text(l.downloads),
       actions: [
         IconButton(
-          tooltip: l.get(S.openFolder),
+          tooltip: l.openFolder,
           icon: const Icon(Icons.folder_open_rounded),
           onPressed: () async {
             try {
               final opened = await openDownloadFolder();
               if (!opened && context.mounted) {
-                showAppSnack(context, l.get(S.openFolderFailed));
+                showAppSnack(context, l.openFolderFailed);
               }
             } catch (error) {
               if (context.mounted) {
-                showAppSnack(context, l.get(S.openFolderFailed));
+                showAppSnack(context, l.openFolderFailed);
               }
             }
           },
@@ -56,8 +55,8 @@ class LocalDownloadsScreen extends ConsumerWidget {
         indicatorColor: Theme.of(context).colorScheme.primary,
         labelColor: Theme.of(context).colorScheme.primary,
         tabs: [
-          Tab(text: '${l.get(S.ongoing)} (${ongoingIds.length})'),
-          Tab(text: '${l.get(S.completed)} (${completedIds.length})'),
+          Tab(text: '${l.ongoing} (${ongoingIds.length})'),
+          Tab(text: '${l.completed} (${completedIds.length})'),
         ],
       ),
     );
@@ -79,14 +78,14 @@ class LocalDownloadsScreen extends ConsumerWidget {
                   _DownloadList(
                     taskIds: ongoingIds,
                     emptyIcon: Icons.downloading_rounded,
-                    emptyTitle: l.get(S.noActiveDownloads),
-                    emptyMessage: l.get(S.downloadsAppearHere),
+                    emptyTitle: l.noActiveDownloads,
+                    emptyMessage: l.downloadsAppearHere,
                   ),
                   _DownloadList(
                     taskIds: completedIds,
                     emptyIcon: Icons.check_circle_outline_rounded,
-                    emptyTitle: l.get(S.noCompletedDownloads),
-                    emptyMessage: l.get(S.downloadedBooksHere),
+                    emptyTitle: l.noCompletedDownloads,
+                    emptyMessage: l.downloadedBooksHere,
                   ),
                 ],
               ),
@@ -144,7 +143,7 @@ class _DownloadItem extends ConsumerWidget {
     // built; render nothing rather than a stale snapshot.
     final task = ref.watch(downloadTaskProvider(id));
     if (task == null) return const SizedBox.shrink();
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final isActive =
         task.status == DownloadStatus.downloading ||
@@ -205,7 +204,7 @@ class _DownloadItem extends ConsumerWidget {
                       Text(
                         task.book.author?.isNotEmpty == true
                             ? task.book.author!
-                            : l.get(S.unknownAuthor),
+                            : l.unknownAuthor,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall,
@@ -238,7 +237,7 @@ class _DownloadItem extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 task.status == DownloadStatus.pending
-                    ? l.get(S.downloadPreparing)
+                    ? l.downloadPreparing
                     : '${(task.progress * 100).round()}%',
                 style: Theme.of(context).textTheme.labelSmall,
               ),
@@ -247,12 +246,12 @@ class _DownloadItem extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 task.missingFile
-                    ? l.get(S.downloadFileMissing)
+                    ? l.downloadFileMissing
                     : task.quotaExceeded
-                    ? l.get(S.downloadQuotaExceeded)
+                    ? l.downloadQuotaExceeded
                     : task.needsFreshLink
-                    ? l.get(S.downloadFreshLinkRequired)
-                    : task.error ?? l.get(S.downloadFailed),
+                    ? l.downloadFreshLinkRequired
+                    : task.error ?? l.downloadFailed,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
@@ -264,7 +263,7 @@ class _DownloadItem extends ConsumerWidget {
                 task.needsFreshLink) ...[
               const SizedBox(height: 8),
               Text(
-                l.get(S.downloadFreshLinkRequired),
+                l.downloadFreshLinkRequired,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -275,7 +274,7 @@ class _DownloadItem extends ConsumerWidget {
                   FilledButton.tonalIcon(
                     onPressed: () => _openFile(context, ref, task),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                    label: Text(l.get(S.openFile)),
+                    label: Text(l.openFile),
                   )
                 else if (task.canRetry)
                   FilledButton.tonalIcon(
@@ -283,7 +282,7 @@ class _DownloadItem extends ConsumerWidget {
                         .read(downloadProvider.notifier)
                         .startDownload(task.book),
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: Text(l.get(S.retry)),
+                    label: Text(l.retry),
                   )
                 else if (isActive)
                   TextButton.icon(
@@ -291,21 +290,21 @@ class _DownloadItem extends ConsumerWidget {
                         .read(downloadProvider.notifier)
                         .cancelDownload(task.id),
                     icon: const Icon(Icons.close_rounded, size: 18),
-                    label: Text(l.get(S.cancel)),
+                    label: Text(l.cancel),
                   ),
                 const Spacer(),
                 PopupMenuButton<String>(
-                  tooltip: l.get(S.more),
+                  tooltip: l.more,
                   onSelected: (value) => _onMenu(context, ref, task, value),
                   itemBuilder: (_) => [
                     if (isComplete) ...[
                       PopupMenuItem(
                         value: 'details',
-                        child: Text(l.get(S.fileDetails)),
+                        child: Text(l.fileDetails),
                       ),
                       PopupMenuItem(
                         value: 'share',
-                        child: Text(l.get(S.share)),
+                        child: Text(l.share),
                       ),
                       const PopupMenuDivider(),
                     ],
@@ -313,8 +312,8 @@ class _DownloadItem extends ConsumerWidget {
                       value: 'delete',
                       child: Text(
                         isComplete
-                            ? l.get(S.downloadDeleteFile)
-                            : l.get(S.downloadRemoveRecord),
+                            ? l.downloadDeleteFile
+                            : l.downloadRemoveRecord,
                       ),
                     ),
                   ],
@@ -340,17 +339,17 @@ class _DownloadItem extends ConsumerWidget {
   ) {
     final (label, color) = switch (task.status) {
       DownloadStatus.pending => (
-        l.get(S.downloadPreparing),
+        l.downloadPreparing,
         Theme.of(context).colorScheme.primary,
       ),
-      DownloadStatus.downloading => (l.get(S.downloading), Theme.of(context).colorScheme.primary),
-      DownloadStatus.completed => (l.get(S.completed), AppColors.success),
+      DownloadStatus.downloading => (l.downloading, Theme.of(context).colorScheme.primary),
+      DownloadStatus.completed => (l.completed, AppColors.success),
       DownloadStatus.error => (
-        l.get(S.downloadFailed),
+        l.downloadFailed,
         Theme.of(context).colorScheme.error,
       ),
       DownloadStatus.cancelled => (
-        l.get(S.downloadCancelled),
+        l.downloadCancelled,
         Theme.of(context).colorScheme.outline,
       ),
     };
@@ -388,7 +387,7 @@ class _DownloadItem extends ConsumerWidget {
     ref.read(downloadProvider.notifier).markMissingFile(task.id);
     if (context.mounted) {
       showAppSnack(context,
-            AppLocalizations.of(context).get(S.downloadFileMissing),
+            AppLocalizations.of(context)!.downloadFileMissing,
           );
     }
     return false;
@@ -407,7 +406,7 @@ class _DownloadItem extends ConsumerWidget {
         final opened = await MediaStoreFiles.open(task.filePath!);
         if (!opened && context.mounted) {
           showAppSnack(context,
-                AppLocalizations.of(context).get(S.openFileFailed),
+                AppLocalizations.of(context)!.openFileFailed,
               );
         }
         return;
@@ -429,14 +428,14 @@ class _DownloadItem extends ConsumerWidget {
     DownloadTask task,
     String action,
   ) async {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     switch (action) {
       case 'details':
         if (!context.mounted) return;
         await showDialog<void>(
           context: context,
           builder: (_) => AlertDialog(
-            title: Text(l.get(S.fileDetails)),
+            title: Text(l.fileDetails),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,7 +452,7 @@ class _DownloadItem extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(l.get(S.done)),
+                child: Text(l.done),
               ),
             ],
           ),
@@ -469,7 +468,7 @@ class _DownloadItem extends ConsumerWidget {
         );
         if (sharePath == null) {
           if (context.mounted) {
-            showAppSnack(context, l.get(S.shareFailed));
+            showAppSnack(context, l.shareFailed);
           }
           return;
         }
@@ -479,7 +478,7 @@ class _DownloadItem extends ConsumerWidget {
           );
         } catch (error) {
           if (context.mounted) {
-            showAppSnack(context, l.get(S.shareFailed));
+            showAppSnack(context, l.shareFailed);
           }
         }
         return;
@@ -494,28 +493,28 @@ class _DownloadItem extends ConsumerWidget {
     WidgetRef ref,
     DownloadTask task,
   ) async {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(
           task.status == DownloadStatus.completed
-              ? l.get(S.downloadDeleteFile)
-              : l.get(S.downloadRemoveRecord),
+              ? l.downloadDeleteFile
+              : l.downloadRemoveRecord,
         ),
         content: Text(
           task.status == DownloadStatus.completed
-              ? l.get(S.deleteDesc)
-              : l.get(S.downloadRemoveRecordHint),
+              ? l.deleteDesc
+              : l.downloadRemoveRecordHint,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l.get(S.cancel)),
+            child: Text(l.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l.get(S.delete)),
+            child: Text(l.delete),
           ),
         ],
       ),
@@ -525,7 +524,7 @@ class _DownloadItem extends ConsumerWidget {
       await ref.read(downloadProvider.notifier).removeTask(task.id);
     } catch (error) {
       if (context.mounted) {
-        showAppSnack(context, l.get(S.downloadDeleteFailed));
+        showAppSnack(context, l.downloadDeleteFailed);
       }
     }
   }

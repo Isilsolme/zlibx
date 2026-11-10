@@ -6,12 +6,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../services/external_download.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
-import '../../../l10n/s_keys.dart';
 class DonationKeySection extends ConsumerStatefulWidget {
   const DonationKeySection({super.key});
 
@@ -36,7 +35,7 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
+    final t = AppLocalizations.of(context)!;
     final key = _key;
 
     return Column(
@@ -45,14 +44,14 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
         const SizedBox(height: 20),
         SectionHeader(
           icon: Icons.key_rounded,
-          title: t.get(S.sourceAnnasArchive),
+          title: t.sourceAnnasArchive,
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.key_outlined),
-            title: Text(t.get(S.annasDonationKey)),
+            title: Text(t.annasDonationKey),
             subtitle: Text(
-              key.isEmpty ? t.get(S.annasDonationKeyHint) : '••••••••',
+              key.isEmpty ? t.annasDonationKeyHint : '••••••••',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -100,14 +99,14 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context);
+    final t = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(t.get(S.annasDonationKey)),
+      title: Text(t.annasDonationKey),
       content: TextField(
         controller: _controller,
         obscureText: _obscured,
         decoration: InputDecoration(
-          hintText: t.get(S.annasDonationKeyHint),
+          hintText: t.annasDonationKeyHint,
           suffixIcon: IconButton(
             icon: Icon(
               _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -119,14 +118,14 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.get(S.cancel)),
+          child: Text(t.cancel),
         ),
         TextButton(
           onPressed: () async {
             await saveAnnasDonationKey(_controller.text);
             if (context.mounted) Navigator.of(context).pop();
           },
-          child: Text(t.get(S.save)),
+          child: Text(t.save),
         ),
       ],
     );

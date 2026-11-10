@@ -1,11 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/unified_shelf_item.dart';
 import '../../../widgets/cover_placeholder.dart';
 
-import '../../../l10n/s_keys.dart';
 /// 封面 + 书名/作者的网格卡片，与首页、搜索页的卡片语言保持一致。
 class ShelfGridItem extends StatelessWidget {
   const ShelfGridItem({
@@ -154,7 +153,7 @@ class ShelfListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final book = item.displayBook;
@@ -176,7 +175,7 @@ class ShelfListItem extends StatelessWidget {
       if (isDownloaded)
         (
           icon: Icons.download_done_rounded,
-          text: l.get(S.shelfDownloaded),
+          text: l.shelfDownloaded,
           highlighted: true,
         ),
     ];

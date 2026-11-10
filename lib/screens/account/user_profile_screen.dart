@@ -5,7 +5,7 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
@@ -25,7 +25,6 @@ import 'comment_book_ref_controller.dart';
 import 'widgets/profile_widgets.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 import '../../widgets/entrance.dart';
 /// Another user's profile page, reached by tapping an avatar in a
 /// comment row. Header (avatar + name from the tapped comment),
@@ -134,7 +133,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         );
       },
       onFail: () =>
-          _showSnack(AppLocalizations.of(context).get(S.openBookFailed)),
+          _showSnack(AppLocalizations.of(context)!.openBookFailed),
     );
   }
 
@@ -337,7 +336,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final args = _args;
 
     return Scaffold(
@@ -347,18 +346,18 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         child: _isLoading
           ? LoadingWidget(
               key: const ValueKey('loading'),
-              message: l10n.get(S.loading),
+              message: l10n.loading,
             )
           : !_loggedIn
               ? EmptyState(
                   key: const ValueKey('login'),
                   icon: Icons.login_rounded,
-                  title: l10n.get(S.loginToViewComments),
+                  title: l10n.loginToViewComments,
                   action: FilledButton(
                     onPressed: () => Navigator.of(
                       context,
                     ).pushNamed(AppRoutes.login),
-                    child: Text(l10n.get(S.login)),
+                    child: Text(l10n.login),
                   ),
                 )
               : RefreshIndicator(
@@ -374,7 +373,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
                       ),
                       ..._booklistsSection(),
                       _sectionHeader(
-                        l10n.get(S.comments),
+                        l10n.comments,
                         _entries.length,
                       ),
                       ..._commentCards(),
@@ -412,12 +411,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   /// and the solver failed. Empty when the tapped comment carried
   /// no profile hash — the page then shows comments only.
   List<Widget> _booklistsSection() {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final hash = _args.userHash;
     if (hash == null || hash.isEmpty) return const [];
     final children = <Widget>[
       _sectionHeader(
-        l10n.get(S.booklists),
+        l10n.booklists,
         _booklistsLoading || _booklistsError != null
             ? null
             : _booklists.length,
@@ -432,7 +431,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
           child: Text(
-            l10n.get(S.noBooklists),
+            l10n.noBooklists,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -471,7 +470,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   }
 
   Widget _booklistsErrorRow() {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
@@ -481,7 +480,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              _booklistsError ?? l10n.get(S.error),
+              _booklistsError ?? l10n.error,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
@@ -491,7 +490,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
           ),
           TextButton(
             onPressed: _loadBooklists,
-            child: Text(l10n.get(S.retry)),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -503,12 +502,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   /// would hide the booklists above).
   List<Widget> _commentCards() {
     if (_entries.isEmpty) {
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       return [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
           child: Text(
-            l10n.get(S.noComments),
+            l10n.noComments,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/domain_provider.dart';
 import '../../../providers/speed_test_provider.dart';
 import '../../../theme/app_colors.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../widgets/domain_selector.dart';
 import '../mirrors_page.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
-import '../../../l10n/s_keys.dart';
 /// Network line picker — same chevron-tile shape as the other settings.
 /// Shows "Line N · 234ms" (latency from the latest speed test) and only
 /// ever displays the line index, never the underlying domain.
@@ -18,7 +17,7 @@ class NetworkSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = AppLocalizations.of(context);
+    final t = AppLocalizations.of(context)!;
     final currentDomain = ref.watch(domainProvider);
     final domains = ref.watch(domainListProvider);
     final speedState = ref.watch(speedTestProvider);
@@ -26,7 +25,7 @@ class NetworkSection extends ConsumerWidget {
     final idx = domains.indexOf(currentDomain);
     final lineLabel = idx >= 0
         ? 'Line ${idx + 1}'
-        : (AppLocalizations.of(context).get(S.customLine));
+        : (AppLocalizations.of(context)!.customLine);
 
     // Look up the latency for the current line.
     int? latency;
@@ -40,11 +39,11 @@ class NetworkSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(icon: Icons.dns_rounded, title: t.get(S.network)),
+        SectionHeader(icon: Icons.dns_rounded, title: t.network),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.public_rounded),
-            title: Text(t.get(S.networkLine)),
+            title: Text(t.networkLine),
             subtitle: _LineStatus(
               label: lineLabel,
               latency: latency,
@@ -63,8 +62,8 @@ class NetworkSection extends ConsumerWidget {
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.dns_outlined),
-            title: Text(t.get(S.mirrors)),
-            subtitle: Text(t.get(S.mirrorsSubtitle)),
+            title: Text(t.mirrors),
+            subtitle: Text(t.mirrorsSubtitle),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const MirrorsPage()),
@@ -136,12 +135,12 @@ class _LineStatus extends StatelessWidget {
     final status = domainLatencyStatus(latency);
     if (status == DomainLatencyStatus.untested) {
       return (
-        testing ? (AppLocalizations.of(context).get(S.speedTesting)) : (AppLocalizations.of(context).get(S.speedUntested)),
+        testing ? (AppLocalizations.of(context)!.speedTesting) : (AppLocalizations.of(context)!.speedUntested),
         cs.onSurfaceVariant,
       );
     }
     if (status == DomainLatencyStatus.unavailable) {
-      return (AppLocalizations.of(context).get(S.lineStatusUnavailable), cs.error);
+      return (AppLocalizations.of(context)!.lineStatusUnavailable, cs.error);
     }
     if (status == DomainLatencyStatus.normal) {
       return ('${latency!}ms', AppColors.success);

@@ -1,14 +1,13 @@
 import 'mirror_trust_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/domain_provider.dart';
 import '../providers/speed_test_provider.dart';
 import '../theme/app_colors.dart';
 import 'loading_widget.dart';
 
 import '../utils/app_snack.dart';
-import '../l10n/s_keys.dart';
 class DomainSelector extends ConsumerWidget {
   final bool compact;
   final Color? color;
@@ -104,7 +103,7 @@ class DomainSelectionDialog extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              AppLocalizations.of(context).get(S.selectNetwork),
+              AppLocalizations.of(context)!.selectNetwork,
               style: const TextStyle(fontSize: 18),
             ),
           ),
@@ -189,13 +188,13 @@ class DomainSelectionDialog extends ConsumerWidget {
                 color: speedState.testing ? Colors.grey : null,
               ),
               const SizedBox(width: 4),
-              Text(AppLocalizations.of(context).get(S.retest)),
+              Text(AppLocalizations.of(context)!.retest),
             ],
           ),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text(AppLocalizations.of(context).get(S.close)),
+          child: Text(AppLocalizations.of(context)!.close),
         ),
       ],
     );
@@ -289,8 +288,8 @@ class DomainSelectionDialog extends ConsumerWidget {
           : const Icon(Icons.edit_outlined, size: 20, color: Colors.grey),
       title: Text(
         isCustom
-            ? (AppLocalizations.of(context).get(S.customLine))
-            : (AppLocalizations.of(context).get(S.customLineEllipsis)),
+            ? (AppLocalizations.of(context)!.customLine)
+            : (AppLocalizations.of(context)!.customLineEllipsis),
         style: TextStyle(
           fontSize: 14,
           fontWeight: isCustom ? FontWeight.w700 : FontWeight.normal,
@@ -308,18 +307,18 @@ class DomainSelectionDialog extends ConsumerWidget {
     final dialog = showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).get(S.customLineDialogTitle)),
+        title: Text(AppLocalizations.of(context)!.customLineDialogTitle),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            labelText: AppLocalizations.of(context).get(S.domainUrl),
+            labelText: AppLocalizations.of(context)!.domainUrl,
             hintText: 'e.g., example.com',
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).get(S.cancel)),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -327,9 +326,9 @@ class DomainSelectionDialog extends ConsumerWidget {
                 controller.text,
               );
               if (raw.isEmpty) return;
-              final l = AppLocalizations.of(context);
+              final l = AppLocalizations.of(context)!;
               if (!DomainNotifier.isValidCustomDomain(raw)) {
-                showAppSnack(context, l.get(S.customDomainInvalid));
+                showAppSnack(context, l.customDomainInvalid);
                 return;
               }
               if (DomainNotifier.isBuiltInDomain(raw)) {
@@ -342,12 +341,12 @@ class DomainSelectionDialog extends ConsumerWidget {
               showDialog(
                 context: context,
                 builder: (warnCtx) => AlertDialog(
-                  title: Text(l.get(S.customDomainWarningTitle)),
-                  content: Text(l.get(S.customDomainWarningBody)),
+                  title: Text(l.customDomainWarningTitle),
+                  content: Text(l.customDomainWarningBody),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(warnCtx),
-                      child: Text(AppLocalizations.of(context).get(S.cancel)),
+                      child: Text(AppLocalizations.of(context)!.cancel),
                     ),
                     FilledButton(
                       onPressed: () {
@@ -357,16 +356,16 @@ class DomainSelectionDialog extends ConsumerWidget {
                         Navigator.pop(warnCtx);
                         Navigator.pop(context);
                         showAppSnack(context,
-                              l.get(S.customDomainReloginHint),
+                              l.customDomainReloginHint,
                             );
                       },
-                      child: Text(l.get(S.customDomainSwitchAnyway)),
+                      child: Text(l.customDomainSwitchAnyway),
                     ),
                   ],
                 ),
               );
             },
-            child: Text(AppLocalizations.of(context).get(S.save)),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),

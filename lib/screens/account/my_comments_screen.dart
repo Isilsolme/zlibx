@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zlibx/utils/diagnostics.dart';
 
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
@@ -14,7 +14,6 @@ import '../../screens/comments/widgets/comment_metric_chip.dart';
 import '../../screens/book_detail/book_detail_args.dart';
 import '../../utils/app_snack.dart';
 import '../../utils/date_text.dart';
-import '../../l10n/s_keys.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -187,27 +186,27 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
         );
       },
       onFail: () =>
-          _showSnack(AppLocalizations.of(context).get(S.openBookFailed)),
+          _showSnack(AppLocalizations.of(context)!.openBookFailed),
     );
   }
 
   /// 删自己的评论：先弹确认框（破坏性操作），确认后乐观移除；
   /// 失败时把评论放回原位并提示。
   Future<void> _confirmDelete(MyComment comment) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get(S.commentDeleteConfirm)),
-        content: Text(l10n.get(S.commentDeleteDesc)),
+        title: Text(l10n.commentDeleteConfirm),
+        content: Text(l10n.commentDeleteDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.get(S.cancel)),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.get(S.delete)),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -226,14 +225,14 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
         setState(
           () => _comments.insert(index.clamp(0, _comments.length), removed),
         );
-        _showSnack(l10n.get(S.commentDeleteFailed));
+        _showSnack(l10n.commentDeleteFailed);
       }
     } catch (_) {
       if (!mounted) return;
       setState(
         () => _comments.insert(index.clamp(0, _comments.length), removed),
       );
-      _showSnack(l10n.get(S.commentDeleteFailed));
+      _showSnack(l10n.commentDeleteFailed);
     }
   }
 
@@ -241,29 +240,29 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     Widget body;
     if (_isLoading) {
       body = LoadingWidget(
         key: const ValueKey('loading'),
-        message: l10n.get(S.loading),
+        message: l10n.loading,
       );
     } else if (!_loggedIn) {
       body = EmptyState(
         key: const ValueKey('login'),
         icon: Icons.login_rounded,
-        title: l10n.get(S.loginToViewComments),
+        title: l10n.loginToViewComments,
         action: FilledButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
-          child: Text(l10n.get(S.login)),
+          child: Text(l10n.login),
         ),
       );
     } else if (_comments.isEmpty) {
       body = EmptyState(
         key: const ValueKey('empty'),
         icon: Icons.comment_outlined,
-        title: l10n.get(S.noComments),
+        title: l10n.noComments,
       );
     } else {
       body = RefreshIndicator(
@@ -289,7 +288,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
                 onBookTap: () => _openBookDetail(comment),
                 onAvatarTap: () => _openProfile(comment),
                 onDelete: () => _confirmDelete(comment),
-                deleteTooltip: l10n.get(S.delete),
+                deleteTooltip: l10n.delete,
               ),
             );
           },
@@ -298,7 +297,7 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
     }
 
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get(S.myComments)),
+      appBar: GradientAppBar(title: l10n.myComments),
       // loading → 登录态 → 空态 → 列表：统一淡入淡出（此前硬切）。
       body: StateTransitionSwitch(child: body),
     );

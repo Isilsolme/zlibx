@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../widgets/loading_widget.dart';
 
 import '../../../utils/app_snack.dart';
-import '../../../l10n/s_keys.dart';
 enum AccountManagerResult { switched, addAccount }
 
 Future<AccountManagerResult?> showAccountManagerSheet(
@@ -72,26 +71,26 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
 
     setState(() => _switchingUserId = null);
     showAppSnack(context,
-          AppLocalizations.of(context).get(S.switchAccountFailed),
+          AppLocalizations.of(context)!.switchAccountFailed,
         );
   }
 
   Future<void> _confirmRemove(Map<String, dynamic> account) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get(S.removeAccountTitle)),
-        content: Text(l10n.get(S.removeAccountMessage)),
+        title: Text(l10n.removeAccountTitle),
+        content: Text(l10n.removeAccountMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.get(S.cancel)),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
-            child: Text(l10n.get(S.remove)),
+            child: Text(l10n.remove),
           ),
         ],
       ),
@@ -105,14 +104,14 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
     await _loadAccounts();
 
     if (!mounted) return;
-    showAppSnack(context, l10n.get(S.accountRemoved));
+    showAppSnack(context, l10n.accountRemoved);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: cs.surface,
@@ -140,7 +139,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      l10n.get(S.accountManagement),
+                      l10n.accountManagement,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -148,7 +147,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: l10n.get(S.close),
+                    tooltip: l10n.close,
                     icon: const Icon(Icons.close_rounded),
                   ),
                 ],
@@ -164,7 +163,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
                     context,
                   ).pop(AccountManagerResult.addAccount),
                   icon: const Icon(Icons.person_add_alt_1_rounded),
-                  label: Text(l10n.get(S.addAccount)),
+                  label: Text(l10n.addAccount),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -181,7 +180,7 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
   }
 
   Widget _buildAccountList(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
 
     if (_isLoading) {
@@ -201,12 +200,12 @@ class _AccountManagerSheetState extends ConsumerState<AccountManagerSheet> {
             ),
             const SizedBox(height: 12),
             Text(
-              l10n.get(S.noSavedAccounts),
+              l10n.noSavedAccounts,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              l10n.get(S.noSavedAccountsMessage),
+              l10n.noSavedAccountsMessage,
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant),
             ),
@@ -252,12 +251,12 @@ class _AccountTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final name = account['name']?.toString().trim();
     final email = account['email']?.toString().trim();
     final displayName = name == null || name.isEmpty
-        ? l10n.get(S.unknown)
+        ? l10n.unknown
         : name;
     final displayEmail = email == null || email.isEmpty ? '-' : email;
 
@@ -284,11 +283,11 @@ class _AccountTile extends StatelessWidget {
           ? const LoadingWidget.inline()
           : isCurrent
           ? Tooltip(
-              message: l10n.get(S.currentAccount),
+              message: l10n.currentAccount,
               child: Icon(Icons.check_circle_rounded, color: cs.primary),
             )
           : PopupMenuButton<String>(
-              tooltip: l10n.get(S.accountActions),
+              tooltip: l10n.accountActions,
               onSelected: (_) => onRemove(),
               itemBuilder: (_) => [
                 PopupMenuItem(
@@ -300,7 +299,7 @@ class _AccountTile extends StatelessWidget {
                         color: cs.error,
                       ),
                       const SizedBox(width: 12),
-                      Text(l10n.get(S.removeAccount)),
+                      Text(l10n.removeAccount),
                     ],
                   ),
                 ),

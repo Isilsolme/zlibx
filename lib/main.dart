@@ -35,6 +35,7 @@ import 'services/challenge_html_cache.dart';
 import 'services/webview_challenge_solver.dart';
 import 'screens/challenge_solver/challenge_solver_screen.dart';
 import 'l10n/app_localizations.dart';
+import 'l10n/generated/app_localizations.dart' as gen;
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -143,6 +144,10 @@ class _MyAppState extends ConsumerState<MyApp> {
           supportedLocales: supportedLocales,
           localizationsDelegates: const [
             AppLocalizations.delegate,
+            // Step 2: generated delegate alongside the old one, so
+            // converted call sites resolve the generated localizations.
+            // Step 3 removes the old delegate; step 4 deletes it.
+            gen.AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
