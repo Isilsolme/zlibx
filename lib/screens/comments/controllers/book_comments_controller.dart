@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
-import '../../../l10n/s_keys.dart';
 /// Per-book comments 的状态与业务逻辑，从 widget 里抽离出来，
 /// screen 只负责接 provider 和画 UI。
 ///
@@ -15,15 +14,19 @@ class BookCommentsController extends ChangeNotifier {
   BookCommentsController({
     required this.bookId,
     required this.api,
-    this.tr,
+    required this.commentFailed,
+    required this.likeFailed,
+    required this.commentDeleteFailed,
     this.onNotice,
   });
 
   final int bookId;
   final ZLibraryApi api;
 
-  /// 本地化取值（screen 传入 `l10n.get`），用于失败提示。
-  final String Function(String key)? tr;
+  /// 失败提示文案（screen 传入已解析的本地化字符串）。
+  final String commentFailed;
+  final String likeFailed;
+  final String commentDeleteFailed;
 
   /// 瞬态提示（screen 传入 SnackBar 展示）。
   final ValueChanged<String>? onNotice;
@@ -49,8 +52,6 @@ class BookCommentsController extends ChangeNotifier {
   bool isPosting = false;
 
   bool _disposed = false;
-
-  String _t(String key) => tr?.call(key) ?? key;
 
   void _notice(String message) => onNotice?.call(message);
 
@@ -218,13 +219,13 @@ class BookCommentsController extends ChangeNotifier {
       }
       isPosting = false;
       _emit();
-      _notice('${_t(S.commentFailed)}: ${response.error ?? ''}'.trim());
+      _notice('$commentFailed: ${response.error ?? ''}'.trim());
       return false;
     } catch (e) {
       if (_disposed) return false;
       isPosting = false;
       _emit();
-      _notice('${_t(S.commentFailed)}: $e');
+      _notice('$commentFailed: $e');
       return false;
     }
   }
@@ -257,7 +258,7 @@ class BookCommentsController extends ChangeNotifier {
           );
         } else {
           comments[i] = comment; // 服务端没接受，回滚
-          _notice(_t(S.likeFailed));
+          _notice(likeFailed);
         }
       }
     } catch (_) {
@@ -265,7 +266,7 @@ class BookCommentsController extends ChangeNotifier {
       likingIds.remove(comment.id);
       final i = comments.indexWhere((c) => c.id == comment.id);
       if (i >= 0) comments[i] = comment;
-      _notice(_t(S.likeFailed));
+      _notice(likeFailed);
     }
     _emit();
   }
@@ -294,7 +295,7 @@ class BookCommentsController extends ChangeNotifier {
         if (hadReplyCount) {
           replyCounts[parentId] = (replyCounts[parentId] ?? 0) + 1;
         }
-        _notice(_t(S.commentDeleteFailed));
+        _notice(commentDeleteFailed);
       }
     } catch (_) {
       if (_disposed) return;
@@ -303,7 +304,7 @@ class BookCommentsController extends ChangeNotifier {
       if (hadReplyCount) {
         replyCounts[parentId] = (replyCounts[parentId] ?? 0) + 1;
       }
-      _notice(_t(S.commentDeleteFailed));
+      _notice(commentDeleteFailed);
     }
     _emit();
   }

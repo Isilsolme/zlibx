@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../models/display_book.dart';
 import '../utils/cover_cache.dart';
 import 'book_cover_backdrop.dart';
@@ -156,9 +156,7 @@ class _BookCardState extends State<BookCard> {
 
   Widget _buildCoverBackdrop() {
     final sourceLabel = widget.showSourceBadge
-        ? AppLocalizations.of(context).get(
-            'source_zlibrary',
-          )
+        ? AppLocalizations.of(context)!.sourceZlibrary
         : null;
 
     Widget content({ImageProvider? image, bool loading = false}) {

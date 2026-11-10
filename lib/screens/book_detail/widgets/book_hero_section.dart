@@ -6,7 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../models/display_book.dart';
 import '../../../providers/books_provider.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../utils/app_snack.dart';
 import '../../../widgets/loading_widget.dart';
 import '../../../widgets/state_transition_switch.dart';
@@ -46,16 +46,14 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
             );
       if (!mounted) return;
       if (success) ref.invalidate(isBookFavoritedProvider(bookId));
-      final l10n = AppLocalizations.of(context);
+      final l10n = AppLocalizations.of(context)!;
       showAppSnack(
         context,
-        l10n.get(
-          !success
-              ? 'favorite_failed'
-              : wasFavorited
-              ? 'favorite_removed'
-              : 'like',
-        ),
+        !success
+            ? l10n.favoriteFailed
+            : wasFavorited
+            ? l10n.favoriteRemoved
+            : l10n.like,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -66,7 +64,7 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final height = (MediaQuery.sizeOf(context).height * 0.54).clamp(
       340.0,
       420.0,
@@ -109,9 +107,7 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
-                  tooltip: l10n.get(
-                    widget.isFavorited ? 'remove_favorite' : 'like',
-                  ),
+                  tooltip: widget.isFavorited ? l10n.removeFavorite : l10n.like,
                   onPressed: _saving ? null : _toggleFavorite,
                   icon: StateTransitionSwitch(
                     child: _saving

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
 
-import '../../../l10n/s_keys.dart';
 class BookDetailHeading extends StatelessWidget {
   final DisplayBook book;
   final String? subtitle;
@@ -119,7 +118,7 @@ class _BookDetailDescriptionState extends State<BookDetailDescription> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final style = theme.textTheme.bodyMedium!.copyWith(
       fontSize: 15,
       height: 1.7,
@@ -141,7 +140,7 @@ class _BookDetailDescriptionState extends State<BookDetailDescription> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n.get(S.description),
+              l10n.description,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
@@ -164,7 +163,7 @@ class _BookDetailDescriptionState extends State<BookDetailDescription> {
                       : Icons.keyboard_arrow_down,
                   size: 18,
                 ),
-                label: Text(l10n.get(_expanded ? 'show_less' : 'show_more')),
+                label: Text(_expanded ? l10n.showLess : l10n.showMore),
                 style: TextButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -196,7 +195,7 @@ class BookPublicationInfo extends StatelessWidget {
         Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.5)),
         const SizedBox(height: 20),
         Text(
-          AppLocalizations.of(context).get(S.publicationInfo),
+          AppLocalizations.of(context)!.publicationInfo,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,

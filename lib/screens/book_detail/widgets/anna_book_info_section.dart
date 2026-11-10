@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/book_description.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
 import '../../../services/annas_archieve.dart';
 import 'book_detail_content.dart';
 
-import '../../../l10n/s_keys.dart';
 /// External detail body (Anna's Archive / LibGen): heading + format tag +
 /// description + publication info. Built from [BookInfoData] (the detail
 /// page's own fetch); the search-result [DisplayBook] supplies
@@ -24,7 +23,7 @@ class AnnaBookInfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final tags = <Widget>[
       if (info.format?.isNotEmpty ?? false)
         BookDetailTag(
@@ -35,10 +34,10 @@ class AnnaBookInfoSection extends StatelessWidget {
     ];
     final fields = <String, String>{
       if (info.publisher?.isNotEmpty ?? false)
-        l10n.get(S.publisher): info.publisher!,
-      l10n.get(S.source): l10n.get(
-        displayBook.isLibGen ? 'source_libgen' : 'source_annas_archive',
-      ),
+        l10n.publisher: info.publisher!,
+      l10n.source: displayBook.isLibGen
+          ? l10n.sourceLibgen
+          : l10n.sourceAnnasArchive,
     };
     // A missing description must stay absent rather than rendering as
     // the literal word "null".

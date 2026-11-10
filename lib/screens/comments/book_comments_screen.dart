@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
-import '../../l10n/app_localizations.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/zlibrary_provider.dart';
 import '../../routes/app_routes.dart';
@@ -14,7 +14,6 @@ import 'widgets/comment_composer.dart';
 import 'widgets/comment_list.dart';
 
 import '../../utils/app_snack.dart';
-import '../../l10n/s_keys.dart';
 /// Arguments for BookCommentsScreen
 class BookCommentsArgs {
   final int bookId;
@@ -54,10 +53,13 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     if (_controller != null) return;
     final args =
         ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
+    final l10n = AppLocalizations.of(context)!;
     _controller = BookCommentsController(
       bookId: args.bookId,
       api: ref.read(zlibraryApiProvider),
-      tr: (key) => AppLocalizations.of(context).get(key),
+      commentFailed: l10n.commentFailed,
+      likeFailed: l10n.likeFailed,
+      commentDeleteFailed: l10n.commentDeleteFailed,
       onNotice: _showSnack,
     );
     _scrollController.addListener(_onScroll);
@@ -95,7 +97,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
     if (text.isEmpty || _c.isPosting) return;
     // 服务端会拒绝过短评论；明显的 1–2 字符直接在前端拦掉。
     if (text.length < 3) {
-      _showSnack(AppLocalizations.of(context).get(S.commentTooShort));
+      _showSnack(AppLocalizations.of(context)!.commentTooShort);
       return;
     }
     final wasReply = _c.replyTo != null;
@@ -131,20 +133,20 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   /// 删自己的评论：先弹确认框（破坏性操作），确认后调 controller
   /// 乐观删除；失败时 controller 会把评论放回原位并提示。
   Future<void> _confirmDelete(BookComment comment) async {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.get(S.commentDeleteConfirm)),
-        content: Text(l10n.get(S.commentDeleteDesc)),
+        title: Text(l10n.commentDeleteConfirm),
+        content: Text(l10n.commentDeleteDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(l10n.get(S.cancel)),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(l10n.get(S.delete)),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -157,9 +159,9 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   Widget build(BuildContext context) {
     final args =
         ModalRoute.of(context)!.settings.arguments as BookCommentsArgs;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: GradientAppBar(title: l10n.get(S.comments)),
+      appBar: GradientAppBar(title: l10n.comments),
       body: ListenableBuilder(
         listenable: _c,
         builder: (context, _) {
@@ -178,12 +180,12 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
                 CommentComposer(
                   controller: _composerController,
                   focusNode: _composerFocus,
-                  hintText: l10n.get(S.writeComment),
+                  hintText: l10n.writeComment,
                   replyBannerText: c.replyTo == null
                       ? null
-                      : '${l10n.get(S.replyTo)} ${c.replyTo!.userName}',
-                  cancelTooltip: l10n.get(S.cancel),
-                  sendTooltip: l10n.get(S.sendComment),
+                      : '${l10n.replyTo} ${c.replyTo!.userName}',
+                  cancelTooltip: l10n.cancel,
+                  sendTooltip: l10n.sendComment,
                   isPosting: c.isPosting,
                   onCancelReply: c.cancelReply,
                   onSubmit: _submit,
@@ -197,38 +199,38 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
 
   /// 状态视图分发：加载 / 未登录 / 出错 / 关闭 / 空 / 列表。
   Widget _buildBody(BookCommentsController c, AppLocalizations l10n) {
-    if (c.isLoading) return LoadingWidget(message: l10n.get(S.loading));
+    if (c.isLoading) return LoadingWidget(message: l10n.loading);
     if (!c.loggedIn) {
       return EmptyState(
         icon: Icons.login_rounded,
-        title: l10n.get(S.loginToViewComments),
+        title: l10n.loginToViewComments,
         action: FilledButton(
           onPressed: () => Navigator.of(context).pushNamed(AppRoutes.login),
-          child: Text(l10n.get(S.login)),
+          child: Text(l10n.login),
         ),
       );
     }
     if (c.hasError) {
       return EmptyState(
         icon: Icons.error_outline,
-        title: l10n.get(S.error),
+        title: l10n.error,
         message: c.errorMessage,
         action: FilledButton(
           onPressed: _reload,
-          child: Text(l10n.get(S.retry)),
+          child: Text(l10n.retry),
         ),
       );
     }
     if (c.disabled) {
       return EmptyState(
         icon: Icons.comments_disabled_outlined,
-        title: l10n.get(S.commentsDisabled),
+        title: l10n.commentsDisabled,
       );
     }
     if (c.comments.isEmpty) {
       return EmptyState(
         icon: Icons.comment_outlined,
-        title: l10n.get(S.noComments),
+        title: l10n.noComments,
       );
     }
     return CommentList(
@@ -236,7 +238,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       scrollController: _scrollController,
       onRefresh: _reload,
       visibleCount: c.visibleCount,
-      noMoreText: l10n.get(S.noMoreComments),
+      noMoreText: l10n.noMoreComments,
       onReply: (comment) {
         _c.beginReply(comment);
         _composerFocus.requestFocus();
@@ -244,7 +246,7 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       onAvatarTap: _openProfile,
       onLike: _c.toggleLike,
       onDelete: _confirmDelete,
-      deleteTooltip: l10n.get(S.delete),
+      deleteTooltip: l10n.delete,
     );
   }
 }

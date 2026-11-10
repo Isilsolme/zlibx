@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/settings_provider.dart';
-import '../../../l10n/app_localizations.dart';
+import '../../../l10n/generated/app_localizations.dart';
 import '../../../utils/locale_utils.dart' as locale_utils;
 import 'section_header.dart';
 import 'settings_card.dart';
 
-import '../../../l10n/s_keys.dart';
 class LanguageSection extends ConsumerWidget {
   const LanguageSection({super.key});
 
@@ -26,13 +25,13 @@ class LanguageSection extends ConsumerWidget {
       children: [
         SectionHeader(
           icon: Icons.translate_rounded,
-          title: AppLocalizations.of(context).get(S.languageSetting),
+          title: AppLocalizations.of(context)!.languageSetting,
         ),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.language_rounded),
             title: Text(
-                AppLocalizations.of(context).get(S.languageSetting)),
+                AppLocalizations.of(context)!.languageSetting),
             subtitle: Text(
                 _getLanguageDisplayName(ref.watch(localeProvider))),
             trailing: const Icon(Icons.chevron_right),
@@ -84,7 +83,7 @@ class LanguageSection extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        AppLocalizations.of(context).get(S.languageSetting),
+                        AppLocalizations.of(context)!.languageSetting,
                         style: Theme
                             .of(context)
                             .textTheme
@@ -106,8 +105,7 @@ class LanguageSection extends ConsumerWidget {
                             key: null,
                             flag: '🌐',
                             native: 'System',
-                            english: AppLocalizations.of(context).get(
-                                'follow_device'),
+                            english: AppLocalizations.of(context)!.followDevice,
                             isSelected: currentKey == null,
                           ),
                           const Divider(height: 1),

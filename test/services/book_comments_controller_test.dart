@@ -79,7 +79,9 @@ Future<BookCommentsController> _loadedController(
   final controller = BookCommentsController(
     bookId: 6134915,
     api: api,
-    tr: (key) => key,
+    commentFailed: 'comment_failed',
+    likeFailed: 'like_failed',
+    commentDeleteFailed: 'comment_delete_failed',
     onNotice: (message) {
       notices.add(message);
       onNotice?.call(message);
