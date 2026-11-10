@@ -163,6 +163,11 @@ class BooklistDetailController
   Future<void> loadFirst() async {
     if (!_alive) return;
     final generation = ++_generation;
+    // When this load's fetch started: a write that invalidates this
+    // URL while the load is in flight must make the load's cache
+    // stores drop (see BooklistHtmlCache), so the stale page cannot
+    // re-enter the cache after the invalidation.
+    final fetchedAt = DateTime.now();
     final list = _list;
     final preview = list.previewBooks;
     final accountId = _accountId;
@@ -213,9 +218,14 @@ class BooklistDetailController
         background: true,
         generation: generation,
         accountId: accountId,
+        fetchedAt: fetchedAt,
       );
     } else {
-      await _loadDetailPage(generation: generation, accountId: accountId);
+      await _loadDetailPage(
+        generation: generation,
+        accountId: accountId,
+        fetchedAt: fetchedAt,
+      );
     }
     if (!_isCurrent(generation)) return;
     state = state.copyWith(isLoading: false, isLoadingMore: false);
@@ -228,12 +238,24 @@ class BooklistDetailController
     bool background = false,
     required int generation,
     required String accountId,
+    required DateTime fetchedAt,
   }) async {
     final api = ref.read(zlibraryApiProvider);
     final list = _list;
     try {
       final response = await api.getBooklistDetailBooks(list);
       if (!_isCurrent(generation)) return;
+      // A refresh that started while a remove was still in flight
+      // carries the pre-remove page: its fetch predates the
+      // invalidation, so applying it would resurrect the removed book
+      // in the visible list even though the generation is current.
+      if (BooklistHtmlCache.wasInvalidatedAfter(
+        list.url,
+        fetchedAt,
+        accountId: accountId,
+      )) {
+        return;
+      }
       final data = response.data;
       if (response.success && data != null) {
         // Persist the parsed first page so the next visit paints
@@ -243,6 +265,7 @@ class BooklistDetailController
           1,
           data,
           accountId: accountId,
+          fetchedAt: fetchedAt,
         );
         _applyFirstPage(data);
         return;
@@ -254,6 +277,7 @@ class BooklistDetailController
           background: background,
           generation: generation,
           accountId: accountId,
+          fetchedAt: fetchedAt,
         );
         return;
       }
@@ -269,6 +293,7 @@ class BooklistDetailController
     required bool background,
     required int generation,
     required String accountId,
+    required DateTime fetchedAt,
   }) async {
     final api = ref.read(zlibraryApiProvider);
     final url = _list.url;
@@ -283,12 +308,28 @@ class BooklistDetailController
       userKey: user?.remixUserkey,
     );
     if (!_isCurrent(generation)) return;
+    // Same invalidation check as _loadDetailPage: the solver fetch
+    // started with this load, so a write that completed meanwhile
+    // makes its page stale.
+    if (BooklistHtmlCache.wasInvalidatedAfter(
+      url,
+      fetchedAt,
+      accountId: accountId,
+    )) {
+      return;
+    }
     if (html == null) {
       if (!background) _fail(originalError);
       return;
     }
     final books = parseBooklistDetailBooks(html, baseUrl: Uri.parse(url).origin);
-    BooklistHtmlCache.storeBooksPage(url, 1, books, accountId: accountId);
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      1,
+      books,
+      accountId: accountId,
+      fetchedAt: fetchedAt,
+    );
     _applyFirstPage(books);
   }
 
@@ -306,6 +347,9 @@ class BooklistDetailController
     }
     final page = s.nextPage;
     final generation = _generation;
+    // See loadFirst: when this load's fetch started, for the
+    // invalidation check on its cache store.
+    final fetchedAt = DateTime.now();
     final api = ref.read(zlibraryApiProvider);
     final list = _list;
     final accountId = _accountId;
@@ -319,6 +363,22 @@ class BooklistDetailController
     try {
       final response = await api.getBooklistBooks(list.id, page: page);
       if (!_isCurrent(generation)) return;
+      // Same invalidation check as _loadDetailPage: a load-more that
+      // started before a remove must not merge the removed book back.
+      // Clear the flag on the way out: unlike the generation return
+      // above (whose retirer is a newer load that clears the flags
+      // when it completes), this retirement can come from a write on
+      // another screen (add-to-booklist dialog), which has no
+      // successor load to clear them — leaving them set would block
+      // loadMore for the rest of this screen's lifetime.
+      if (BooklistHtmlCache.wasInvalidatedAfter(
+        list.url,
+        fetchedAt,
+        accountId: accountId,
+      )) {
+        state = state.copyWith(isLoadingMore: false);
+        return;
+      }
       final data = response.data;
       if (response.success && data != null) {
         BooklistHtmlCache.storeBooksPage(
@@ -326,6 +386,7 @@ class BooklistDetailController
           page,
           data.books,
           accountId: accountId,
+          fetchedAt: fetchedAt,
         );
         // Merge by id: the cached page and the fresh page carry the
         // same books — adding both would duplicate the rows.
@@ -404,7 +465,20 @@ class BooklistDetailController
           ? _books[currentIndex + 1].id
           : null;
       final removed = _removeBookAt(currentIndex);
-      state = state.copyWith(books: List.of(_books));
+      // Retire in-flight loads NOW, not when the remove answers: a
+      // load that started before this remove carries the book, and if
+      // its response lands after the remove it would re-apply the
+      // book to the visible list and re-store the stale page. Bumping
+      // here makes the generation check drop it. The loading flags go
+      // with the optimistic update — no load will complete them now,
+      // so leaving them set would block loadMore for the rest of this
+      // screen's lifetime.
+      ++_generation;
+      state = state.copyWith(
+        books: List.of(_books),
+        isLoading: false,
+        isLoadingMore: false,
+      );
       final response = await ref
           .read(zlibraryApiProvider)
           .removeBookFromBooklist(

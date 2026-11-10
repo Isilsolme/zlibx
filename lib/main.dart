@@ -83,11 +83,17 @@ class _MyAppState extends ConsumerState<MyApp> {
     // Account-scoped pages (own lists, detail pages) are stored
     // under the current account's partition, matching the keys the
     // screens read; public pages keep the plain URL key.
-    ref.read(zlibraryApiProvider).onBooklistHtmlLoaded = (url, html) {
+    ref.read(zlibraryApiProvider).onBooklistHtmlLoaded =
+        (url, html, fetchedAt) {
       final accountId = BooklistHtmlCache.isPrivateUrl(url)
           ? (ref.read(authProvider).user?.id ?? 'signed-out')
           : null;
-      BooklistHtmlCache.store(url, html, accountId: accountId);
+      BooklistHtmlCache.store(
+        url,
+        html,
+        accountId: accountId,
+        fetchedAt: fetchedAt,
+      );
     };
   }
 

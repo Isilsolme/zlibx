@@ -237,4 +237,78 @@ void main() {
       1,
     );
   });
+
+  // Item 4 (cache consistency): a fetch that started before an
+  // invalidation must not re-store its stale page afterwards.
+  test('store drops a write whose fetch started before an invalidation', () {
+    const url = 'https://example.com/booklist/stale-write/h/s.html';
+    final fetchedAt = DateTime.now().subtract(const Duration(seconds: 1));
+    BooklistHtmlCache.invalidateBooklist(url);
+    BooklistHtmlCache.store(url, '<html>stale</html>', fetchedAt: fetchedAt);
+    expect(BooklistHtmlCache.get(url), isNull);
+    // A fetch that started after the invalidation lands normally.
+    BooklistHtmlCache.store(
+      url,
+      '<html>fresh</html>',
+      fetchedAt: DateTime.now().add(const Duration(seconds: 1)),
+    );
+    expect(BooklistHtmlCache.get(url), '<html>fresh</html>');
+  });
+
+  test('storeBooksPage drops a stale write after an invalidation', () {
+    const url = 'https://example.com/booklist/stale-page/h/s.html';
+    final fetchedAt = DateTime.now().subtract(const Duration(seconds: 1));
+    BooklistHtmlCache.invalidateBooklist(url, accountId: '111');
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      2,
+      const [Book(id: 9, title: 'Stale')],
+      accountId: '111',
+      fetchedAt: fetchedAt,
+    );
+    expect(
+      BooklistHtmlCache.getBooksPage(url, 2, accountId: '111'),
+      isNull,
+    );
+    // A fetch that started after the invalidation lands normally.
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      2,
+      const [Book(id: 9, title: 'Fresh')],
+      accountId: '111',
+      fetchedAt: DateTime.now().add(const Duration(seconds: 1)),
+    );
+    expect(
+      BooklistHtmlCache.getBooksPage(url, 2, accountId: '111')!.length,
+      1,
+    );
+  });
+
+  test('store without fetchedAt still writes', () {
+    const url = 'https://example.com/booklist/no-fetch-time/h/s.html';
+    BooklistHtmlCache.invalidateBooklist(url);
+    BooklistHtmlCache.store(url, '<html>legacy</html>');
+    expect(BooklistHtmlCache.get(url), '<html>legacy</html>');
+  });
+
+  test('wasInvalidatedAfter reports an invalidation after a fetch', () {
+    const url = 'https://example.com/booklist/tombstone/h/s.html';
+    final before = DateTime.now().subtract(const Duration(seconds: 1));
+    expect(
+      BooklistHtmlCache.wasInvalidatedAfter(url, before),
+      isFalse,
+    );
+    BooklistHtmlCache.invalidateBooklist(url);
+    expect(
+      BooklistHtmlCache.wasInvalidatedAfter(url, before),
+      isTrue,
+    );
+    expect(
+      BooklistHtmlCache.wasInvalidatedAfter(
+        url,
+        DateTime.now().add(const Duration(seconds: 1)),
+      ),
+      isFalse,
+    );
+  });
 }

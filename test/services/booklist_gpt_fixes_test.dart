@@ -71,6 +71,9 @@ class _FakeZLibraryApi implements ZLibraryApi {
   Completer<ApiResponse<int?>>? entryGate;
   Completer<ApiResponse<bool>>? removeGate;
   Completer<ApiResponse<bool>>? deleteGate;
+  // Held page-1 detail loads (loadFirst revalidation). When set, the
+  // call waits on the completer.
+  Completer<ApiResponse<List<Book>>>? detailGate;
   // Held page-2+ list loads (loadMore). Page-1 loads never wait on
   // these — a refresh must not consume a loadMore gate.
   final List<Completer<ApiResponse<BooklistsPage>>> searchCompleters = [];
@@ -134,6 +137,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
   Future<ApiResponse<List<Book>>> getBooklistDetailBooks(
     Booklist list,
   ) async {
+    if (detailGate != null) return detailGate!.future;
     return ApiResponse.ok(detailPage1);
   }
 
@@ -346,6 +350,59 @@ void main() {
           .map((book) => book.id)
           .toList(),
       [1, 2, 4],
+    );
+  });
+
+  // Doc P1-4 (cache consistency): a load that started before a remove
+  // must not resurrect the removed book — neither in the visible list
+  // nor in the page cache — when its response lands after the remove.
+  // The remove retires the in-flight load (generation bump) and the
+  // invalidation tombstone drops its cache store.
+  test('remove retires an in-flight load so it cannot resurrect the book',
+      () async {
+    final api = _FakeZLibraryApi();
+    const url = 'https://example.com/booklist/9999999/hash/race.html';
+    const args = BooklistDetailArgs(
+      booklist: Booklist(id: '9999999', name: 'Race', url: url, count: 2),
+      canEdit: true,
+    );
+    // Seed the page-1 cache so loadFirst paints immediately and then
+    // revalidates in the background, held on the gate.
+    BooklistHtmlCache.storeBooksPage(
+      url,
+      1,
+      const [Book(id: 1, title: 'One'), Book(id: 2, title: 'Two')],
+      accountId: _user.id,
+    );
+    api.detailGate = Completer<ApiResponse<List<Book>>>();
+    final container = await _loadedDetailContainer(api, args: args);
+    final provider = booklistDetailControllerProvider(args);
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [1, 2],
+    );
+    // Remove book 1 while the revalidation is in flight.
+    final notifier = container.read(provider.notifier);
+    final removed =
+        await notifier.removeBook(const Book(id: 1, title: 'One'));
+    expect(removed.success, isTrue);
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [2],
+    );
+    // The stale revalidation lands now, carrying the removed book.
+    api.detailGate!.complete(ApiResponse.ok(api.detailPage1));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    // Neither the visible list nor the cache resurrects it, and the
+    // loading flag is not left stuck by the retired load.
+    expect(
+      container.read(provider).books.map((book) => book.id).toList(),
+      [2],
+    );
+    expect(container.read(provider).isLoadingMore, isFalse);
+    expect(
+      BooklistHtmlCache.getBooksPage(url, 1, accountId: _user.id),
+      isNull,
     );
   });
 

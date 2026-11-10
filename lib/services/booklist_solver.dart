@@ -46,6 +46,10 @@ class BooklistSolver {
     String? userId,
     String? userKey,
   }) async {
+    // When this fetch started: a write that invalidates this URL
+    // while the solve is in flight must make the store below drop
+    // the stale page (see BooklistHtmlCache).
+    final fetchedAt = DateTime.now();
     if (userId != null && userKey != null && userKey.isNotEmpty) {
       await installSessionCookies(
         userId: userId,
@@ -61,7 +65,12 @@ class BooklistSolver {
     final html = await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
     if (html == null || html.isEmpty || isChallengeHtml(html)) return null;
     await bridgeWallCookies(api, url);
-    BooklistHtmlCache.store(url, html, accountId: accountId);
+    BooklistHtmlCache.store(
+      url,
+      html,
+      accountId: accountId,
+      fetchedAt: fetchedAt,
+    );
     return html;
   }
 }

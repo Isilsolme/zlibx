@@ -19,7 +19,13 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
   /// anything. The URL is the page's canonical URL (the same string
   /// the app's screens use for their solver and cache keys), never
   /// the raw request URL. Null means no handler.
-  void Function(String url, String html)? onBooklistHtmlLoaded;
+  ///
+  /// [fetchedAt] is when the request started: the handler drops the
+  /// page when a write (add/remove a book) invalidated the URL after
+  /// the fetch started, so a stale page cannot re-enter the cache
+  /// after an invalidation (see BooklistHtmlCache).
+  void Function(String url, String html, DateTime fetchedAt)?
+      onBooklistHtmlLoaded;
 
   /// GET, following redirects by hand — same pattern as `_postText`.
   ///
@@ -169,6 +175,8 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
       order: order,
       page: page,
     );
+    // When this fetch started, for the handler's invalidation check.
+    final fetchedAt = DateTime.now();
     // Call [_get] directly so a failure can report its real cause:
     // the old code collapsed every failure into a bare
     // "booklists failed", which hid whether the page 302'd, hit a wall,
@@ -213,6 +221,7 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
         page: page,
       ),
       html,
+      fetchedAt,
     );
     return ApiResponse.ok(parseBooklistsPage(html, baseUrl: _base));
   }
@@ -248,6 +257,8 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
     if (userHash.isEmpty) {
       return ApiResponse.fail('missing profile hash');
     }
+    // When this fetch started, for the handler's invalidation check.
+    final fetchedAt = DateTime.now();
     final raw = await _get(
       '/profile/$userId/$userHash',
       extraHeaders: const {'Accept': 'text/html'},
@@ -275,6 +286,7 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
     onBooklistHtmlLoaded?.call(
       userProfilePageUrl(userId: userId, userHash: userHash),
       html,
+      fetchedAt,
     );
     return ApiResponse.ok(parseUserProfileBooklists(html, baseUrl: _base));
   }
@@ -299,6 +311,8 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
     if (path.isEmpty) {
       return ApiResponse.fail('booklist has no page url');
     }
+    // When this fetch started, for the handler's invalidation check.
+    final fetchedAt = DateTime.now();
     // Call [_get] directly so a failure can report
     // its real cause, like [_searchBooklists] does.
     final raw = await _get(
@@ -325,7 +339,7 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
         statusCode: status,
       );
     }
-    onBooklistHtmlLoaded?.call(list.url, html);
+    onBooklistHtmlLoaded?.call(list.url, html, fetchedAt);
     return ApiResponse.ok(parseBooklistDetailBooks(html, baseUrl: _base));
   }
 

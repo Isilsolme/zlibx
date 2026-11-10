@@ -119,6 +119,48 @@ class BooklistHtmlCache {
   static String _key(String url, String? accountId) =>
       accountId == null ? url : '$url#account=$accountId';
 
+  /// Invalidation timestamps ("tombstones"), one per cache family
+  /// (base URL + account partition). [invalidateBooklist] records the
+  /// moment a URL was invalidated; a later [store] whose fetch
+  /// started at or before that moment is dropped, so a page fetched
+  /// before a write (add/remove a book) cannot re-enter the cache
+  /// after the write cleared it. In-memory only, process lifetime;
+  /// invalidations are rare user actions so the map stays tiny.
+  static final Map<String, DateTime> _invalidatedAt = <String, DateTime>{};
+
+  /// True when [url] was invalidated after [fetchedAt] — i.e. a fetch
+  /// that started at [fetchedAt] predates a write to this URL, so its
+  /// data must not be applied or stored. Providers check this before
+  /// applying a load's result to the visible list, so a refresh that
+  /// started while a remove was still in flight cannot resurrect the
+  /// removed book after the remove completed. Same rule as
+  /// [_isStaleWrite]: a fetch from the very same millisecond as the
+  /// invalidation counts as stale.
+  static bool wasInvalidatedAfter(
+    String url,
+    DateTime fetchedAt, {
+    String? accountId,
+  }) {
+    final invalidatedAt = _invalidatedAt[_key(url, accountId)];
+    if (invalidatedAt == null) return false;
+    return !fetchedAt.isAfter(invalidatedAt);
+  }
+
+  /// True when a write carrying [fetchedAt] predates the last
+  /// invalidation of this URL family and must be dropped. A null
+  /// [fetchedAt] (legacy callers, tests) means "no staleness
+  /// information" and always writes. A fetch that started in the
+  /// very same millisecond as the invalidation is ambiguous;
+  /// dropping it only costs a cache miss.
+  static bool _isStaleWrite(
+    String url,
+    String? accountId,
+    DateTime? fetchedAt,
+  ) {
+    if (fetchedAt == null) return false;
+    return wasInvalidatedAfter(url, fetchedAt, accountId: accountId);
+  }
+
   static void _put(Object key, Map<String, Object> value) {
     final box = _box;
     // Hive writes to memory synchronously, so the entry is visible to
@@ -129,8 +171,19 @@ class BooklistHtmlCache {
     _evictOldest(box);
   }
 
-  static void store(String url, String html, {String? accountId}) {
+  /// Stores one HTML page. [fetchedAt] is when the fetch that
+  /// produced this page started; a page fetched before the URL's
+  /// last invalidation is dropped instead of stored (see
+  /// [_invalidatedAt]). Callers that do not know when the fetch
+  /// started pass nothing and always write.
+  static void store(
+    String url,
+    String html, {
+    String? accountId,
+    DateTime? fetchedAt,
+  }) {
     if (url.isEmpty || html.isEmpty) return;
+    if (_isStaleWrite(url, accountId, fetchedAt)) return;
     _put(_key(url, accountId), {
       'at': DateTime.now().millisecondsSinceEpoch,
       'html': _stripSensitive(html),
@@ -141,15 +194,24 @@ class BooklistHtmlCache {
   /// plus all of its parsed JSON pages (page 1, 2, ...). Use after a
   /// write (add/remove a book, delete the list) so a later open
   /// re-fetches instead of painting stale rows.
+  ///
+  /// Also records an invalidation timestamp for the URL family, so
+  /// a fetch that started before this call cannot re-store its stale
+  /// page afterwards (see [_invalidatedAt]).
   static void invalidateBooklist(String url, {String? accountId}) {
     if (url.isEmpty) return;
     final box = _box;
     box.delete(_key(url, accountId));
     invalidateBooklistPages(url, accountId: accountId);
+    _invalidatedAt[_key(url, accountId)] = DateTime.now();
   }
 
   /// Drops the parsed JSON pages (`#json-page=N`) of one booklist,
   /// leaving the raw HTML entry alone.
+  ///
+  /// Records the same invalidation timestamp as
+  /// [invalidateBooklist]: the JSON pages and the HTML page carry the
+  /// same books, so a stale HTML fetch must not re-store either.
   static void invalidateBooklistPages(String url, {String? accountId}) {
     if (url.isEmpty) return;
     final box = _box;
@@ -163,6 +225,7 @@ class BooklistHtmlCache {
     for (final key in keys) {
       box.delete(key);
     }
+    _invalidatedAt[_key(url, accountId)] = DateTime.now();
   }
 
   /// Deletes every entry older than [ttl] (and every entry with no
@@ -268,8 +331,10 @@ class BooklistHtmlCache {
     int page,
     List<Book> books, {
     String? accountId,
+    DateTime? fetchedAt,
   }) {
     if (url.isEmpty) return;
+    if (_isStaleWrite(url, accountId, fetchedAt)) return;
     _put(_key('$url#json-page=$page', accountId), {
       'at': DateTime.now().millisecondsSinceEpoch,
       'books': books.map((book) => book.toJson()).toList(),

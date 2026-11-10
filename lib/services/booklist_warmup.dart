@@ -116,13 +116,21 @@ class BooklistWarmup {
           pageUrl: url,
         );
       }
+      // When this fetch started, for the invalidation check on the
+      // store below (see BooklistHtmlCache).
+      final fetchedAt = DateTime.now();
       final html = await WebviewChallengeSolver.fetchHtmlHeadlessOnly(url);
       if (html == null ||
           html.isEmpty ||
           WebviewChallengeSolver.isChallengeHtml(html)) {
         return false;
       }
-      BooklistHtmlCache.store(url, html, accountId: accountId);
+      BooklistHtmlCache.store(
+        url,
+        html,
+        accountId: accountId,
+        fetchedAt: fetchedAt,
+      );
       await bridgeWallCookies(api, url);
       return true;
     } catch (e) {

@@ -243,6 +243,9 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
       userId: _args.userId.toString(),
       userHash: hash,
     );
+    // When this fetch started, for the invalidation check on the
+    // store below (see BooklistHtmlCache).
+    final fetchedAt = DateTime.now();
     final user = ref.read(authProvider).user;
     final userKey = user?.remixUserkey;
     if (user != null && userKey != null && userKey.isNotEmpty) {
@@ -272,7 +275,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
     // into the persistent cache so the next open paints it instantly.
     await bridgeWallCookies(api, url);
     if (!mounted) return;
-    BooklistHtmlCache.store(url, pageHtml);
+    BooklistHtmlCache.store(url, pageHtml, fetchedAt: fetchedAt);
     setState(() {
       _booklists = parseUserProfileBooklists(
         pageHtml,
