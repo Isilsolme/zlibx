@@ -198,8 +198,13 @@ class PendingUriWriter implements PendingDownloadWriter {
       throw StateError('pending writer is closed');
     }
     _throwIfFailed();
-    _bufferedChunks.add(chunk);
-    _buffered += chunk.length;
+    // Snapshot the bytes at the API boundary. Callers may reuse a
+    // network buffer as soon as add() completes; retaining that
+    // mutable list until the next 1 MB batch is assembled can corrupt
+    // the bytes eventually written to MediaStore.
+    final snapshot = Uint8List.fromList(chunk);
+    _bufferedChunks.add(snapshot);
+    _buffered += snapshot.length;
     if (_buffered < _flushThreshold) return;
     _enqueueBuffered();
     while (_batches.length > _maxBatchesAhead) {
