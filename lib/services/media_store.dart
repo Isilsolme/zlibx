@@ -7,8 +7,6 @@
 // content URI. Old history entries keep plain file paths and keep
 // working — every helper below routes on the `content://` prefix.
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 import 'package:open_filex/open_filex.dart';

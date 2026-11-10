@@ -94,6 +94,11 @@ dev_dependencies:
   # App Icon Generator
   flutter_launcher_icons: ^0.14.2
 
+  # Tests use package:path (pending_uri_writer_test joins temp paths).
+  # Already resolved transitively at 1.9.1; declared directly so the
+  # analyzer's depend_on_referenced_packages check passes.
+  path: ^1.9.1
+
 # App Icon Configuration
 flutter_launcher_icons:
   android: true

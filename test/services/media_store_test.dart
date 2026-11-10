@@ -7,8 +7,6 @@
 // and stub the 'zlibx/media_store' channel with an in-memory fake.
 // `open` is NOT tested: it launches an external app.
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
