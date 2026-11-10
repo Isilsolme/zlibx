@@ -17,11 +17,10 @@ test/widgets/locale_zh_hant_resolution_test.dart.
 
 Conversion rules:
 - ARB keys are the camelCase form of the snake_case Dart keys (the
-  same conversion scripts/gen_l10n_keys.py uses for `S`, which
-  matches gen-l10n's own conversion). Values are byte-identical to
-  the Dart-map values, except ``confirm_remove_msg`` whose ``%d``
-  placeholder is renamed to ``{count}`` (``%d`` is not valid ARB
-  placeholder syntax).
+  same conversion gen-l10n itself uses for getters). Values are
+  byte-identical to the Dart-map values, except ``confirm_remove_msg``
+  whose ``%d`` placeholder is renamed to ``{count}`` (``%d`` is not
+  valid ARB placeholder syntax).
 - Only the 20 placeholder keys carry ``@key`` metadata, with the
   placeholder types read off the actual call-site value types
   (verified against lib/ at the time of writing; see PLACEHOLDERS).
@@ -247,7 +246,7 @@ def parse_table(path: Path) -> dict[str, str]:
 def to_camel_case(snake: str) -> str:
     """Convert a snake_case key to a lowerCamelCase Dart identifier.
 
-    Same conversion as scripts/gen_l10n_keys.py (and gen-l10n's own).
+    Same conversion as gen-l10n's own.
     """
     words = snake.split("_")
     return words[0] + "".join(word.capitalize() for word in words[1:])

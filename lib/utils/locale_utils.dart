@@ -1,9 +1,15 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
-/// Check if current locale is Chinese
-bool isZhLocale(BuildContext context) {
-  return Localizations.localeOf(context).languageCode == 'zh';
-}
+/// Display names for the 5 supported locales, keyed by locale key
+/// (moved verbatim from the deleted hand-written
+/// lib/l10n/app_localizations.dart in gen-l10n step 4).
+const localeDisplayNames = {
+  'en': 'English',
+  'zh': '简体中文',
+  'zh_Hant': '繁體中文',
+  'ja': '日本語',
+  'ko': '한국어',
+};
 
 /// Get locale key for comparison (e.g., 'en', 'zh', 'zh_Hant', 'ja', 'ko').
 /// Traditional Chinese is keyed 'zh_Hant' whether it comes from scriptCode
@@ -35,9 +41,4 @@ Locale? parseLocaleKey(String? key) {
     return Locale(parts[0], parts[1]);
   }
   return Locale(parts[0]);
-}
-
-/// Get localized text with fallback
-String getLocalizedText(BuildContext context, String zhText, String enText) {
-  return isZhLocale(context) ? zhText : enText;
 }

@@ -113,7 +113,7 @@ def fail(message: str) -> "NoReturn":
 def to_camel_case(snake: str) -> str:
     """Convert a snake_case key to a lowerCamelCase Dart identifier.
 
-    Same conversion as scripts/gen_l10n_keys.py (and gen-l10n's own).
+    Same conversion as gen-l10n's own.
     """
     words = snake.split("_")
     return words[0] + "".join(word.capitalize() for word in words[1:])

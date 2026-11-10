@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../services/hive_service.dart';
-import '../l10n/app_localizations.dart';
+import '../utils/locale_utils.dart';
 
 enum AppThemeMode {
   system,
@@ -113,7 +113,9 @@ class LocaleNotifier extends Notifier<Locale?> {
   /// Get display name for current locale
   String getDisplayName() {
     if (state == null) return 'System';
-    final key = getLocaleKey(state!);
+    // getLocaleKey returns null only for a null locale; state is
+    // non-null here, so the fallback is unreachable in practice.
+    final key = getLocaleKey(state!) ?? 'en';
     return localeDisplayNames[key] ?? key;
   }
 }
