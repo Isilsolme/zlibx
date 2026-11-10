@@ -29,7 +29,9 @@ android {
     defaultConfig {
         applicationId = "com.open_library.app"
         minSdk = 29
-        targetSdk = flutter.targetSdkVersion
+        // Target Android 17 (API 37) explicitly: Flutter 3.44's
+        // flutter.targetSdkVersion is still 36. compileSdk is already 37.
+        targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
         // Android only, 64-bit only: ship arm64-v8a and nothing else.
