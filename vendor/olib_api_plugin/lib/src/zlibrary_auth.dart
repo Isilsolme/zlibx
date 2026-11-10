@@ -1,20 +1,25 @@
 // Auth domain of [ZLibraryApi]: login, registration codes,
 // profile, and the in-memory session. Split out of
 // `zlibrary_api.dart` (item 7, step 1) as a mixin in the
-// same library, so it can use the class's private HTTP
+// same library, so it can use the base class's private HTTP
 // helpers (`_get`, `_postForm`, ...) and session fields
-// (`_userId`, `_userKey`, `_wallCookies`) directly. A mixin
-// in a separate library could not see those privates
-// without changing the public interface (which the six
-// test fakes implement), and thin delegation would need
-// the helpers passed in as callbacks — a rewrite, not a
-// move. The class itself is NOT split across part files:
-// `ZLibraryApi` stays whole in `zlibrary_api.dart`; only
-// this mixin lives here, applied with `with`.
+// (`_userId`, `_userKey`, `_wallCookies`) directly. The
+// mixin is `on _ZLibraryApiBase`, the abstract base that
+// holds those members — it cannot name the class itself
+// as its supertype constraint, because a mixin applied to
+// a class cannot have that class as its `on` type (the
+// application would make the class a supertype of itself). A mixin in
+// a separate library could not see those privates without
+// changing the public interface (which the six test fakes
+// implement), and thin delegation would need the helpers
+// passed in as callbacks — a rewrite, not a move.
+// `ZLibraryApi` itself stays whole in `zlibrary_api.dart`
+// and extends the base: `class ZLibraryApi extends
+// _ZLibraryApiBase with ZLibraryAuth`.
 part of 'zlibrary_api.dart';
 
 /// Auth / session methods for [ZLibraryApi].
-mixin ZLibraryAuth on ZLibraryApi {
+mixin ZLibraryAuth on _ZLibraryApiBase {
   /// Drop the in-memory session so the Cookie header is no longer sent.
   /// Call before switching to a host that is not trusted; trusted hosts
   /// re-issue the session explicitly via [loginWithToken].
@@ -64,7 +69,7 @@ mixin ZLibraryAuth on ZLibraryApi {
       }
     }
     // Then from the user object, which carries the same pair.
-    final userJson = _userJson(json);
+    final userJson = _ZLibraryApiBase._userJson(json);
     if (userJson != null) {
       final id = userJson['id']?.toString();
       final key = (userJson['remixUserkey'] ?? userJson['remix_userkey'])
@@ -100,7 +105,7 @@ mixin ZLibraryAuth on ZLibraryApi {
       ..._loginExtraFields,
     };
     final raw = await _postForm('/eapi/user/login', fields);
-    if (raw.json != null && _isSuccess(raw.json!)) {
+    if (raw.json != null && _ZLibraryApiBase._isSuccess(raw.json!)) {
       return _finishLogin(raw.json!, raw.cookies);
     }
     // EAPI login did not succeed. Fall back to the website login RPC on
@@ -146,7 +151,7 @@ mixin ZLibraryAuth on ZLibraryApi {
           statusCode: profile.statusCode,
         );
       }
-      if (_userJson(rpcJson) != null) {
+      if (_ZLibraryApiBase._userJson(rpcJson) != null) {
         return _finishLogin(rpcJson, rpc.cookies);
       }
     }
@@ -187,7 +192,7 @@ mixin ZLibraryAuth on ZLibraryApi {
     List<String> cookies,
   ) async {
     _learnSession(json, cookies);
-    final userJson = _userJson(json);
+    final userJson = _ZLibraryApiBase._userJson(json);
     if (userJson == null) {
       final profile = await getProfile();
       if (profile.success && profile.data != null) return profile;
@@ -239,7 +244,7 @@ mixin ZLibraryAuth on ZLibraryApi {
       return ApiResponse.fail(raw.error ?? 'send code failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!_ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'send code failed',
@@ -267,7 +272,7 @@ mixin ZLibraryAuth on ZLibraryApi {
       return ApiResponse.fail(raw.error ?? 'verify code failed',
           statusCode: raw.status);
     }
-    if (!_isSuccess(raw.json!)) {
+    if (!_ZLibraryApiBase._isSuccess(raw.json!)) {
       return ApiResponse.fail(
         (raw.json!['error'] ?? raw.json!['message'])?.toString() ??
             'verify code failed',
@@ -284,13 +289,13 @@ mixin ZLibraryAuth on ZLibraryApi {
           statusCode: raw.status);
     }
     final json = raw.json!;
-    if (!_isSuccess(json)) {
+    if (!_ZLibraryApiBase._isSuccess(json)) {
       return ApiResponse.fail(
         (json['error'] ?? json['message'])?.toString() ?? 'profile failed',
         statusCode: raw.status,
       );
     }
-    final userJson = _userJson(json);
+    final userJson = _ZLibraryApiBase._userJson(json);
     if (userJson == null) {
       return ApiResponse.fail('profile response had no user',
           statusCode: raw.status);

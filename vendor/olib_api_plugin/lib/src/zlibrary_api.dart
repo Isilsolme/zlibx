@@ -49,25 +49,7 @@ class DownloadHtmlException implements Exception {
   String toString() => message;
 }
 
-/// Z-Library client, rewritten from the call sites in olib-mobile.
-///
-/// Session model (matches what the app assumes):
-/// - Auth is the `remix_userid` / `remix_userkey` pair, sent as a Cookie
-///   header on every request. [login] learns the pair from the login
-///   response (Set-Cookie headers and/or the user object);
-///   [loginWithToken] installs a stored pair and re-validates it against
-///   `/eapi/user/profile` directly, exactly as the app's auth comment says.
-/// - [setDomain] only switches the base host; cookies are re-issued on the
-///   new host by the app's reverify flow ([loginWithToken]).
-///
-/// Endpoint status (see README.md for the full table):
-/// - Verified pattern from independent public eapi clients: login, profile,
-///   search, book info, file link, saved, unsave, downloaded.
-/// - Plausible by the same naming pattern, NOT yet verified against a live
-///   account: most_popular, recommended, recently, similar, save,
-///   send_code, verify_code. Those methods fall back or fail loudly rather
-///   than silently returning wrong data; see their doc comments.
-class ZLibraryApi with ZLibraryAuth {
+abstract class _ZLibraryApiBase {
   static const String _defaultDomain = 'bookroom.lifestyle';
 
   final Dio _dio;
@@ -84,18 +66,9 @@ class ZLibraryApi with ZLibraryAuth {
   /// header for cross-host links, so these never leak to a CDN.
   final Map<String, String> _wallCookies = {};
 
-  /// Called with the raw HTML of every booklist page the plugin loads
-  /// successfully over Dio (list pages, profile page, detail page 1).
-  /// The app registers a handler that persists it for its
-  /// stale-while-revalidate cache; the plugin itself never stores
-  /// anything. The URL is the page's canonical URL (the same string
-  /// the app's screens use for their solver and cache keys), never
-  /// the raw request URL. Null means no handler.
-  void Function(String url, String html)? onBooklistHtmlLoaded;
-
   /// [dio] is a test seam: a caller-provided client (with a fake
   /// adapter) replaces the default one. Production code never passes it.
-  ZLibraryApi({String? domain, Dio? dio})
+  _ZLibraryApiBase({String? domain, Dio? dio})
     : _domain = _cleanDomain(domain ?? _defaultDomain),
       _dio = dio ??
           Dio(
@@ -110,13 +83,6 @@ class ZLibraryApi with ZLibraryAuth {
               },
             ),
           );
-
-  String get domain => _domain;
-
-  /// Switch the mirror host. Accepts a bare host or a full URL.
-  void setDomain(String domain) {
-    _domain = _cleanDomain(domain);
-  }
 
   static String _cleanDomain(String domain) {
     var d = domain.trim();
@@ -154,8 +120,6 @@ class ZLibraryApi with ZLibraryAuth {
 
   // ── Low-level helpers ──────────────────────────────────────────────
 
-  /// One raw JSON-ish response. `json` is null when the server did not
-  /// return parseable JSON (HTML wall, empty body, ...).
   Future<_Raw> _get(
     String path, {
     Map<String, dynamic>? query,
@@ -196,232 +160,6 @@ class ZLibraryApi with ZLibraryAuth {
     } on DioException catch (e) {
       return _fromError(e);
     }
-  }
-
-  /// POST a raw string body as `text/plain`, following redirects by
-  /// hand — same pattern as the download path ([downloadBook]).
-  ///
-  /// The site's `papi/comments/*` endpoints answer the first POST with
-  /// 307 to the same URL; 307/308 are re-POSTed with the same body,
-  /// 301/302/303 are followed as GET (browser behaviour). The session
-  /// Cookie is only sent to our own host: a hop to another host drops
-  /// it (Dio's automatic following would re-send it to whatever host
-  /// a 302 points at).
-  ///
-  /// Redirect failures (no Location, non-https target, too many hops,
-  /// unparsable Location) return an error [_Raw] — never throw: the
-  /// three callers only handle `ApiResponse.fail`, they do not catch
-  /// [StateError].
-  Future<_Raw> _postText(String path, String body) async {
-    var url = '$_base$path';
-    var headers = Map<String, String>.from(_headers);
-    if (Uri.parse(url).host != Uri.parse(_base).host) {
-      headers.remove('Cookie');
-    }
-    var isPost = true;
-    var lastStatus = 0;
-    for (var hop = 0; hop < 5; hop++) {
-      try {
-        final Response<String> res;
-        if (isPost) {
-          res = await _dio.post<String>(
-            url,
-            data: body,
-            options: Options(
-              headers: headers,
-              contentType: 'text/plain;charset=UTF-8',
-              responseType: ResponseType.plain,
-              followRedirects: false,
-              validateStatus: (status) => status != null && status < 400,
-            ),
-          );
-        } else {
-          res = await _dio.get<String>(
-            url,
-            options: Options(
-              headers: headers,
-              responseType: ResponseType.plain,
-              followRedirects: false,
-              validateStatus: (status) => status != null && status < 400,
-            ),
-          );
-        }
-        final code = res.statusCode ?? 0;
-        lastStatus = code;
-        if (code != 301 &&
-            code != 302 &&
-            code != 303 &&
-            code != 307 &&
-            code != 308) {
-          return _fromResponse(res);
-        }
-        final location = res.headers.value(HttpHeaders.locationHeader);
-        if (location == null || location.isEmpty) {
-          return _Raw(status: code, error: 'redirect without location');
-        }
-        final Uri next;
-        try {
-          next = Uri.parse(url).resolveUri(Uri.parse(location));
-        } on FormatException {
-          return _Raw(status: code, error: 'redirect to invalid URL');
-        }
-        if (next.scheme != 'https') {
-          return _Raw(status: code, error: 'redirect to non-https URL');
-        }
-        url = next.toString();
-        if (next.host != Uri.parse(_base).host) {
-          headers = Map<String, String>.from(headers)..remove('Cookie');
-        }
-        // 301/302/303 turn the follow-up into a GET; 307/308 keep
-        // the original POST (same URL, same body).
-        isPost = code == 307 || code == 308;
-      } on DioException catch (e) {
-        return _fromError(e);
-      }
-    }
-    return _Raw(status: lastStatus, error: 'too many redirects');
-  }
-
-  /// DELETE with no request body, following redirects by hand — same
-  /// pattern as [_postText]: 307/308 are re-sent as DELETE, 301/302/303
-  /// are followed as GET (browser behaviour). The session Cookie is
-  /// only sent to our own host: a hop to another host drops it.
-  ///
-  /// Redirect failures (no Location, non-https target, too many hops,
-  /// unparsable Location) return an error [_Raw] — never throw: the
-  /// caller only handles `ApiResponse.fail`, it does not catch
-  /// [StateError].
-  Future<_Raw> _delete(String path) async {
-    var url = '$_base$path';
-    var headers = Map<String, String>.from(_headers);
-    if (Uri.parse(url).host != Uri.parse(_base).host) {
-      headers.remove('Cookie');
-    }
-    var isDelete = true;
-    var lastStatus = 0;
-    for (var hop = 0; hop < 5; hop++) {
-      try {
-        final Response<String> res;
-        if (isDelete) {
-          res = await _dio.delete<String>(
-            url,
-            options: Options(
-              headers: headers,
-              responseType: ResponseType.plain,
-              followRedirects: false,
-              validateStatus: (status) => status != null && status < 400,
-            ),
-          );
-        } else {
-          res = await _dio.get<String>(
-            url,
-            options: Options(
-              headers: headers,
-              responseType: ResponseType.plain,
-              followRedirects: false,
-              validateStatus: (status) => status != null && status < 400,
-            ),
-          );
-        }
-        final code = res.statusCode ?? 0;
-        lastStatus = code;
-        if (code != 301 &&
-            code != 302 &&
-            code != 303 &&
-            code != 307 &&
-            code != 308) {
-          return _fromResponse(res);
-        }
-        final location = res.headers.value(HttpHeaders.locationHeader);
-        if (location == null || location.isEmpty) {
-          return _Raw(status: code, error: 'redirect without location');
-        }
-        final Uri next;
-        try {
-          next = Uri.parse(url).resolveUri(Uri.parse(location));
-        } on FormatException {
-          return _Raw(status: code, error: 'redirect to invalid URL');
-        }
-        if (next.scheme != 'https') {
-          return _Raw(status: code, error: 'redirect to non-https URL');
-        }
-        url = next.toString();
-        if (next.host != Uri.parse(_base).host) {
-          headers = Map<String, String>.from(headers)..remove('Cookie');
-        }
-        // 301/302/303 turn the follow-up into a GET; 307/308 keep
-        // the original DELETE.
-        isDelete = code == 307 || code == 308;
-      } on DioException catch (e) {
-        return _fromError(e);
-      }
-    }
-    return _Raw(status: lastStatus, error: 'too many redirects');
-  }
-
-  /// GET, following redirects by hand — same pattern as [_postText].
-  ///
-  /// The site's `papi/booklist/*` write endpoints answer the first GET
-  /// with 307 to the same URL (the DDoS-Guard challenge sets a cookie
-  /// and redirects); 307/308 are re-sent as GET, 301/302/303 are
-  /// followed as GET (browser behaviour). The session Cookie is only
-  /// sent to our own host: a hop to another host drops it (Dio's
-  /// automatic following would re-send it to whatever host a 302
-  /// points at).
-  ///
-  /// Redirect failures (no Location, non-https target, too many hops,
-  /// unparsable Location) return an error [_Raw] — never throw: the
-  /// callers only handle `ApiResponse.fail`, they do not catch
-  /// [StateError].
-  Future<_Raw> _getWithRedirects(String path) async {
-    var url = '$_base$path';
-    var headers = Map<String, String>.from(_headers);
-    if (Uri.parse(url).host != Uri.parse(_base).host) {
-      headers.remove('Cookie');
-    }
-    var lastStatus = 0;
-    for (var hop = 0; hop < 5; hop++) {
-      try {
-        final res = await _dio.get<String>(
-          url,
-          options: Options(
-            headers: headers,
-            responseType: ResponseType.plain,
-            followRedirects: false,
-            validateStatus: (status) => status != null && status < 400,
-          ),
-        );
-        final code = res.statusCode ?? 0;
-        lastStatus = code;
-        if (code != 301 &&
-            code != 302 &&
-            code != 303 &&
-            code != 307 &&
-            code != 308) {
-          return _fromResponse(res);
-        }
-        final location = res.headers.value(HttpHeaders.locationHeader);
-        if (location == null || location.isEmpty) {
-          return _Raw(status: code, error: 'redirect without location');
-        }
-        final Uri next;
-        try {
-          next = Uri.parse(url).resolveUri(Uri.parse(location));
-        } on FormatException {
-          return _Raw(status: code, error: 'redirect to invalid URL');
-        }
-        if (next.scheme != 'https') {
-          return _Raw(status: code, error: 'redirect to non-https URL');
-        }
-        url = next.toString();
-        if (next.host != Uri.parse(_base).host) {
-          headers = Map<String, String>.from(headers)..remove('Cookie');
-        }
-      } on DioException catch (e) {
-        return _fromError(e);
-      }
-    }
-    return _Raw(status: lastStatus, error: 'too many redirects');
   }
 
   /// Form encoding with repeated keys for list values, matching how the
@@ -582,6 +320,292 @@ class ZLibraryApi with ZLibraryAuth {
     return s.toString() == '1' || s.toString().toLowerCase() == 'true';
   }
 
+  static Map<String, dynamic>? _userJson(Map<String, dynamic> json) {
+    for (final key in const ['user', 'data', 'profile']) {
+      final v = json[key];
+      if (v is Map<String, dynamic>) return v;
+    }
+    return null;
+  }
+
+  /// The site's JSON error strings sometimes carry HTML markup; toasts
+  /// show it raw, so strip tags here. A line break becomes a space
+  /// first so words don't run together.
+  static String _plainError(String? value, String fallback) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return fallback;
+    return text
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), ' ')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .trim();
+  }
+}
+
+/// Z-Library client, rewritten from the call sites in olib-mobile.
+///
+/// Session model (matches what the app assumes):
+/// - Auth is the `remix_userid` / `remix_userkey` pair, sent as a Cookie
+///   header on every request. [login] learns the pair from the login
+///   response (Set-Cookie headers and/or the user object);
+///   [loginWithToken] installs a stored pair and re-validates it against
+///   `/eapi/user/profile` directly, exactly as the app's auth comment says.
+/// - [setDomain] only switches the base host; cookies are re-issued on the
+///   new host by the app's reverify flow ([loginWithToken]).
+///
+/// Endpoint status (see README.md for the full table):
+/// - Verified pattern from independent public eapi clients: login, profile,
+///   search, book info, file link, saved, unsave, downloaded.
+/// - Plausible by the same naming pattern, NOT yet verified against a live
+///   account: most_popular, recommended, recently, similar, save,
+///   send_code, verify_code. Those methods fall back or fail loudly rather
+///   than silently returning wrong data; see their doc comments.
+
+class ZLibraryApi extends _ZLibraryApiBase with ZLibraryAuth {
+  ZLibraryApi({String? domain, Dio? dio}) : super(domain: domain, dio: dio);
+
+  /// Called with the raw HTML of every booklist page the plugin loads
+  /// successfully over Dio (list pages, profile page, detail page 1).
+  /// The app registers a handler that persists it for its
+  /// stale-while-revalidate cache; the plugin itself never stores
+  /// anything. The URL is the page's canonical URL (the same string
+  /// the app's screens use for their solver and cache keys), never
+  /// the raw request URL. Null means no handler.
+  void Function(String url, String html)? onBooklistHtmlLoaded;
+
+  String get domain => _domain;
+
+  /// Switch the mirror host. Accepts a bare host or a full URL.
+  void setDomain(String domain) {
+    _domain = _cleanDomain(domain);
+  }
+
+  /// POST a raw string body as `text/plain`, following redirects by
+  /// hand — same pattern as the download path ([downloadBook]).
+  ///
+  /// The site's `papi/comments/*` endpoints answer the first POST with
+  /// 307 to the same URL; 307/308 are re-POSTed with the same body,
+  /// 301/302/303 are followed as GET (browser behaviour). The session
+  /// Cookie is only sent to our own host: a hop to another host drops
+  /// it (Dio's automatic following would re-send it to whatever host
+  /// a 302 points at).
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// three callers only handle `ApiResponse.fail`, they do not catch
+  /// [StateError].
+  Future<_Raw> _postText(String path, String body) async {
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    var isPost = true;
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final Response<String> res;
+        if (isPost) {
+          res = await _dio.post<String>(
+            url,
+            data: body,
+            options: Options(
+              headers: headers,
+              contentType: 'text/plain;charset=UTF-8',
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        } else {
+          res = await _dio.get<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        }
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+        // 301/302/303 turn the follow-up into a GET; 307/308 keep
+        // the original POST (same URL, same body).
+        isPost = code == 307 || code == 308;
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
+  }
+
+  /// DELETE with no request body, following redirects by hand — same
+  /// pattern as [_postText]: 307/308 are re-sent as DELETE, 301/302/303
+  /// are followed as GET (browser behaviour). The session Cookie is
+  /// only sent to our own host: a hop to another host drops it.
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// caller only handles `ApiResponse.fail`, it does not catch
+  /// [StateError].
+
+  Future<_Raw> _delete(String path) async {
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    var isDelete = true;
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final Response<String> res;
+        if (isDelete) {
+          res = await _dio.delete<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        } else {
+          res = await _dio.get<String>(
+            url,
+            options: Options(
+              headers: headers,
+              responseType: ResponseType.plain,
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
+            ),
+          );
+        }
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+        // 301/302/303 turn the follow-up into a GET; 307/308 keep
+        // the original DELETE.
+        isDelete = code == 307 || code == 308;
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
+  }
+
+  /// GET, following redirects by hand — same pattern as [_postText].
+  ///
+  /// The site's `papi/booklist/*` write endpoints answer the first GET
+  /// with 307 to the same URL (the DDoS-Guard challenge sets a cookie
+  /// and redirects); 307/308 are re-sent as GET, 301/302/303 are
+  /// followed as GET (browser behaviour). The session Cookie is only
+  /// sent to our own host: a hop to another host drops it (Dio's
+  /// automatic following would re-send it to whatever host a 302
+  /// points at).
+  ///
+  /// Redirect failures (no Location, non-https target, too many hops,
+  /// unparsable Location) return an error [_Raw] — never throw: the
+  /// callers only handle `ApiResponse.fail`, they do not catch
+  /// [StateError].
+  Future<_Raw> _getWithRedirects(String path) async {
+    var url = '$_base$path';
+    var headers = Map<String, String>.from(_headers);
+    if (Uri.parse(url).host != Uri.parse(_base).host) {
+      headers.remove('Cookie');
+    }
+    var lastStatus = 0;
+    for (var hop = 0; hop < 5; hop++) {
+      try {
+        final res = await _dio.get<String>(
+          url,
+          options: Options(
+            headers: headers,
+            responseType: ResponseType.plain,
+            followRedirects: false,
+            validateStatus: (status) => status != null && status < 400,
+          ),
+        );
+        final code = res.statusCode ?? 0;
+        lastStatus = code;
+        if (code != 301 &&
+            code != 302 &&
+            code != 303 &&
+            code != 307 &&
+            code != 308) {
+          return _fromResponse(res);
+        }
+        final location = res.headers.value(HttpHeaders.locationHeader);
+        if (location == null || location.isEmpty) {
+          return _Raw(status: code, error: 'redirect without location');
+        }
+        final Uri next;
+        try {
+          next = Uri.parse(url).resolveUri(Uri.parse(location));
+        } on FormatException {
+          return _Raw(status: code, error: 'redirect to invalid URL');
+        }
+        if (next.scheme != 'https') {
+          return _Raw(status: code, error: 'redirect to non-https URL');
+        }
+        url = next.toString();
+        if (next.host != Uri.parse(_base).host) {
+          headers = Map<String, String>.from(headers)..remove('Cookie');
+        }
+      } on DioException catch (e) {
+        return _fromError(e);
+      }
+    }
+    return _Raw(status: lastStatus, error: 'too many redirects');
+  }
+
   /// The eapi answers `{"success":0,"error":"Invalid hash"}` when the
   /// hash is not the one it issued for the book. The webpage short hash
   /// (the `/book/{hash}/...` link) and the card `termshash` are both
@@ -606,14 +630,6 @@ class ZLibraryApi with ZLibraryAuth {
         .whereType<Map<String, dynamic>>()
         .map(Book.fromJson)
         .toList();
-  }
-
-  static Map<String, dynamic>? _userJson(Map<String, dynamic> json) {
-    for (final key in const ['user', 'data', 'profile']) {
-      final v = json[key];
-      if (v is Map<String, dynamic>) return v;
-    }
-    return null;
   }
 
   // ── Search & lists ─────────────────────────────────────────────────
@@ -1435,18 +1451,6 @@ class ZLibraryApi with ZLibraryAuth {
     return ApiResponse.ok(
       BooklistBooksPage(books: books, totalPages: totalPages),
     );
-  }
-
-  /// The site's JSON error strings sometimes carry HTML markup; toasts
-  /// show it raw, so strip tags here. A line break becomes a space
-  /// first so words don't run together.
-  static String _plainError(String? value, String fallback) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return fallback;
-    return text
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), ' ')
-        .replaceAll(RegExp(r'<[^>]*>'), '')
-        .trim();
   }
 
   /// Create a booklist owned by the signed-in user. `POST
