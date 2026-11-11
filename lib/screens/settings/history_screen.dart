@@ -37,6 +37,23 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   _HistorySort _sort = _HistorySort.dateDesc;
 
   @override
+  void initState() {
+    super.initState();
+    // 云端列表是账号维度的：页面缓存期间，其他设备（或本机刚完成
+    // 的下载）都可能添了新记录，打开页面时静默对账一次，老列表保持
+    // 可见、新记录补进来。首次打开不用——build() 自己就会拉取，
+    // is! AsyncLoading 恰好把这种情况排除。
+    Future.microtask(() {
+      if (!mounted) return;
+      if (ref.read(downloadedBooksProvider) is! AsyncLoading) {
+        ref
+            .read(downloadedBooksProvider.notifier)
+            .loadDownloadedBooks(silent: true);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     // This provider gets "downloaded" books from account (Cloud history)
@@ -53,58 +70,66 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
         ],
       ),
-      body: downloadedBooksAsync.when(
-        data: (books) {
-          if (books.isEmpty) {
-            return EmptyState(
-              icon: Icons.history,
-              title: l10n.noHistory,
-              message: l10n.historyEmptyMessage,
-            );
-          }
-
-          final sorted = _sortedBooks(books);
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: sorted.length,
-            itemBuilder: (context, index) {
-              final book = sorted[index];
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(12),
-                  leading: _HistoryCoverThumb(book: book),
-                  title: Text(
-                    book.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (book.author != null) Text(book.author!),
-                      if (book.filesizeString != null)
-                        Text(
-                          '${book.extension?.toUpperCase()} • ${book.filesizeString}',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    AppRoutes.openBookDetailForBook(context, book);
-                  },
-                ),
+      // 下拉手动对账：silent 拉取，老列表保持可见，不闪 loading
+      // （RefreshIndicator 自己转圈）。loading / 空态不可拉，打开
+      // 页面时的静默对账会补上这两处的刷新。
+      body: RefreshIndicator(
+        onRefresh: () => ref
+            .read(downloadedBooksProvider.notifier)
+            .loadDownloadedBooks(silent: true),
+        child: downloadedBooksAsync.when(
+          data: (books) {
+            if (books.isEmpty) {
+              return EmptyState(
+                icon: Icons.history,
+                title: l10n.noHistory,
+                message: l10n.historyEmptyMessage,
               );
-            },
-          );
-        },
-        loading: () => LoadingWidget(message: l10n.loadingDownloads),
-        error: (error, stack) => EmptyState(
-          icon: Icons.error_outline,
-          title: l10n.error,
-          message: error.toString(),
+            }
+
+            final sorted = _sortedBooks(books);
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: sorted.length,
+              itemBuilder: (context, index) {
+                final book = sorted[index];
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(12),
+                    leading: _HistoryCoverThumb(book: book),
+                    title: Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (book.author != null) Text(book.author!),
+                        if (book.filesizeString != null)
+                          Text(
+                            '${book.extension?.toUpperCase()} • ${book.filesizeString}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      AppRoutes.openBookDetailForBook(context, book);
+                    },
+                  ),
+                );
+              },
+            );
+          },
+          loading: () => LoadingWidget(message: l10n.loadingDownloads),
+          error: (error, stack) => EmptyState(
+            icon: Icons.error_outline,
+            title: l10n.error,
+            message: error.toString(),
+          ),
         ),
       ),
     );

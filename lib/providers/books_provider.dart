@@ -632,14 +632,83 @@ final savedBooksProvider =
 
 // ── Downloaded Books ────────────────────────────────────────────────
 
-final downloadedBooksProvider = FutureProvider<List<Book>>((ref) async {
-  final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getUserDownloaded(limit: 100);
-  if (!response.success) {
-    throw StateError(response.error ?? 'Failed to load download history');
+/// 云端下载历史（账号维度，包含其他设备 / 网页端产生的下载记录）。
+///
+/// 此前是一个一次性 FutureProvider：只拉第 1 页（limit 100）且整个
+/// 进程生命周期只拉一次，页面也没有任何刷新入口——超过 100 条后，
+/// 更早的记录（其他设备下的书）永远留在第 2 页之后不出现；新记录
+/// 也要重启 app 才能看到。现在与 [SavedBooksNotifier] 同构：全量
+/// 翻页拉取 + 可静默对账，页面打开 / 下拉时都能拿到最新云端列表。
+class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
+  // Getter, not a `late final` field: ref.invalidate (account switch,
+  // line change, logout) re-runs build() on the SAME notifier instance,
+  // and a second assignment to a late final throws LateInitializationError
+  // — see SavedBooksNotifier above.
+  ZLibraryApi get _api => ref.read(zlibraryApiProvider);
+
+  @override
+  AsyncValue<List<Book>> build() {
+    loadDownloadedBooks();
+    return const AsyncValue.loading();
   }
-  return response.data ?? [];
-});
+
+  /// 全量拉取云端下载历史。服务端默认按下载时间倒序（最新在前），
+  /// 翻页按序拼接即保持该顺序，UI 的"按日期"排序仍等于服务端顺序。
+  /// [silent] 为 true 时是后台静默对账：不置 loading 态，失败时保留
+  /// 已有数据（只在尚无数据时才报 error）——页面打开 / 下拉刷新用
+  /// 它，列表不闪一下 loading。
+  Future<void> loadDownloadedBooks({bool silent = false}) async {
+    // build() 直接调这里，而首次 build 时 state 还不存在：读 `state`
+    // 会抛 StateError（见 SavedBooksNotifier 上的注释），`stateOrNull`
+    // 在未初始化时返回 null 而不抛，正是 Riverpod 给 build 期读 state
+    // 的写法。
+    final hadData = stateOrNull?.valueOrNull != null;
+    if (!silent) state = const AsyncValue.loading();
+
+    try {
+      const pageSize = 100;
+      final books = <Book>[];
+      final seen = <int>{};
+      for (var page = 1; page <= 100; page++) {
+        final response = await _api.getUserDownloaded(
+          page: page,
+          limit: pageSize,
+        );
+        if (!response.success) {
+          throw StateError(
+            response.error ?? 'Could not load download history',
+          );
+        }
+        final batch = response.data ?? <Book>[];
+        final before = seen.length;
+        for (final book in batch) {
+          if (seen.add(book.id)) books.add(book);
+        }
+        final totalPages = int.tryParse(
+          response.meta?['total_pages']?.toString() ?? '',
+        );
+        // 终止条件故意不用 batch.length < pageSize：镜像可能把 limit
+        // 压到比 100 小，那只说明本页比请求的短，不代表没有下一页。
+        // "到达 total_pages"或"整页都是重复（没有新增）"才可靠——
+        // 后者同时兜住了服务端忽略 page 参数的情况（每页回同一批）。
+        if ((totalPages != null && page >= totalPages) ||
+            seen.length == before) {
+          break;
+        }
+      }
+      state = AsyncValue.data(books);
+    } catch (e, stack) {
+      // 静默对账失败：已有列表是最后已知的好数据，别用 error 覆盖它。
+      if (silent && hadData) return;
+      state = AsyncValue.error(e, stack);
+    }
+  }
+}
+
+final downloadedBooksProvider =
+    NotifierProvider<DownloadedBooksNotifier, AsyncValue<List<Book>>>(
+      DownloadedBooksNotifier.new,
+    );
 
 /// Resolved detail covers for cloud history rows, keyed by book id.
 ///

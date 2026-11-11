@@ -28,7 +28,7 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
   `Invalid hash` failure resolves the real eapi hash via a title
   search matched by id and retries once), `getMostPopular()`,
   `getUserRecommended()`, `getRecently()`, `getUserSaved({page, limit})`,
-  `getUserDownloaded({limit})`, `saveBook(bookId)`, `unsaveUserBook(bookId)`,
+  `getUserDownloaded({page, limit})`, `saveBook(bookId)`, `unsaveUserBook(bookId)`,
   `similar(bookId, hashId)`.
 - Download: `downloadBook(bookId, hash, savePath, {onProgress, cancelToken, title})`
   — Dio `CancelToken`, `(received, total)` progress, throws on failure.
@@ -47,7 +47,7 @@ Exports only what the app imports: `ZLibraryApi`, `Book`, `User`,
 | downloadBook | GET `/eapi/book/{id}/{hash}/file` then stream the returned link | Confirmed; same `Invalid hash` fallback as `getBookInfo` when `title` is given |
 | getUserSaved | GET `/eapi/user/book/saved` | Confirmed |
 | unsaveUserBook | GET `/eapi/user/book/{id}/unsave` | Confirmed |
-| getUserDownloaded | GET `/eapi/user/book/downloaded` | Confirmed by parameter shape in public clients |
+| getUserDownloaded | GET `/eapi/user/book/downloaded` (`page`, `limit`) | Confirmed; `page`/`limit` pagination verified against the working heartleo/zlib client — the list is account-wide (includes downloads made on other devices), newest first |
 | saveBook | GET `/eapi/user/book/{id}/save` | Inferred by symmetry with unsave |
 | getMostPopular | GET `/eapi/book/most_popular`, fallback search `order=popular` on 404 | Inferred, fallback included |
 | getUserRecommended | GET `/eapi/user/recommended`, fallback most-popular on 404 | Inferred, fallback included |

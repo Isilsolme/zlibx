@@ -243,11 +243,15 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   }
 
   Future<ApiResponse<List<Book>>> getUserDownloaded({
+    int? page,
     int? limit,
   }) async {
     final raw = await _get(
       '/eapi/user/book/downloaded',
-      query: {if (limit != null) 'limit': limit},
+      query: {
+        if (page != null) 'page': page,
+        if (limit != null) 'limit': limit,
+      },
     );
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'downloaded books failed',
