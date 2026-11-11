@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'api_response.dart';
 import 'book.dart';
 import 'book_comment.dart';
+import 'book_detail_html.dart';
 import 'booklist.dart';
 import 'user.dart';
 

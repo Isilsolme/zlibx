@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 393 getters/methods, in all 5 locales, plus the 20
+// every one of the 397 getters/methods, in all 5 locales, plus the 20
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -178,6 +178,9 @@ void main() {
     expect(loc.historySortTitleDesc, 'Name (Z-A)');
     expect(loc.home, 'Home');
     expect(loc.incorrectCredentials, 'Incorrect email or password');
+    expect(loc.ipfs, 'IPFS');
+    expect(loc.isbn10, 'ISBN 10');
+    expect(loc.isbn13, 'ISBN 13');
     expect(loc.language, 'Language');
     expect(loc.languageSetting, 'Language');
     expect(loc.later, 'Later');
@@ -410,6 +413,7 @@ void main() {
     expect(loc.verifyingAccess, 'Verifying access...');
     expect(loc.verifyingAccessHint, 'Complete the check in the browser page; the app returns automatically once it passes.');
     expect(loc.version, 'Version');
+    expect(loc.volume, 'Volume');
     expect(loc.websiteDownload, 'Website');
     expect(loc.welcomeBack, 'Welcome Back');
     expect(loc.writeComment, 'Write a comment');
@@ -575,6 +579,9 @@ void main() {
     expect(loc.historySortTitleDesc, '名前 (Z-A)');
     expect(loc.home, 'ホーム');
     expect(loc.incorrectCredentials, 'メールアドレスまたはパスワードが正しくありません');
+    expect(loc.ipfs, 'IPFS');
+    expect(loc.isbn10, 'ISBN 10');
+    expect(loc.isbn13, 'ISBN 13');
     expect(loc.language, '言語');
     expect(loc.languageSetting, '言語');
     expect(loc.later, 'あとで');
@@ -807,6 +814,7 @@ void main() {
     expect(loc.verifyingAccess, 'アクセスを確認中…');
     expect(loc.verifyingAccessHint, 'ブラウザページで確認を完了してください。完了すると自動的に戻ります。');
     expect(loc.version, 'バージョン');
+    expect(loc.volume, '巻');
     expect(loc.websiteDownload, '公式サイトからダウンロード');
     expect(loc.welcomeBack, 'おかえりなさい');
     expect(loc.writeComment, 'コメントを書く');
@@ -972,6 +980,9 @@ void main() {
     expect(loc.historySortTitleDesc, '이름 (Z-A)');
     expect(loc.home, '홈');
     expect(loc.incorrectCredentials, '이메일 또는 비밀번호가 올바르지 않습니다');
+    expect(loc.ipfs, 'IPFS');
+    expect(loc.isbn10, 'ISBN 10');
+    expect(loc.isbn13, 'ISBN 13');
     expect(loc.language, '언어');
     expect(loc.languageSetting, '언어');
     expect(loc.later, '나중에');
@@ -1204,6 +1215,7 @@ void main() {
     expect(loc.verifyingAccess, '액세스 확인 중…');
     expect(loc.verifyingAccessHint, '브라우저 페이지에서 확인을 완료하세요. 통과하면 자동으로 돌아갑니다.');
     expect(loc.version, '버전');
+    expect(loc.volume, '권');
     expect(loc.websiteDownload, '공식 사이트에서 다운로드');
     expect(loc.welcomeBack, '다시 오신 것을 환영합니다');
     expect(loc.writeComment, '댓글 쓰기');
@@ -1369,6 +1381,9 @@ void main() {
     expect(loc.historySortTitleDesc, '名称 (Z-A)');
     expect(loc.home, '首页');
     expect(loc.incorrectCredentials, '邮箱或密码错误');
+    expect(loc.ipfs, 'IPFS');
+    expect(loc.isbn10, 'ISBN 10');
+    expect(loc.isbn13, 'ISBN 13');
     expect(loc.language, '语言');
     expect(loc.languageSetting, '语言');
     expect(loc.later, '稍后再说');
@@ -1601,6 +1616,7 @@ void main() {
     expect(loc.verifyingAccess, '正在验证访问…');
     expect(loc.verifyingAccessHint, '请在浏览器页内完成验证，通过后会自动返回。');
     expect(loc.version, '版本');
+    expect(loc.volume, '卷');
     expect(loc.websiteDownload, '官网下载');
     expect(loc.welcomeBack, '欢迎回来');
     expect(loc.writeComment, '写评论');
@@ -1766,6 +1782,9 @@ void main() {
     expect(loc.historySortTitleDesc, '名稱 (Z-A)');
     expect(loc.home, '首頁');
     expect(loc.incorrectCredentials, '電子郵件或密碼錯誤');
+    expect(loc.ipfs, 'IPFS');
+    expect(loc.isbn10, 'ISBN 10');
+    expect(loc.isbn13, 'ISBN 13');
     expect(loc.language, '語言');
     expect(loc.languageSetting, '語言');
     expect(loc.later, '稍後再說');
@@ -1998,6 +2017,7 @@ void main() {
     expect(loc.verifyingAccess, '正在驗證存取…');
     expect(loc.verifyingAccessHint, '請在瀏覽器頁內完成驗證，通過後會自動返回。');
     expect(loc.version, '版本');
+    expect(loc.volume, '卷');
     expect(loc.websiteDownload, '官網下載');
     expect(loc.welcomeBack, '歡迎回來');
     expect(loc.writeComment, '寫評論');

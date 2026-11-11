@@ -186,7 +186,28 @@ final bookDetailsProvider =
   if (book == null) {
     throw StateError('Book details response did not contain a book');
   }
-  return book;
+  // Best-effort detail-page metadata (volume / ISBN / IPFS): the eapi
+  // book does not carry them. The HTML fetch runs AFTER the eapi
+  // detail loaded, so a slow or walled page only delays the extra
+  // rows — the screen keeps showing the eapi book meanwhile. Any
+  // failure returns the eapi book unchanged.
+  final href = identifier.href ?? book.href;
+  if (href == null || href.isEmpty) return book;
+  try {
+    final metadata = await api.fetchBookDetailMetadata(href);
+    if (metadata == null) return book;
+    return book.copyWith(
+      href: href,
+      volume: metadata.volume,
+      isbn10: metadata.isbn10,
+      isbn13: metadata.isbn13,
+      ipfsCid: metadata.ipfsCid,
+      ipfsCidBlake2b: metadata.ipfsCidBlake2b,
+    );
+  } catch (error) {
+    logIgnored('book_details_metadata', error);
+    return book;
+  }
   },
 );
 
@@ -389,7 +410,13 @@ class BookIdentifier {
   /// stored hash is a webpage short hash (see `getBookInfo`).
   final String? title;
 
-  BookIdentifier(this.bookId, this.hashId, {this.title});
+  /// The book's webpage path (`/book/{hash}/{slug}.html`) when the
+  /// list response that produced this book carried it. Used only to
+  /// fetch the detail-page metadata (volume / ISBN / IPFS) that the
+  /// eapi does not carry; null skips that fetch silently.
+  final String? href;
+
+  BookIdentifier(this.bookId, this.hashId, {this.title, this.href});
 
   @override
   bool operator ==(Object other) {
@@ -397,11 +424,13 @@ class BookIdentifier {
     return other is BookIdentifier &&
         other.bookId == bookId &&
         other.hashId == hashId &&
-        other.title == title;
+        other.title == title &&
+        other.href == href;
   }
 
   @override
-  int get hashCode => bookId.hashCode ^ hashId.hashCode ^ title.hashCode;
+  int get hashCode =>
+      bookId.hashCode ^ hashId.hashCode ^ title.hashCode ^ href.hashCode;
 }
 
 // ── Book Lists ──────────────────────────────────────────────────────

@@ -12,6 +12,12 @@ class Book {
   final int id;
   final String title;
   final String? hash;
+
+  /// The book's webpage path (`/book/{hash}/{slug}.html`) when a list
+  /// response carried it. Kept so the detail screen can fetch the
+  /// detail HTML for the metadata below; the eapi detail response does
+  /// not include it.
+  final String? href;
   final String? author;
   final String? cover;
   final String? description;
@@ -34,10 +40,22 @@ class Book {
   final String? interestScore;
   final String? readOnlineUrl;
 
+  /// Detail-page-only metadata (NOT in the eapi book object): parsed
+  /// from the book detail HTML (`property_volume` / `property_isbn_13` /
+  /// `property_isbn_10` / `property_ipfs_cid` rows — see
+  /// `parseBookDetailProperties`). Null when the HTML row was absent or
+  /// the HTML fetch was skipped/failed.
+  final String? volume;
+  final String? isbn10;
+  final String? isbn13;
+  final String? ipfsCid;
+  final String? ipfsCidBlake2b;
+
   const Book({
     required this.id,
     required this.title,
     this.hash,
+    this.href,
     this.author,
     this.cover,
     this.description,
@@ -52,6 +70,11 @@ class Book {
     this.filesizeString,
     this.interestScore,
     this.readOnlineUrl,
+    this.volume,
+    this.isbn10,
+    this.isbn13,
+    this.ipfsCid,
+    this.ipfsCidBlake2b,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -67,6 +90,7 @@ class Book {
       // the expensive resolveEapiHash search could ever repair.
       hash: _nonEmptyString(json['hash'] ?? json['hashId']) ??
           _hashFromBookHref(href),
+      href: _nonEmptyString(href),
       author: _joinAuthor(json['author']),
       cover: _asString(json['cover']),
       description: _asString(json['description']),
@@ -87,6 +111,16 @@ class Book {
       readOnlineUrl: _asString(
         json['readOnlineUrl'] ?? json['read_online_url'],
       ),
+      // Defensive only: the eapi book object does not carry these
+      // (they live in the detail HTML), but map them if a future
+      // endpoint ever does.
+      volume: _nonEmptyString(json['volume']),
+      isbn10: _nonEmptyString(json['isbn10'] ?? json['isbn_10']),
+      isbn13: _nonEmptyString(json['isbn13'] ?? json['isbn_13']),
+      ipfsCid: _nonEmptyString(json['ipfsCid'] ?? json['ipfs_cid']),
+      ipfsCidBlake2b: _nonEmptyString(
+        json['ipfsCidBlake2b'] ?? json['ipfs_cid_blake2b'],
+      ),
     );
   }
 
@@ -106,6 +140,7 @@ class Book {
     'id': id,
     'title': title,
     if (hash != null) 'hash': hash,
+    if (href != null) 'href': href,
     if (author != null) 'author': author,
     if (cover != null) 'cover': cover,
     if (description != null) 'description': description,
@@ -120,7 +155,68 @@ class Book {
     if (filesizeString != null) 'filesizeString': filesizeString,
     if (interestScore != null) 'interestScore': interestScore,
     if (readOnlineUrl != null) 'readOnlineUrl': readOnlineUrl,
+    if (volume != null) 'volume': volume,
+    if (isbn10 != null) 'isbn10': isbn10,
+    if (isbn13 != null) 'isbn13': isbn13,
+    if (ipfsCid != null) 'ipfsCid': ipfsCid,
+    if (ipfsCidBlake2b != null) 'ipfsCidBlake2b': ipfsCidBlake2b,
   };
+
+  /// Copy with overrides. A null argument keeps the current value
+  /// (there is no need to clear a field back to null anywhere in the
+  /// app); this is what lets the detail provider merge HTML-parsed
+  /// metadata into the eapi book.
+  Book copyWith({
+    int? id,
+    String? title,
+    String? hash,
+    String? href,
+    String? author,
+    String? cover,
+    String? description,
+    String? publisher,
+    int? year,
+    String? language,
+    String? categories,
+    int? pages,
+    String? series,
+    String? extension,
+    int? filesize,
+    String? filesizeString,
+    String? interestScore,
+    String? readOnlineUrl,
+    String? volume,
+    String? isbn10,
+    String? isbn13,
+    String? ipfsCid,
+    String? ipfsCidBlake2b,
+  }) {
+    return Book(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      hash: hash ?? this.hash,
+      href: href ?? this.href,
+      author: author ?? this.author,
+      cover: cover ?? this.cover,
+      description: description ?? this.description,
+      publisher: publisher ?? this.publisher,
+      year: year ?? this.year,
+      language: language ?? this.language,
+      categories: categories ?? this.categories,
+      pages: pages ?? this.pages,
+      series: series ?? this.series,
+      extension: extension ?? this.extension,
+      filesize: filesize ?? this.filesize,
+      filesizeString: filesizeString ?? this.filesizeString,
+      interestScore: interestScore ?? this.interestScore,
+      readOnlineUrl: readOnlineUrl ?? this.readOnlineUrl,
+      volume: volume ?? this.volume,
+      isbn10: isbn10 ?? this.isbn10,
+      isbn13: isbn13 ?? this.isbn13,
+      ipfsCid: ipfsCid ?? this.ipfsCid,
+      ipfsCidBlake2b: ipfsCidBlake2b ?? this.ipfsCidBlake2b,
+    );
+  }
 
   static int? _asInt(dynamic v) {
     if (v == null) return null;

@@ -52,6 +52,23 @@ class BookInfoSection extends StatelessWidget {
         l10n.pages: '${book.pages}',
       if (book.language?.isNotEmpty ?? false)
         l10n.language: book.language!,
+      // Detail-page-only metadata (parsed from the detail HTML, not
+      // the eapi): shown only when the fetch returned them.
+      if (book.volume?.isNotEmpty ?? false)
+        l10n.volume: book.volume!,
+      if (book.isbn13?.isNotEmpty ?? false)
+        l10n.isbn13: book.isbn13!,
+      if (book.isbn10?.isNotEmpty ?? false)
+        l10n.isbn10: book.isbn10!,
+      // Both CIDs on their own labelled lines: the Blake2b CID must
+      // stay reachable, never silently dropped. Display-only for v1
+      // (BookPublicationInfo has no tap-to-copy).
+      if (book.ipfsCid?.isNotEmpty ?? false)
+        l10n.ipfs: [
+          'CID: ${book.ipfsCid!}',
+          if (book.ipfsCidBlake2b?.isNotEmpty ?? false)
+            'CID Blake2b: ${book.ipfsCidBlake2b!}',
+        ].join('\n'),
     };
     // A missing description must stay absent rather than rendering as
     // the literal word "null".

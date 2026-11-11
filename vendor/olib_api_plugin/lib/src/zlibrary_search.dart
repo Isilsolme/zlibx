@@ -44,6 +44,32 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     return response;
   }
 
+  /// Best-effort metadata for one book from its detail page HTML.
+  /// [href] is the site-relative page path (`/book/{hash}/{slug}.html`
+  /// as carried by list responses); an absolute URL is reduced to its
+  /// path, anything else returns null.
+  ///
+  /// The eapi book object does not carry volume / ISBN / IPFS, so the
+  /// detail page HTML is the only source. This fetch is best-effort:
+  /// a non-2xx status, an empty body, a redirect, or a challenge page
+  /// all return null — no solver fallback, no error, and the caller
+  /// keeps the eapi book unchanged. It never throws.
+  Future<BookDetailMetadata?> fetchBookDetailMetadata(String href) async {
+    final path = Uri.tryParse(href)?.path ?? '';
+    if (!path.startsWith('/book/')) return null;
+    final raw = await _get(
+      path,
+      extraHeaders: const {'Accept': 'text/html'},
+    );
+    final status = raw.status;
+    if (status == null || status < 200 || status >= 300) return null;
+    final html = raw.body;
+    if (html == null || html.isEmpty) return null;
+    if (ZLibraryApiBase._looksLikeChallengePage(html)) return null;
+    final metadata = parseBookDetailProperties(html);
+    return metadata.isEmpty ? null : metadata;
+  }
+
   /// Resolve the real eapi hash for a book whose stored hash is a
   /// webpage short hash: search by title and take the hash of the
   /// result with the same numeric id. Returns null when the search

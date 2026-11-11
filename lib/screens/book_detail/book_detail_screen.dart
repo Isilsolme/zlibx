@@ -41,6 +41,7 @@ class BookDetailScreen extends ConsumerWidget {
             initialBook.id.toString(),
             hash,
             title: initialBook.title,
+            href: initialBook.href,
           )
         : null;
     final details = identifier == null
