@@ -35,12 +35,15 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   /// search request; a failure here fails the search with
   /// [fulltextTokenUnavailable] instead of silently falling back to
   /// normal search.
+  ///
+  /// No login gate here: the provider intercepts signed-out searches
+  /// before the plugin is reached, and a fetch without a session
+  /// simply finds no token on the page and fails the same way. The
+  /// tests construct the API without a login and expect the fetch
+  /// to run.
   Future<ApiResponse<String>> ensureFulltextToken() async {
     final cached = fulltextToken;
     if (cached != null) return ApiResponse.ok(cached);
-    if (_userId == null || _userKey == null) {
-      return ApiResponse.fail(fulltextTokenUnavailable);
-    }
     final raw = await _get(
       '/fulltext',
       extraHeaders: const {'Accept': 'text/html'},
@@ -237,19 +240,19 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   }) {
     final capped = _capFulltextQuery(query);
     final parts = <String>[
-      'q=${Uri.encodeQueryComponent(capped)}',
-      if (token != null) 'token=${Uri.encodeQueryComponent(token)}',
-      'type=${Uri.encodeQueryComponent(type)}',
+      'q=${Uri.encodeComponent(capped)}',
+      if (token != null) 'token=${Uri.encodeComponent(token)}',
+      'type=${Uri.encodeComponent(type)}',
       if (exact) 'e=1',
       if (yearFrom != null) 'yearFrom=$yearFrom',
       if (yearTo != null) 'yearTo=$yearTo',
       if (languages != null)
         for (final language in languages)
-          'languages[]=${Uri.encodeQueryComponent(language)}',
+          'languages[]=${Uri.encodeComponent(language)}',
       if (extensions != null)
         for (final extension in extensions)
-          'extensions[]=${Uri.encodeQueryComponent(extension)}',
-      if (order != null) 'order=${Uri.encodeQueryComponent(order)}',
+          'extensions[]=${Uri.encodeComponent(extension)}',
+      if (order != null) 'order=${Uri.encodeComponent(order)}',
       'page=$page',
     ];
     return '$_base/fulltext/?${parts.join('&')}';
