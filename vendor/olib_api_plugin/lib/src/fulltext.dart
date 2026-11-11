@@ -91,6 +91,26 @@ String? extractFulltextToken(String html) {
   return value;
 }
 
+/// The query a results page's search form echoes back, or null when
+/// the page carries no `q` input (or its value is empty).
+///
+/// The results page renders the submitted query in the form's text
+/// field (`<input name="q">`); a page answering a different query —
+/// the default listing the server returns for a stale token —
+/// echoes a different value (or none), which is how the caller
+/// tells a wrong page from the right one. The value is entity-decoded
+/// by the parser, so it compares directly against the submitted
+/// query string.
+String? extractFulltextQuery(String html) {
+  final doc = html_parser.parse(html);
+  final value = doc
+      .querySelector('input[name="q"]')
+      ?.attributes['value']
+      ?.trim();
+  if (value == null || value.isEmpty) return null;
+  return value;
+}
+
 /// One page of full-text search results, from the server-rendered
 /// `/fulltext` document.
 ///
@@ -255,11 +275,12 @@ List<FullTextSnippetPart> _parseSnippet(dom.Element card) {
 
 /// The total from the tab text (`全文检索 (N)`). The tab renders the
 /// count with a non-breaking space (`&nbsp;` in the raw HTML), so the
-/// pattern accepts raw whitespace, `&nbsp;` and `&#160;` alike.
-/// Null when the tab is absent.
+/// pattern accepts raw whitespace, `&nbsp;` and `&#160;` alike. Large
+/// totals render with a trailing `+` (`全文检索 (150+)`) — the count
+/// is the digits before it. Null when the tab is absent.
 int? _parseTotal(String html) {
   final match = RegExp(
-    r'全文检索(?:\s|&nbsp;|&#160;)*\((\d+)\)',
+    r'全文检索(?:\s|&nbsp;|&#160;)*\((\d+)\+?\)',
   ).firstMatch(html);
   if (match == null) return null;
   return int.tryParse(match.group(1) ?? '');

@@ -84,9 +84,9 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   ///
   /// The query form (`GET /fulltext/?q=…&token=…&type=…`) is used for
   /// every query — the path form (`/fulltext/{q}`) is not needed.
-  /// `type` is `phrase` (按词搜索， the default: the whole phrase
-  /// must match) or `words` (按字搜索： each word matches on its
-  /// own); `exact` sends `e=1` （精确对应）. `order` is one of
+  /// `type` is `words` （按字搜索， the default: each word matches on
+  /// its own) or `phrase` （按词搜索： the whole phrase must match);
+  /// `exact` sends `e=1` （精确对应）. `order` is one of
   /// `popular` / `bestmatch` / `date` / `titleA` / `title` / `year` /
   /// `filesize` / `filesizeA` — note the site's `titleA` is A–Z and
   /// `title` is Z–A. Multi-value filters go out as repeated keys
@@ -103,9 +103,18 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   /// When the failure looks like a stale token (login redirect,
   /// 401, or the token fetch itself failing), the cached token is
   /// dropped and the search is tried once more with a fresh one.
+  ///
+  /// A fresh token is fetched for EVERY search: a token cached from
+  /// an earlier search can go stale without the server saying so —
+  /// it answers HTTP 200 with the default listing instead of an
+  /// error, and the app would paint the wrong books (device-proven
+  /// 2026-11-11: the same 50 books for any query). The cache is
+  /// still populated by this search's fetch, so the solver URL's
+  /// [fulltextToken] getter can read the token fetched for THIS
+  /// search.
   Future<ApiResponse<FullTextSearchPage>> searchFullText({
     required String query,
-    String type = 'phrase',
+    String type = 'words',
     bool exact = false,
     int? yearFrom,
     int? yearTo,
@@ -114,6 +123,8 @@ mixin ZLibraryFullText on ZLibraryApiBase {
     String? order,
     int page = 1,
   }) async {
+    _fulltextToken = null;
+    _fulltextTokenUserId = null;
     final capped = _capFulltextQuery(query);
     if (capped.trim().isEmpty) {
       return ApiResponse.fail('empty query');
@@ -213,6 +224,19 @@ mixin ZLibraryFullText on ZLibraryApiBase {
         statusCode: status,
       );
     }
+    // The server answers a stale token with HTTP 200 and the default
+    // listing instead of an error — the page is then a results page
+    // for a different query (or none at all). The results form echoes
+    // the submitted query in its `q` input; when it does not match
+    // this search, fail as a stale token so the caller retries with
+    // a fresh token instead of painting the wrong books.
+    final echoedQuery = extractFulltextQuery(html);
+    if (echoedQuery == null || echoedQuery != query.trim()) {
+      return ApiResponse.fail(
+        fulltextTokenUnavailable,
+        statusCode: status,
+      );
+    }
     return ApiResponse.ok(parseFullTextSearchPage(html, baseUrl: _base));
   }
 
@@ -228,7 +252,7 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   /// search form instead of results.
   String fulltextPageUrl({
     required String query,
-    String type = 'phrase',
+    String type = 'words',
     bool exact = false,
     int? yearFrom,
     int? yearTo,

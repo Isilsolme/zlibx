@@ -53,11 +53,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _selectedOrder = 'default';
   String _selectedExtension = 'all';
 
-  // ── Full-text mode (z站 only): phrase/words match + exact flag.
-  // The order default differs per mode ('popular' for full-text,
-  // 'default' for general search) — see _switchFullTextMode.
+  // ── Full-text mode (z站 only): words/phrase match + exact flag.
+  // The match default is `words` (the site's working default,
+  // device-proven 2026-11-11); the order default differs per mode
+  // ('popular' for full-text, 'default' for general search) — see
+  // _switchFullTextMode.
   bool _isFullText = false;
-  String _fullTextMatchType = 'phrase';
+  String _fullTextMatchType = 'words';
   bool _fullTextExact = false;
 
   bool _isListView = false;
@@ -78,7 +80,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       (_selectedLanguage != 'all' ? 1 : 0) +
       (_selectedOrder != (_isFullText ? 'popular' : 'default') ? 1 : 0) +
       (_selectedExtension != 'all' ? 1 : 0) +
-      (_isFullText && _fullTextMatchType != 'phrase' ? 1 : 0) +
+      (_isFullText && _fullTextMatchType != 'words' ? 1 : 0) +
       (_isFullText && _fullTextExact ? 1 : 0);
 
   @override
@@ -398,7 +400,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               _selectedOrder =
                                   _isFullText ? 'popular' : 'default';
                               _selectedExtension = 'all';
-                              _fullTextMatchType = 'phrase';
+                              _fullTextMatchType = 'words';
                               _fullTextExact = false;
                             });
                             _applyFilterChange();

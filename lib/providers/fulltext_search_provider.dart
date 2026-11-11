@@ -13,7 +13,7 @@ import 'zlibrary_provider.dart';
 class FullTextSearchParams {
   final String query;
 
-  /// `phrase` （按词搜索， default) or `words` （按字搜索）.
+  /// `words` （按字搜索， default) or `phrase` （按词搜索）.
   final String type;
 
   /// `e=1` （精确对应）.
@@ -29,7 +29,7 @@ class FullTextSearchParams {
 
   const FullTextSearchParams({
     required this.query,
-    this.type = 'phrase',
+    this.type = 'words',
     this.exact = false,
     this.yearFrom,
     this.yearTo,
@@ -269,6 +269,7 @@ class FullTextSearchNotifier extends Notifier<FullTextSearchState> {
     final parsed = _repository.parsePage(
       html,
       baseUrl: Uri.parse(url).origin,
+      expectedQuery: params.query,
     );
     if (parsed == null) return (page: null, error: originalError);
     return (page: parsed, error: null);

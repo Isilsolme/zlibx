@@ -20,7 +20,7 @@ class FulltextRepository {
   /// One page of full-text search results.
   Future<ApiResponse<FullTextSearchPage>> search({
     required String query,
-    String type = 'phrase',
+    String type = 'words',
     bool exact = false,
     int? yearFrom,
     int? yearTo,
@@ -46,7 +46,7 @@ class FulltextRepository {
   /// form instead of results.
   String searchPageUrl({
     required String query,
-    String type = 'phrase',
+    String type = 'words',
     bool exact = false,
     int? yearFrom,
     int? yearTo,
@@ -80,8 +80,25 @@ class FulltextRepository {
   /// most likely landed on the search form, e.g. when no token was
   /// available for the URL) — also null, so the caller keeps the
   /// original challenge error instead of painting an empty result.
-  FullTextSearchPage? parsePage(String html, {required String baseUrl}) {
+  /// When [expectedQuery] is given, the page must also echo it in the
+  /// search form's `q` input (the same wrong-page guard the Dio path
+  /// applies): a solver landing on the default listing for a stale
+  /// token echoes a different query or none, and must not be painted.
+  FullTextSearchPage? parsePage(
+    String html, {
+    required String baseUrl,
+    String? expectedQuery,
+  }) {
     if (!html.contains('searchResultBox')) return null;
+    if (expectedQuery != null) {
+      final capped =
+          expectedQuery.length > ZLibraryFullText.fulltextMaxQueryLength
+              ? expectedQuery.substring(
+                  0, ZLibraryFullText.fulltextMaxQueryLength)
+              : expectedQuery;
+      final echoed = extractFulltextQuery(html);
+      if (echoed == null || echoed != capped.trim()) return null;
+    }
     try {
       return parseFullTextSearchPage(html, baseUrl: baseUrl);
     } catch (_) {

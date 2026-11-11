@@ -3,14 +3,16 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:zlibx/services/fulltext_repository.dart';
 
 // Full-text search request tests (all data synthetic): the token page
 // and the results page are canned HTML served by a fake adapter, so
 // no network runs. Covers the query the plugin sends (q / token /
 // type / e / order / page and the repeated `languages[]` /
-// `extensions[]` keys), the 200-char cap, token caching, the
-// stale-token retry, and the challenge-page error shape the
-// provider's solver fallback keys on.
+// `extensions[]` keys), the 200-char cap, the fresh token fetched
+// for every search, the stale-token retry, the wrong-page guard (the
+// results form must echo the submitted query), and the
+// challenge-page error shape the provider's solver fallback keys on.
 
 const _tokenHtml = '''
 <html><body>
@@ -20,8 +22,17 @@ const _tokenHtml = '''
 </body></html>
 ''';
 
+/// The results fixtures carry the search form with the query the
+/// page echoes back. The fake adapter replaces `__ECHOED_QUERY__`
+/// with the query the request actually carried (or with a wrong /
+/// empty value for the guard tests), mirroring the real page, whose
+/// `input[name="q"]` holds the submitted query.
 const _emptyResultsHtml = '''
 <html><body>
+<form method="get" id="searchForm" action="/fulltext/">
+  <input type="hidden" name="token" value="abcdef12">
+  <input type="text" maxlength="200" name="q" value="__ECHOED_QUERY__">
+</form>
 <div class="search-results-tabs-panel">
   <ul id="subprojectsSearch">
     <li class="active">全文检索&nbsp;(0)</li>
@@ -34,6 +45,10 @@ const _emptyResultsHtml = '''
 
 const _oneHitHtml = '''
 <html><body>
+<form method="get" id="searchForm" action="/fulltext/">
+  <input type="hidden" name="token" value="abcdef12">
+  <input type="text" maxlength="200" name="q" value="__ECHOED_QUERY__">
+</form>
 <div class="search-results-tabs-panel">
   <ul id="subprojectsSearch">
     <li class="active">全文检索&nbsp;(1)</li>
@@ -70,6 +85,15 @@ class _FakeAdapter implements HttpClientAdapter {
 
   /// The search answers 302 once, then 200 (stale-token retry).
   bool failSearchWith302Once = false;
+
+  /// The search answers once with a page whose form echoes a
+  /// different query (the stale-token default page), then echoes
+  /// the requested query.
+  bool echoWrongQueryOnce = false;
+
+  /// The search always answers with a page whose form echoes an
+  /// empty query (a default page carrying no query at all).
+  bool echoEmptyQuery = false;
 
   /// The search answers 200 with a browser-check page.
   bool challengeSearch = false;
@@ -110,7 +134,7 @@ class _FakeAdapter implements HttpClientAdapter {
           headers: {Headers.contentTypeHeader: ['text/html']},
         );
       }
-      return _html(resultsHtml);
+      return _html(_resultsFor(options));
     }
     return ResponseBody.fromString(
       '',
@@ -126,6 +150,31 @@ class _FakeAdapter implements HttpClientAdapter {
       headers: {Headers.contentTypeHeader: ['text/html']},
     );
   }
+
+  /// The results page with the `__ECHOED_QUERY__` marker replaced
+  /// by the query the request carried — what the real page does in
+  /// its search form. The guard tests override the echoed value.
+  String _resultsFor(RequestOptions options) {
+    final requested = options.uri.queryParameters['q'] ?? '';
+    final String echoed;
+    if (echoEmptyQuery) {
+      echoed = '';
+    } else if (echoWrongQueryOnce && searchCalls == 1) {
+      echoed = 'a different query';
+    } else {
+      echoed = requested;
+    }
+    return resultsHtml.replaceAll(
+      '__ECHOED_QUERY__',
+      _escapeAttr(echoed),
+    );
+  }
+
+  String _escapeAttr(String value) => value
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
 
   @override
   void close({bool force = false}) {}
@@ -144,7 +193,7 @@ Uri _searchUri(_FakeAdapter adapter) {
 
 void main() {
   group('searchFullText request', () {
-    test('sends q, token, type=phrase and page by default', () async {
+    test('sends q, token, type=words and page by default', () async {
       final adapter = _FakeAdapter();
       final api = _apiWith(adapter);
       final response = await api.searchFullText(query: 'synthetic phrase');
@@ -152,21 +201,21 @@ void main() {
       final uri = _searchUri(adapter);
       expect(uri.queryParameters['q'], 'synthetic phrase');
       expect(uri.queryParameters['token'], 'abcdef12');
-      expect(uri.queryParameters['type'], 'phrase');
+      expect(uri.queryParameters['type'], 'words');
       expect(uri.queryParameters['page'], '1');
       expect(uri.queryParameters.containsKey('e'), isFalse);
     });
 
-    test('exact sends e=1 and words sends type=words', () async {
+    test('exact sends e=1 and phrase sends type=phrase', () async {
       final adapter = _FakeAdapter();
       final api = _apiWith(adapter);
       await api.searchFullText(
         query: 'synthetic phrase',
-        type: 'words',
+        type: 'phrase',
         exact: true,
       );
       final uri = _searchUri(adapter);
-      expect(uri.queryParameters['type'], 'words');
+      expect(uri.queryParameters['type'], 'phrase');
       expect(uri.queryParameters['e'], '1');
     });
 
@@ -210,12 +259,16 @@ void main() {
       expect(uri.queryParameters['q'], 'x' * 200);
     });
 
-    test('fetches the token once and reuses it', () async {
+    // INTENDED BEHAVIOR CHANGE (2026-11-11 full-text "fixed set"
+    // fix): every search fetches a fresh token — a token cached
+    // from an earlier search can go stale without the server saying
+    // so, and the app then paints the server's default listing.
+    test('fetches a fresh token for every search', () async {
       final adapter = _FakeAdapter();
       final api = _apiWith(adapter);
       await api.searchFullText(query: 'first');
       await api.searchFullText(query: 'second');
-      expect(adapter.tokenCalls, 1);
+      expect(adapter.tokenCalls, 2);
       expect(adapter.searchCalls, 2);
     });
 
@@ -235,6 +288,35 @@ void main() {
       expect(adapter.searchCalls, 2);
       expect(adapter.tokenCalls, 2);
     });
+
+    test(
+      'retries once with a fresh token when the page echoes the '
+      'wrong query',
+      () async {
+        final adapter = _FakeAdapter()..echoWrongQueryOnce = true;
+        final api = _apiWith(adapter);
+        final response =
+            await api.searchFullText(query: 'synthetic phrase');
+        expect(response.success, isTrue);
+        expect(adapter.searchCalls, 2);
+        expect(adapter.tokenCalls, 2);
+      },
+    );
+
+    test(
+      'fails with the token error when the results page echoes no '
+      'query',
+      () async {
+        final adapter = _FakeAdapter()..echoEmptyQuery = true;
+        final api = _apiWith(adapter);
+        final response =
+            await api.searchFullText(query: 'synthetic phrase');
+        expect(response.success, isFalse);
+        expect(response.error, fulltextTokenUnavailable);
+        expect(adapter.searchCalls, 2);
+        expect(adapter.tokenCalls, 2);
+      },
+    );
 
     test('surfaces a challenge page as a browser-check error', () async {
       final adapter = _FakeAdapter()..challengeSearch = true;
@@ -279,6 +361,54 @@ void main() {
       expect(url, contains('extensions[]=epub'));
       expect(url, contains('order=titleA'));
       expect(url, contains('page=3'));
+    });
+
+    test('defaults to type=words', () {
+      final api = _apiWith(_FakeAdapter());
+      final url = api.fulltextPageUrl(query: 'synthetic phrase');
+      expect(url, contains('type=words'));
+    });
+  });
+
+  group('FulltextRepository.parsePage wrong-page guard', () {
+    FulltextRepository repository() =>
+        FulltextRepository(_apiWith(_FakeAdapter()));
+
+    test('returns the page when the form echoes the submitted query',
+        () {
+      final page = repository().parsePage(
+        _oneHitHtml.replaceAll('__ECHOED_QUERY__', 'synthetic phrase'),
+        baseUrl: 'https://bookroom.lifestyle',
+        expectedQuery: 'synthetic phrase',
+      );
+      expect(page, isNotNull);
+      expect(page!.hits, hasLength(1));
+    });
+
+    test('returns null when the form echoes a different query', () {
+      final page = repository().parsePage(
+        _oneHitHtml.replaceAll('__ECHOED_QUERY__', 'some other phrase'),
+        baseUrl: 'https://bookroom.lifestyle',
+        expectedQuery: 'synthetic phrase',
+      );
+      expect(page, isNull);
+    });
+
+    test('returns null when the form echoes an empty query', () {
+      final page = repository().parsePage(
+        _oneHitHtml.replaceAll('__ECHOED_QUERY__', ''),
+        baseUrl: 'https://bookroom.lifestyle',
+        expectedQuery: 'synthetic phrase',
+      );
+      expect(page, isNull);
+    });
+
+    test('returns the page when no expected query is given', () {
+      final page = repository().parsePage(
+        _oneHitHtml.replaceAll('__ECHOED_QUERY__', 'anything at all'),
+        baseUrl: 'https://bookroom.lifestyle',
+      );
+      expect(page, isNotNull);
     });
   });
 }

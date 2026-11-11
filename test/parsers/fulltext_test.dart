@@ -96,6 +96,13 @@ void main() {
       expect(page.totalPages, 2);
     });
 
+    test('total parses the capped "150+" tab form as 150', () {
+      final page = parseFullTextSearchPage(
+        _resultsHtml.replaceAll('全文检索&nbsp;(3)', '全文检索&nbsp;(150+)'),
+      );
+      expect(page.total, 150);
+    });
+
     test('parses card fields and the hash from the href', () {
       final page = parseFullTextSearchPage(_resultsHtml);
       final book = page.hits[0].book;
@@ -202,6 +209,39 @@ void main() {
           isNull,
         );
       }
+    });
+  });
+
+  group('extractFulltextQuery', () {
+    test('reads the search form q input', () {
+      expect(
+        extractFulltextQuery(
+          '<html><body><form id="searchForm">'
+          '<input type="text" name="q" value="synthetic phrase">'
+          '</form></body></html>',
+        ),
+        'synthetic phrase',
+      );
+    });
+
+    test('returns null when the q input is missing or empty', () {
+      expect(
+        extractFulltextQuery('<html><body><form></form></body></html>'),
+        isNull,
+      );
+      // The token fixture's q input is empty.
+      expect(extractFulltextQuery(_tokenHtml), isNull);
+    });
+
+    test('decodes entities in the echoed query', () {
+      expect(
+        extractFulltextQuery(
+          '<html><body><form id="searchForm">'
+          '<input type="text" name="q" value="a &amp; b">'
+          '</form></body></html>',
+        ),
+        'a & b',
+      );
     });
   });
 }
