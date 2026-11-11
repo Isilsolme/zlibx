@@ -8,6 +8,7 @@
 library;
 
 export 'src/api_response.dart';
+export 'src/article_search.dart';
 export 'src/book.dart';
 export 'src/book_comment.dart';
 export 'src/book_detail_html.dart';

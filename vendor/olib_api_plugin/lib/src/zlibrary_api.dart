@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 
 import 'api_response.dart';
+import 'article_search.dart';
 import 'book.dart';
 import 'book_comment.dart';
 import 'book_detail_html.dart';
@@ -14,6 +15,7 @@ import 'user.dart';
 
 part 'zlibrary_auth.dart';
 part 'zlibrary_search.dart';
+part 'zlibrary_articles.dart';
 part 'zlibrary_booklists.dart';
 part 'zlibrary_categories.dart';
 part 'zlibrary_fulltext.dart';
@@ -833,7 +835,7 @@ abstract class ZLibraryApiBase {
 ///   send_code, verify_code. Those methods fall back or fail loudly rather
 ///   than silently returning wrong data; see their doc comments.
 
-class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth, ZLibrarySearch, ZLibraryBooklists, ZLibraryCategories, ZLibraryFullText, ZLibraryDownloads {
+class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth, ZLibrarySearch, ZLibraryArticles, ZLibraryBooklists, ZLibraryCategories, ZLibraryFullText, ZLibraryDownloads {
   ZLibraryApi({super.domain, super.dio});
 
   String get domain => _domain;
