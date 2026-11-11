@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 367 getters/methods, in all 5 locales, plus the 22
+// every one of the 371 getters/methods, in all 5 locales, plus the 22
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -60,8 +60,10 @@ void main() {
     expect(loc.booklistsSubtitle, 'Your booklists and public ones');
     expect(loc.booksDownloadedAnyDevice, 'Books downloaded on any device');
     expect(loc.booksFound, 'books');
+    expect(loc.browseCategories, 'Browse Categories');
     expect(loc.cancel, 'Cancel');
     expect(loc.cannotOpenFolder, 'Could not open folder');
+    expect(loc.categories, 'Categories');
     expect(loc.checkForUpdates, 'Check for Updates');
     expect(loc.checkYourConnection, 'Please check your connection');
     expect(loc.checkingNetwork, 'Checking network...');
@@ -242,6 +244,7 @@ void main() {
     expect(loc.noBooklistBooks, 'No books in this booklist yet');
     expect(loc.noBooklists, 'No booklists yet');
     expect(loc.noBooksFound, 'No books found');
+    expect(loc.noCategoryBooks, 'No books in this category');
     expect(loc.noComments, 'No comments yet');
     expect(loc.noCompletedDownloads, 'No completed downloads');
     expect(loc.noHistory, 'No history');
@@ -344,6 +347,7 @@ void main() {
     expect(loc.shelfUncategorized, 'Uncategorized');
     expect(loc.shelfView, 'Bookshelf view');
     expect(loc.shelfViewDetails, 'View details');
+    expect(loc.showAll, 'Show all');
     expect(loc.showLess, 'Show Less');
     expect(loc.showMore, 'Read More');
     expect(loc.similarBooks, 'Similar Books');
@@ -431,8 +435,10 @@ void main() {
     expect(loc.booklistsSubtitle, '自分のブックリストと公開リスト');
     expect(loc.booksDownloadedAnyDevice, 'どのデバイスでもダウンロードした本');
     expect(loc.booksFound, '冊');
+    expect(loc.browseCategories, 'カテゴリを閲覧');
     expect(loc.cancel, 'キャンセル');
     expect(loc.cannotOpenFolder, 'フォルダを開けません');
+    expect(loc.categories, 'カテゴリ');
     expect(loc.checkForUpdates, 'アップデートを確認');
     expect(loc.checkYourConnection, '接続を確認してください');
     expect(loc.checkingNetwork, 'ネットワークを確認しています...');
@@ -613,6 +619,7 @@ void main() {
     expect(loc.noBooklistBooks, 'このブックリストにはまだ本がありません');
     expect(loc.noBooklists, 'ブックリストがありません');
     expect(loc.noBooksFound, '本が見つかりませんでした');
+    expect(loc.noCategoryBooks, 'このカテゴリには本がありません');
     expect(loc.noComments, 'コメントはまだありません');
     expect(loc.noCompletedDownloads, '完了したダウンロードはありません');
     expect(loc.noHistory, '履歴がありません');
@@ -715,6 +722,7 @@ void main() {
     expect(loc.shelfUncategorized, '未分類');
     expect(loc.shelfView, '本棚表示');
     expect(loc.shelfViewDetails, '詳細を見る');
+    expect(loc.showAll, 'すべて表示');
     expect(loc.showLess, '閉じる');
     expect(loc.showMore, 'もっと見る');
     expect(loc.similarBooks, '似た本');
@@ -802,8 +810,10 @@ void main() {
     expect(loc.booklistsSubtitle, '내 책 목록과 공개 목록');
     expect(loc.booksDownloadedAnyDevice, '모든 기기에서 다운로드한 책');
     expect(loc.booksFound, '권');
+    expect(loc.browseCategories, '카테고리 찾아보기');
     expect(loc.cancel, '취소');
     expect(loc.cannotOpenFolder, '폴더를 열 수 없습니다');
+    expect(loc.categories, '카테고리');
     expect(loc.checkForUpdates, '업데이트 확인');
     expect(loc.checkYourConnection, '연결 상태를 확인해 주세요');
     expect(loc.checkingNetwork, '네트워크 확인 중...');
@@ -984,6 +994,7 @@ void main() {
     expect(loc.noBooklistBooks, '이 책 목록에는 아직 책이 없습니다');
     expect(loc.noBooklists, '책 목록이 없습니다');
     expect(loc.noBooksFound, '책을 찾을 수 없습니다');
+    expect(loc.noCategoryBooks, '이 카테고리에 책이 없습니다');
     expect(loc.noComments, '댓글이 아직 없습니다');
     expect(loc.noCompletedDownloads, '완료된 다운로드가 없습니다');
     expect(loc.noHistory, '기록이 없습니다');
@@ -1086,6 +1097,7 @@ void main() {
     expect(loc.shelfUncategorized, '미분류');
     expect(loc.shelfView, '책장 보기');
     expect(loc.shelfViewDetails, '상세 정보 보기');
+    expect(loc.showAll, '모두 보기');
     expect(loc.showLess, '접기');
     expect(loc.showMore, '더 보기');
     expect(loc.similarBooks, '비슷한 책');
@@ -1173,8 +1185,10 @@ void main() {
     expect(loc.booklistsSubtitle, '你的书单和大家的书单');
     expect(loc.booksDownloadedAnyDevice, '在任何设备上下载的书籍');
     expect(loc.booksFound, '本书');
+    expect(loc.browseCategories, '浏览分类');
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '无法打开文件夹');
+    expect(loc.categories, '分类');
     expect(loc.checkForUpdates, '检查更新');
     expect(loc.checkYourConnection, '请检查网络连接');
     expect(loc.checkingNetwork, '正在检查网络...');
@@ -1355,6 +1369,7 @@ void main() {
     expect(loc.noBooklistBooks, '这个书单里还没有书');
     expect(loc.noBooklists, '暂无书单');
     expect(loc.noBooksFound, '未找到书籍');
+    expect(loc.noCategoryBooks, '这个分类下没有书');
     expect(loc.noComments, '暂无评论');
     expect(loc.noCompletedDownloads, '没有已完成的下载');
     expect(loc.noHistory, '暂无历史');
@@ -1457,6 +1472,7 @@ void main() {
     expect(loc.shelfUncategorized, '未分类');
     expect(loc.shelfView, '书架模式');
     expect(loc.shelfViewDetails, '查看详情');
+    expect(loc.showAll, '全部');
     expect(loc.showLess, '收起简介');
     expect(loc.showMore, '展开简介');
     expect(loc.similarBooks, '相似书籍');
@@ -1544,8 +1560,10 @@ void main() {
     expect(loc.booklistsSubtitle, '你的書單和大家的書單');
     expect(loc.booksDownloadedAnyDevice, '在任何裝置上下載的書籍');
     expect(loc.booksFound, '本書');
+    expect(loc.browseCategories, '瀏覽分類');
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '無法開啟資料夾');
+    expect(loc.categories, '分類');
     expect(loc.checkForUpdates, '檢查更新');
     expect(loc.checkYourConnection, '請檢查網路連線');
     expect(loc.checkingNetwork, '正在檢查網路...');
@@ -1726,6 +1744,7 @@ void main() {
     expect(loc.noBooklistBooks, '這個書單裡還沒有書');
     expect(loc.noBooklists, '暫無書單');
     expect(loc.noBooksFound, '未找到書籍');
+    expect(loc.noCategoryBooks, '這個分類下沒有書');
     expect(loc.noComments, '暫無評論');
     expect(loc.noCompletedDownloads, '沒有已完成的下載');
     expect(loc.noHistory, '尚無紀錄');
@@ -1828,6 +1847,7 @@ void main() {
     expect(loc.shelfUncategorized, '未分類');
     expect(loc.shelfView, '書架模式');
     expect(loc.shelfViewDetails, '查看詳情');
+    expect(loc.showAll, '全部');
     expect(loc.showLess, '收合簡介');
     expect(loc.showMore, '展開簡介');
     expect(loc.similarBooks, '相似書籍');

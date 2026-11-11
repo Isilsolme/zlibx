@@ -523,6 +523,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     onSearch: _searchAgain,
                     onRemoveSearch: _removeRecentSearch,
                     onClearHistory: _clearRecentSearches,
+                    onBrowseCategories: () =>
+                        AppRoutes.openCategories(context),
                   )
                 : _showSuggestions
                 ? SearchSuggestionsView(

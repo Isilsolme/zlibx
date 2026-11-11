@@ -150,4 +150,49 @@ void main() {
       );
     });
   });
+
+  group('kBookCategoryGroups', () {
+    test('39 groups partition all 841 ids exactly once', () {
+      expect(kBookCategoryGroups.length, 39);
+      final all = [
+        for (final g in kBookCategoryGroups) ...[g.top, ...g.subs],
+      ];
+      expect(all.length, 841);
+      expect(all.toSet().length, 841);
+      expect(all.toSet(), kBookCategoryNames.keys.toSet());
+    });
+
+    test('every group has at least one subcategory', () {
+      for (final g in kBookCategoryGroups) {
+        expect(g.subs, isNotEmpty, reason: 'group top ${g.top}');
+      }
+    });
+  });
+
+  group('kBookCategoryEnglishNames', () {
+    test('every table id has a non-empty English name', () {
+      expect(kBookCategoryEnglishNames.length, 841);
+      expect(
+        kBookCategoryEnglishNames.keys.toSet(),
+        kBookCategoryNames.keys.toSet(),
+      );
+      for (final entry in kBookCategoryEnglishNames.entries) {
+        expect(entry.value.trim(), isNotEmpty);
+      }
+    });
+  });
+
+  group('bookCategoryDisplayName', () {
+    test('zh shows the Chinese name, other locales the English name', () {
+      expect(
+        bookCategoryDisplayName(75, const Locale('zh')),
+        '电影、电视与音乐',
+      );
+      expect(
+        bookCategoryDisplayName(75, const Locale('en')),
+        'Film, Television & Music',
+      );
+      expect(bookCategoryDisplayName(1, const Locale('ja')), 'Arts');
+    });
+  });
 }
