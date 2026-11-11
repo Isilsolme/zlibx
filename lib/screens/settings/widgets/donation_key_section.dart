@@ -63,7 +63,7 @@ class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
               );
               // The dialog writes secure storage directly; re-read to
               // refresh the subtitle (set / still empty).
-              if (mounted) _loadKey();
+              if (mounted) await _loadKey();
             },
           ),
         ),

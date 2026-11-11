@@ -173,14 +173,13 @@ void main() {
     final controller = CommentBookRefController(api: api)
       ..addListener(() => notified++);
     controller.dispose();
-    controller
-      ..prefetch([_item(1)])
-      ..openBookDetail(
-        bookId: 2,
-        title: 'Book #2',
-        onReady: (_) {},
-        onFail: () {},
-      );
+    await controller.prefetch([_item(1)]);
+    await controller.openBookDetail(
+      bookId: 2,
+      title: 'Book #2',
+      onReady: (_) {},
+      onFail: () {},
+    );
     await Future<void>.delayed(Duration.zero);
     expect(notified, 0);
   });

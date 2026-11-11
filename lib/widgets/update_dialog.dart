@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +23,7 @@ Future<void> showUpdateDialog(BuildContext context) {
 
 /// 设置页「检查更新」：强制请求一次，有新版本弹更新对话框，否则提示已是最新
 Future<void> showManualUpdateCheck(BuildContext context) async {
-  showDialog<void>(
+  unawaited(showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (_) => AlertDialog(
@@ -34,7 +35,7 @@ Future<void> showManualUpdateCheck(BuildContext context) async {
         ],
       ),
     ),
-  );
+  ));
 
   final hasUpdate = await ProviderScope.containerOf(context)
       .read(updateProvider.notifier)

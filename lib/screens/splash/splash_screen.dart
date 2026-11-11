@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,11 +113,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Slight delay for smoother feel
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
-    _logoController.forward();
+    unawaited(_logoController.forward());
 
     await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
-    _contentController.forward();
+    unawaited(_contentController.forward());
   }
 
   @override

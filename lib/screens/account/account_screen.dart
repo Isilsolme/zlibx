@@ -149,7 +149,7 @@ class AccountScreen extends ConsumerWidget {
       btnOkOnPress: () async {
         await ref.read(authProvider.notifier).logout();
         if (context.mounted) {
-          AppRoutes.logoutToLogin(context);
+          await AppRoutes.logoutToLogin(context);
         }
       },
     ).show());

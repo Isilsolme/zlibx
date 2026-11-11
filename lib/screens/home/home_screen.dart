@@ -541,7 +541,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       );
 
       // Mark as shown (will show again next day)
-      updateNotifier.dismissUpdate();
+      await updateNotifier.dismissUpdate();
     }
   }
 

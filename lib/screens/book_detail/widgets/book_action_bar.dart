@@ -273,7 +273,7 @@ class BookActionBar extends ConsumerWidget {
     if (!context.mounted) return;
     // 下载结束后刷新资料，保持本地剩余次数准确
     final auth = ref.read(authProvider.notifier);
-    notifier.startDownload(book).whenComplete(auth.refreshProfile);
+    unawaited(notifier.startDownload(book).whenComplete(auth.refreshProfile));
     _toast(context, downloadingMsg);
   }
 

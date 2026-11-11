@@ -176,7 +176,7 @@ class DownloadPathSection extends ConsumerWidget {
                           final result = await FilePicker
                               .getDirectoryPath();
                           if (result != null) {
-                            ref
+                            await ref
                                 .read(downloadPathProvider.notifier)
                                 .setDownloadPath(result);
                             if (context.mounted) {

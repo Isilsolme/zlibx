@@ -138,7 +138,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen> {
   /// not awaited here: it has its own loading state inside the
   /// section, and its solver fallback can take a while.
   Future<void> _refresh() async {
-    _loadBooklists();
+    unawaited(_loadBooklists());
     await _load();
   }
 

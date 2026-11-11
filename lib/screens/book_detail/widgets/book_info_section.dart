@@ -193,6 +193,6 @@ class BookInfoSection extends StatelessWidget {
 Future<void> _addToBooklist(BuildContext context, Book book) async {
   final loginRequested = await showAddToBooklistDialog(context, book.id);
   if (loginRequested && context.mounted) {
-    AppRoutes.openLogin(context);
+    await AppRoutes.openLogin(context);
   }
 }

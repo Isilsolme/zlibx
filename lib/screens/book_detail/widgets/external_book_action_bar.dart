@@ -196,9 +196,11 @@ class _ExternalBookActionBarState
         }
         return;
       }
-      ref
-          .read(downloadProvider.notifier)
-          .startDownload(book, presetUrl: target.url!);
+      unawaited(
+        ref
+            .read(downloadProvider.notifier)
+            .startDownload(book, presetUrl: target.url!),
+      );
       if (context.mounted) {
         _toast(context, AppLocalizations.of(context)!.downloading);
       }
