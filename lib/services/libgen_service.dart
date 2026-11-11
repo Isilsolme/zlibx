@@ -14,6 +14,7 @@ import 'package:meta/meta.dart';
 // Project imports:
 import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/external_logger.dart';
+import 'package:zlibx/services/instance_manager.dart'; // For MirrorService (re-exported from the catalogue).
 import 'package:zlibx/services/mirror_speed_test.dart';
 
 /// Library Genesis book-info + download service.
