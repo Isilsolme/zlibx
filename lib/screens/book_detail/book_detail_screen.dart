@@ -49,9 +49,21 @@ class BookDetailScreen extends ConsumerWidget {
         : ref.watch(bookDetailsProvider(identifier));
     // 详情载荷 = 书本体（eapi + 详情页元数据合并）+ 关联书单（同一次
     // HTML 抓取解析，见 bookDetailsProvider）。加载中沿用入参书本体。
-    final book = details?.isLoading == true
+    final resolvedBook = details?.isLoading == true
         ? initialBook
         : (details?.valueOrNull?.book ?? initialBook);
+    // Rating fallback: when the detail-page HTML fetch failed (slow
+    // link / walled page) the provider book carries no rating, but the
+    // entry book already has the eapi interest score — the same ★ the
+    // search card shows. Use it for the interest side so the tag is
+    // not empty; the HTML value wins whenever it exists. The quality
+    // side has no eapi equivalent and stays HTML-only.
+    final needsRatingFallback =
+        (resolvedBook.ratingInterest?.isEmpty ?? true) &&
+            (initialBook.interestScore?.isNotEmpty ?? false);
+    final book = needsRatingFallback
+        ? resolvedBook.copyWith(ratingInterest: initialBook.interestScore)
+        : resolvedBook;
     final relatedBooklists =
         details?.valueOrNull?.relatedBooklists ?? const [];
     // 只订阅本书的任务：其他书的下载进度变化不再触发本页重建。

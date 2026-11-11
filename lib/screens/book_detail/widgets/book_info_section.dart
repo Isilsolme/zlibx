@@ -48,7 +48,9 @@ class BookInfoSection extends StatelessWidget {
           text: '${book.year}',
         ),
       // Detail-page rating (site header block `★ 3.0 / 5.0`): interest
-      // over quality, both parsed from the detail HTML (not the eapi).
+      // over quality. The interest side falls back to the eapi interest
+      // score (the ★ the search card shows) when the detail HTML fetch
+      // failed — see book_detail_screen.dart; quality is HTML-only.
       // Shown when either score exists; the site hides each span
       // independently for unrated books, and the parser nulls them.
       if ((book.ratingInterest?.isNotEmpty ?? false) ||

@@ -84,9 +84,17 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     // booklists. Same helper the article search and category pages
     // use; it follows up to 5 hops and returns an error _Raw instead
     // of throwing.
+    //
+    // 300s receive timeout, not the Dio default (60s): a detail page
+    // is a large HTML document (hundreds of KB), and on a slow link
+    // (~10 kB/s) it does not finish inside 60s — the fetch then fails
+    // silently and the rating + related booklists both vanish while
+    // the small eapi book loads fine (device-verified 2026-11-12).
+    // Same 300s the downloads use for the same reason.
     final raw = await _getWithRedirects(
       path,
       extraHeaders: const {'Accept': 'text/html'},
+      receiveTimeout: const Duration(seconds: 300),
     );
     final status = raw.status;
     if (status == null || status < 200 || status >= 300) return null;

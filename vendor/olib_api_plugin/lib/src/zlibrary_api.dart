@@ -220,10 +220,15 @@ abstract class ZLibraryApiBase {
   /// unparsable Location) return an error [_Raw] — never throw: the
   /// callers only handle `ApiResponse.fail`, they do not catch
   /// [StateError].
+  ///
+  /// [receiveTimeout] overrides the Dio default (60s) for this call
+  /// only; null keeps the default. Callers fetching a large HTML page
+  /// on a slow link pass a longer one.
   Future<_Raw> _getWithRedirects(
     String path, {
     Map<String, String>? extraHeaders,
     Map<String, dynamic>? queryParameters,
+    Duration? receiveTimeout,
   }) async {
     var url = '$_base$path';
     var headers = Map<String, String>.from(_headers);
@@ -249,6 +254,10 @@ abstract class ZLibraryApiBase {
             responseType: ResponseType.plain,
             followRedirects: false,
             validateStatus: (status) => status != null && status < 400,
+            // Per-request override of the Dio default (60s); null
+            // keeps it. Large HTML pages on a slow link need more
+            // time — see fetchBookDetailExtras.
+            receiveTimeout: receiveTimeout,
             // Same as [_get]: Dio 5.9.2's default is ListFormat.multi
             // (bare repeated keys) — set multiCompatible explicitly
             // so bare list keys encode as `key[]=…`.
