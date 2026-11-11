@@ -440,6 +440,8 @@ class BooklistDetailController
   /// it. A null entry id (book not in this list) or a failed resolve
   /// fails here without calling remove-book at all: falling back to
   /// the book id is the bug that made the server 500 every app remove.
+  /// A failed resolve keeps its own error (e.g. a network error) —
+  /// reporting it as "not in this booklist" hides the real cause.
   ///
   /// Two removes of the same book cannot overlap (a
   /// [_removingBookIds] guard); removes of different books re-locate
@@ -459,10 +461,19 @@ class BooklistDetailController
       return ApiResponse.fail('book is already being removed');
     }
     try {
-      final entryId = book.readlistBookId ?? await _resolveEntryId(book);
+      final knownEntryId = book.readlistBookId;
+      final entry = knownEntryId != null
+          ? ApiResponse<int?>.ok(knownEntryId)
+          : await _resolveEntryId(book);
       if (!_alive) {
         return ApiResponse.fail('remove book failed');
       }
+      if (!entry.success) {
+        return ApiResponse.fail(
+          entry.error ?? 'get booklist entry failed',
+        );
+      }
+      final entryId = entry.data;
       if (entryId == null) {
         return ApiResponse.fail('book is not in this booklist');
       }
@@ -525,20 +536,24 @@ class BooklistDetailController
 
   /// Resolve one book's readlist ENTRY id via `current-user` (the
   /// fallback when the detail page's own card did not carry
-  /// `booklistsindex`). Returns null when the book is not in this
-  /// list or the lookup failed — the caller reports the failure.
-  Future<int?> _resolveEntryId(Book book) async {
+  /// `booklistsindex`). Returns the lookup response as-is: a failed
+  /// lookup stays failed so the caller can report its error, and a
+  /// successful lookup with a null id means the book is not in this
+  /// list. The two must NOT be collapsed into one null — that is what
+  /// made a network failure surface as "book is not in this
+  /// booklist".
+  Future<ApiResponse<int?>> _resolveEntryId(Book book) async {
     final listId = int.tryParse(_list.id);
-    if (listId == null) return null;
+    if (listId == null) {
+      return ApiResponse.fail('get booklist entry failed');
+    }
     try {
-      final entry = await _repository.resolveBookEntry(
+      return await _repository.resolveBookEntry(
         booklistId: listId,
         bookId: book.id,
       );
-      if (!entry.success) return null;
-      return entry.data;
     } catch (_) {
-      return null;
+      return ApiResponse.fail('get booklist entry failed');
     }
   }
 
@@ -559,11 +574,19 @@ class BooklistDetailController
       return ApiResponse.fail('book not in list');
     }
     try {
-      final entryId =
-          book.readlistBookId ?? await _resolveEntryId(book);
+      final knownEntryId = book.readlistBookId;
+      final entry = knownEntryId != null
+          ? ApiResponse<int?>.ok(knownEntryId)
+          : await _resolveEntryId(book);
       if (!_alive) {
         return ApiResponse.fail('save book note failed');
       }
+      if (!entry.success) {
+        return ApiResponse.fail(
+          entry.error ?? 'get booklist entry failed',
+        );
+      }
+      final entryId = entry.data;
       if (entryId == null) {
         return ApiResponse.fail('book is not in this booklist');
       }
