@@ -43,9 +43,14 @@ mixin ZLibraryArticles on ZLibraryApiBase {
     final capped = trimmed.length > articleSearchMaxQueryLength
         ? trimmed.substring(0, articleSearchMaxQueryLength)
         : trimmed;
-    final raw = await _get(
+    // `_getWithRedirects`, not `_get`: the `/s/` route may hop (e.g.
+    // a slugged/normalized search URL), and a non-redirect-following
+    // `_get` would answer the 30x itself and fail the search. Same
+    // helper the category pages use; it re-sends the query params on
+    // every hop and returns an error _Raw instead of throwing.
+    final raw = await _getWithRedirects(
       '/s/${Uri.encodeComponent(capped)}',
-      query: {
+      queryParameters: {
         'content_type': 'article',
         if (order != null) 'order': order,
         'page': page,
