@@ -55,7 +55,27 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// a non-2xx status, an empty body, a redirect, or a challenge page
   /// all return null — no solver fallback, no error, and the caller
   /// keeps the eapi book unchanged. It never throws.
+  ///
+  /// Thin delegate over [fetchBookDetailExtras] — same single fetch,
+  /// only the metadata half of the result.
   Future<BookDetailMetadata?> fetchBookDetailMetadata(String href) async {
+    final metadata = (await fetchBookDetailExtras(href))?.metadata;
+    return metadata == null || metadata.isEmpty ? null : metadata;
+  }
+
+  /// One best-effort fetch of the book detail page that parses
+  /// EVERYTHING the page renders beyond the eapi book: the metadata
+  /// rows ([BookDetailMetadata]) and the related-booklists block
+  /// ([BookDetailExtras.relatedBooklists]) — one request instead of
+  /// the two a separate related-booklists fetch would cost (both live
+  /// in the same document).
+  ///
+  /// Same best-effort contract as [fetchBookDetailMetadata]: a
+  /// non-2xx status, an empty body, a redirect, or a challenge page
+  /// return null; a page that loads but carries neither section
+  /// returns an extras object with an all-null metadata and no
+  /// booklists. It never throws.
+  Future<BookDetailExtras?> fetchBookDetailExtras(String href) async {
     final path = Uri.tryParse(href)?.path ?? '';
     if (!path.startsWith('/book/')) return null;
     final raw = await _get(
@@ -67,8 +87,10 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     final html = raw.body;
     if (html == null || html.isEmpty) return null;
     if (ZLibraryApiBase._looksLikeChallengePage(html)) return null;
-    final metadata = parseBookDetailProperties(html);
-    return metadata.isEmpty ? null : metadata;
+    return BookDetailExtras(
+      metadata: parseBookDetailProperties(html),
+      relatedBooklists: parseRelatedBooklists(html, baseUrl: _base),
+    );
   }
 
   /// Resolve the real eapi hash for a book whose stored hash is a

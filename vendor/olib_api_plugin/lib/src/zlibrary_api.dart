@@ -11,6 +11,7 @@ import 'book_detail_html.dart';
 import 'booklist.dart';
 import 'category.dart';
 import 'fulltext.dart';
+import 'related_booklists.dart';
 import 'user.dart';
 
 part 'zlibrary_auth.dart';

@@ -47,9 +47,13 @@ class BookDetailScreen extends ConsumerWidget {
     final details = identifier == null
         ? null
         : ref.watch(bookDetailsProvider(identifier));
+    // 详情载荷 = 书本体（eapi + 详情页元数据合并）+ 关联书单（同一次
+    // HTML 抓取解析，见 bookDetailsProvider）。加载中沿用入参书本体。
     final book = details?.isLoading == true
         ? initialBook
-        : details?.valueOrNull ?? initialBook;
+        : (details?.valueOrNull?.book ?? initialBook);
+    final relatedBooklists =
+        details?.valueOrNull?.relatedBooklists ?? const [];
     // 只订阅本书的任务：其他书的下载进度变化不再触发本页重建。
     // 账号额度提醒仍在下面用 ref.listen 监听整个列表，不受影响。
     final downloadTask = ref.watch(
@@ -115,7 +119,10 @@ class BookDetailScreen extends ConsumerWidget {
             ),
 
           // ── 2. Content Body ──
-          BookInfoSection(book: book),
+          BookInfoSection(
+            book: book,
+            relatedBooklists: relatedBooklists,
+          ),
         ],
       ),
     );
