@@ -183,6 +183,11 @@ abstract class ZLibraryApiBase {
           headers: {..._headers, ...?extraHeaders},
           responseType: ResponseType.plain,
           followRedirects: false,
+          // Multi-value filters go out as `key[]=…`: Dio 5.9.2's
+          // default is ListFormat.multi (bare repeated keys), NOT
+          // multiCompatible — set it explicitly so bare list keys
+          // encode with brackets. Scalars are unaffected.
+          listFormat: ListFormat.multiCompatible,
         ),
       );
       return _fromResponse(res);
@@ -241,6 +246,10 @@ abstract class ZLibraryApiBase {
             responseType: ResponseType.plain,
             followRedirects: false,
             validateStatus: (status) => status != null && status < 400,
+            // Same as [_get]: Dio 5.9.2's default is ListFormat.multi
+            // (bare repeated keys) — set multiCompatible explicitly
+            // so bare list keys encode as `key[]=…`.
+            listFormat: ListFormat.multiCompatible,
           ),
         );
         final code = res.statusCode ?? 0;

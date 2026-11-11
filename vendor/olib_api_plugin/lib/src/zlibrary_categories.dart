@@ -23,9 +23,10 @@ part of 'zlibrary_api.dart';
 ///
 /// Multi-value filters (`languages`, `extensions`,
 /// `selected_content_types`) are passed as BARE keys with a List
-/// value: Dio's default `ListFormat.multiCompatible` then emits the
-/// repeated `languages[]=x` form the site's form submits. Never pass
-/// the `languages[]` key with the default format — it would emit
+/// value: the requests set `ListFormat.multiCompatible` explicitly
+/// (Dio 5.9.2's default is `multi`, bare repeated keys), which emits
+/// the repeated `languages[]=x` form the site's form submits. Never
+/// pass the `languages[]` key with that format — it would emit
 /// `languages[][]`.
 mixin ZLibraryCategories on ZLibraryApiBase {
   /// Books on one page of a category, plus the page count when the
@@ -204,9 +205,9 @@ mixin ZLibraryCategories on ZLibraryApiBase {
     };
   }
 
-  /// Encode a query map the way Dio's default `multiCompatible` list
-  /// format does: scalars as `key=value`, lists as repeated
-  /// `key[]=value`. Used only for the absolute solver URLs
+  /// Encode a query map the way `ListFormat.multiCompatible` does:
+  /// scalars as `key=value`, lists as repeated `key[]=value`. Used
+  /// only for the absolute solver URLs
   /// ([categoryPageUrl]/[categorySearchUrl]); the Dio fetches pass
   /// the map itself and let Dio encode it.
   String _encodeQuery(Map<String, dynamic> query) {

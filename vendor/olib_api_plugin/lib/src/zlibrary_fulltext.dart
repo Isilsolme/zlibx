@@ -91,11 +91,11 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   /// `filesize` / `filesizeA` — note the site's `titleA` is A–Z and
   /// `title` is Z–A. Multi-value filters go out as repeated keys
   /// (`languages[]=chinese&languages[]=english`): the map keys here
-  /// carry NO brackets and rely on Dio's default
-  /// `ListFormat.multiCompatible`, which appends `[]` itself — the
-  /// same form the eapi search already uses. Never combine a
-  /// `languages[]` key with the default format (it would emit
-  /// `languages[][]=…`).
+  /// carry NO brackets and rely on the `ListFormat.multiCompatible`
+  /// set on the request — Dio 5.9.2's default is `multi` (bare
+  /// repeated keys), so the format must be explicit — the same form
+  /// the eapi search already uses. Never combine a `languages[]`
+  /// key with that format (it would emit `languages[][]=…`).
   ///
   /// A challenge page is reported as `HTTP 503: browser check page`
   /// (via [_looksLikeChallengePage]) so the caller can fall back to
