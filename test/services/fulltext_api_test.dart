@@ -393,6 +393,40 @@ void main() {
     });
   });
 
+  group('FulltextRepository.searchPageUrl', () {
+    test('an explicit token overrides the cached one', () async {
+      // The solver fallback passes the token it read from the token
+      // page itself; it must win over whatever the cache holds.
+      final adapter = _FakeAdapter();
+      final api = _apiWith(adapter);
+      final repository = FulltextRepository(api);
+      final cached = await api.ensureFulltextToken();
+      expect(cached.success, isTrue);
+      final url = repository.searchPageUrl(
+        query: 'synthetic phrase',
+        token: 'a1b2c3d4',
+      );
+      expect(url, contains('token=a1b2c3d4'));
+      expect(url, isNot(contains('token=abcdef12')));
+    });
+
+    test('falls back to the cached token when none is given', () async {
+      final adapter = _FakeAdapter();
+      final api = _apiWith(adapter);
+      final repository = FulltextRepository(api);
+      final cached = await api.ensureFulltextToken();
+      expect(cached.success, isTrue);
+      final url = repository.searchPageUrl(query: 'synthetic phrase');
+      expect(url, contains('token=abcdef12'));
+    });
+
+    test('omits the token when the cache is empty', () {
+      final repository = FulltextRepository(_apiWith(_FakeAdapter()));
+      final url = repository.searchPageUrl(query: 'synthetic phrase');
+      expect(url, isNot(contains('token=')));
+    });
+  });
+
   group('FulltextRepository.parsePage wrong-page guard', () {
     FulltextRepository repository() =>
         FulltextRepository(_apiWith(_FakeAdapter()));

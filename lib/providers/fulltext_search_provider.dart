@@ -254,6 +254,24 @@ class FullTextSearchNotifier extends Notifier<FullTextSearchState> {
     required String originalError,
   }) async {
     final user = ref.read(authProvider).user;
+    // On a walled mirror the Dio token fetch in searchFullText never
+    // succeeds, so the cached token is null and a tokenless solver
+    // URL answers with the default 50-book listing — the query
+    // echoes, the wrong-page guard passes, and the app paints the
+    // same fixed set for any query (device-proven 2026-11-11). Fetch
+    // the bare /fulltext token page through the solver first (same
+    // origin, same session) and read the token from its form; the
+    // search URL below is built with that token. A missing token
+    // page or a page with no token fails exactly like a failed
+    // solve — a tokenless result is never painted.
+    final tokenHtml = await _repository.fetchViaSolver(
+      _repository.tokenPageUrl(),
+      userId: user?.id,
+      userKey: user?.remixUserkey,
+    );
+    final token =
+        tokenHtml == null ? null : extractFulltextToken(tokenHtml);
+    if (token == null) return (page: null, error: originalError);
     final url = _repository.searchPageUrl(
       query: params.query,
       type: params.type,
@@ -264,6 +282,7 @@ class FullTextSearchNotifier extends Notifier<FullTextSearchState> {
       extensions: params.extensions,
       order: params.order,
       page: page,
+      token: token,
     );
     final html = await _repository.fetchViaSolver(
       url,

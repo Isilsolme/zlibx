@@ -50,7 +50,10 @@ class FulltextRepository {
   /// The full URL of one full-text results page — the solver
   /// fallback's URL. The cached session token rides along when the
   /// plugin has one; without it the server answers with the search
-  /// form instead of results.
+  /// form instead of results. An explicit [token] overrides the
+  /// cached one: the solver fallback passes the token it read from
+  /// the token page itself, because the Dio fetch behind the cache
+  /// never succeeds on a walled mirror and the cache is empty there.
   String searchPageUrl({
     required String query,
     String type = 'words',
@@ -61,6 +64,7 @@ class FulltextRepository {
     List<String>? extensions,
     String? order,
     int page = 1,
+    String? token,
   }) => _api.fulltextPageUrl(
     query: query,
     type: type,
@@ -71,8 +75,20 @@ class FulltextRepository {
     extensions: extensions,
     order: order,
     page: page,
-    token: _api.fulltextToken,
+    token: token ?? _api.fulltextToken,
   );
+
+  /// The bare `/fulltext` token page on the same origin as the search
+  /// URL — the solver fetches it to read the session token when Dio
+  /// is walled and the plugin's cached token is empty. No query
+  /// string: the page renders the session token in its search form.
+  /// The repository has no direct access to the plugin's private base
+  /// URL, so the origin is derived from a search URL (pure string
+  /// building, no network).
+  String tokenPageUrl() {
+    final url = searchPageUrl(query: '');
+    return Uri.parse(url).origin + '/fulltext';
+  }
 
   /// The plugin's short error for a browser-check wall (plus the older
   /// shapes a wall can surface as).
