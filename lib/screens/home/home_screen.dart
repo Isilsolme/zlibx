@@ -449,11 +449,11 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
   /// Recommended nav destination).
   void scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
+      unawaited(_scrollController.animateTo(
         0,
         duration: AppMotion.slower,
         curve: Curves.easeOut,
-      );
+      ));
     }
   }
 
@@ -503,7 +503,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
 
     if (ref.read(updateProvider).forceUpdate) {
       // Force update - non-dismissable dialog with download channels
-      showUpdateDialog(context);
+      unawaited(showUpdateDialog(context));
     } else if (!updateNotifier.isVersionDismissed()) {
       // Normal update - show snackbar (non-intrusive)
       // 品牌视觉（图标行 + primary 背景 + 自定义 margin/shape）保留

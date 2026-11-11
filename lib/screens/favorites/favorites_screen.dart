@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -576,7 +577,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
     UnifiedShelfItem item,
     DownloadTask? local,
   ) async {
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     final l = AppLocalizations.of(context)!;
     ModalRoute<dynamic>? sheetRoute;
     final action = await showModalBottomSheet<String>(
@@ -669,7 +670,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
   });
 
   void _enterSelectMode(int id) {
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     setState(() {
       _isSelectMode = true;
       _selectedBookIds.add(id);

@@ -201,7 +201,7 @@ class BooklistHtmlCache {
   static void invalidateBooklist(String url, {String? accountId}) {
     if (url.isEmpty) return;
     final box = _box;
-    box.delete(_key(url, accountId));
+    unawaited(box.delete(_key(url, accountId)));
     invalidateBooklistPages(url, accountId: accountId);
     _invalidatedAt[_key(url, accountId)] = DateTime.now();
   }
@@ -223,7 +223,7 @@ class BooklistHtmlCache {
       return key.endsWith(suffix);
     }).toList();
     for (final key in keys) {
-      box.delete(key);
+      unawaited(box.delete(key));
     }
     _invalidatedAt[_key(url, accountId)] = DateTime.now();
   }
@@ -242,7 +242,7 @@ class BooklistHtmlCache {
       return now - at > ttl.inMilliseconds;
     }).toList();
     for (final key in keys) {
-      box.delete(key);
+      unawaited(box.delete(key));
     }
   }
 
@@ -257,17 +257,17 @@ class BooklistHtmlCache {
     final key = _key(url, accountId);
     final raw = box.get(key);
     if (raw is! Map) {
-      if (raw != null) box.delete(key);
+      if (raw != null) unawaited(box.delete(key));
       return null;
     }
     final at = raw['at'];
     final html = raw['html'];
     if (at is! int || html is! String) {
-      box.delete(key);
+      unawaited(box.delete(key));
       return null;
     }
     if (DateTime.now().millisecondsSinceEpoch - at > ttl.inMilliseconds) {
-      box.delete(key);
+      unawaited(box.delete(key));
       return null;
     }
     return html;
@@ -296,17 +296,17 @@ class BooklistHtmlCache {
     final key = _key('$url#json-page=$page', accountId);
     final raw = box.get(key);
     if (raw is! Map) {
-      if (raw != null) box.delete(key);
+      if (raw != null) unawaited(box.delete(key));
       return null;
     }
     final at = raw['at'];
     final books = raw['books'];
     if (at is! int || books is! List) {
-      box.delete(key);
+      unawaited(box.delete(key));
       return null;
     }
     if (DateTime.now().millisecondsSinceEpoch - at > ttl.inMilliseconds) {
-      box.delete(key);
+      unawaited(box.delete(key));
       return null;
     }
     final good = <Book>[];
@@ -320,7 +320,7 @@ class BooklistHtmlCache {
     }
     if (good.isEmpty && books.isNotEmpty) {
       // Every entry was bad: the page itself is corrupt.
-      box.delete(key);
+      unawaited(box.delete(key));
       return null;
     }
     return good;
@@ -358,7 +358,7 @@ class BooklistHtmlCache {
     final keys = atByKey.keys.toList()
       ..sort((a, b) => atByKey[a]!.compareTo(atByKey[b]!));
     for (var i = 0; i < keys.length - maxEntries; i++) {
-      box.delete(keys[i]);
+      unawaited(box.delete(keys[i]));
     }
   }
 }

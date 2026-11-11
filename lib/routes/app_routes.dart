@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../l10n/generated/app_localizations.dart';
 import '../models/display_book.dart';
 import '../screens/account/booklist_detail_screen.dart';
 import '../screens/account/booklists_screen.dart';
@@ -278,7 +279,7 @@ class _MissingRouteArgsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: const Center(child: Text('Page unavailable')),
+      body: Center(child: Text(AppLocalizations.of(context)!.pageUnavailable)),
     );
   }
 }

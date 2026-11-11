@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/hive_service.dart';
 import '../services/instance_manager.dart';
@@ -121,7 +122,7 @@ class DomainNotifier extends Notifier<String> {
   String build() {
     final initial = _initialDomain();
     if (HiveService.settingsBox.get('domain') != initial) {
-      HiveService.settingsBox.put('domain', initial);
+      unawaited(HiveService.settingsBox.put('domain', initial));
     }
     // Ensure API is in sync with initial state (no side effects: auth init
     // handles cookie setup on first boot).
@@ -152,7 +153,7 @@ class DomainNotifier extends Notifier<String> {
       reverifySession = false;
     }
     state = domain;
-    HiveService.settingsBox.put('domain', domain);
+    unawaited(HiveService.settingsBox.put('domain', domain));
     // The in-memory session must not follow the user to a new host; trusted
     // (built-in) hosts get it back through reverify() below.
     _api.clearSession();

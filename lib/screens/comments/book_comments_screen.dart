@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
@@ -110,11 +111,11 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
       // 新顶层评论插在最前，滚回顶部让用户立刻看到自己的评论；
       // 回复则原地不动（父评论就在视口附近）。
       if (!wasReply && _scrollController.hasClients) {
-        _scrollController.animateTo(
+        unawaited(_scrollController.animateTo(
           0,
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeOutCubic,
-        );
+        ));
       }
     }
   }

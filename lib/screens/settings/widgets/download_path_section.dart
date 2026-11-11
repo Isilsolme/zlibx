@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:async';
 import 'dart:io';
 import '../../../providers/settings_provider.dart';
 import '../../../utils/file_utils.dart';
@@ -57,7 +58,7 @@ class DownloadPathSection extends ConsumerWidget {
 
   void _showDownloadPathDialog(BuildContext context, WidgetRef ref) {
 
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -223,6 +224,6 @@ class DownloadPathSection extends ConsumerWidget {
               ),
             ),
           ),
-    );
+    ));
   }
 }

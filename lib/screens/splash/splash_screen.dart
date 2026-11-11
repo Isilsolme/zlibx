@@ -130,11 +130,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   Future<void> _initialize() async {
     // Step 1: Check network on the current line
-    setState(() => _statusText = 'Checking network...');
+    setState(() => _statusText = AppLocalizations.of(context)!.checkingNetwork);
     _networkOk = await _checkNetwork();
 
+    if (!mounted) return;
     if (!_networkOk) {
-      setState(() => _statusText = 'Network unavailable, retrying...');
+      setState(() => _statusText = AppLocalizations.of(context)!.networkUnavailableRetrying);
       await Future.delayed(const Duration(seconds: 2));
       _networkOk = await _checkNetwork();
     }
@@ -144,7 +145,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final action = await _showLineUnavailableDialog();
       if (!mounted) return;
       if (action == _LineAction.proceed || action == _LineAction.skip) break;
-      setState(() => _statusText = 'Checking network...');
+      setState(() => _statusText = AppLocalizations.of(context)!.checkingNetwork);
       _networkOk = await _checkNetwork();
     }
 

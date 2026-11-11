@@ -82,6 +82,7 @@
   "cancel": "取消",
   "cannotOpenFolder": "無法開啟資料夾",
   "checkForUpdates": "檢查更新",
+  "checkingNetwork": "正在檢查網路...",
   "checkingUpdates": "正在檢查更新...",
   "chooseCustomDownloadDir": "選擇自訂下載目錄",
   "chooseDownloadSource": "選擇下載渠道",
@@ -120,6 +121,7 @@
       }
     }
   },
+  "custom": "自訂",
   "customDomain": "自訂網域",
   "customDomainInvalid": "網域格式無效，請輸入如 example.com 的網域",
   "customDomainReloginHint": "已切換至自訂線路，請重新登入",
@@ -178,6 +180,7 @@
   "enterSearchHint": "輸入書名、作者或關鍵字",
   "enterTitle": "例如：科幻精選",
   "error": "錯誤",
+  "exampleDomainHint": "例如 example.com",
   "failedSendCode": "傳送驗證碼失敗",
   "favoriteFailed": "收藏更新失敗，請稍後再試。",
   "favoriteRemoved": "已取消收藏",
@@ -216,6 +219,14 @@
   "like": "收藏",
   "likeFailed": "點讚失敗",
   "lineCachedLoginHint": "已使用快取登入資訊，點此切換線路",
+  "lineNumber": "線路 {index}",
+  "@lineNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "lineStatusUnavailable": "不可用",
   "lineUnavailable": "線路不可用",
   "lineUnavailableCurrent": "目前線路不可用",
@@ -314,6 +325,7 @@
   "name": "姓名",
   "network": "網路",
   "networkLine": "網路線路",
+  "networkUnavailableRetrying": "網路無法使用，正在重試...",
   "newReleases": "新書",
   "newVersionFound": "發現新版本 {version}",
   "@newVersionFound": {
@@ -347,6 +359,7 @@
   "openSourceLicenses": "開源許可",
   "original": "原版",
   "page": "頁",
+  "pageUnavailable": "頁面無法使用",
   "pages": "頁數",
   "password": "密碼",
   "passwordMinLength": "密碼至少需 6 個字元",
@@ -496,6 +509,14 @@
   "switchAccount": "切換帳號",
   "switchAccountFailed": "帳號切換失敗，請稍後再試。",
   "switchLine": "切換線路",
+  "switchNetwork": "切換網路（{label}）",
+  "@switchNetwork": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "system": "跟隨系統",
   "systemDownloadsFolder": "系統下載資料夾",
   "systemDownloadsMediastore": "系統下載資料夾 (MediaStore)",

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/settings_provider.dart';
@@ -55,7 +56,7 @@ class LanguageSection extends ConsumerWidget {
         ? locale_utils.getLocaleKey(currentLocale)
         : null;
 
-    showModalBottomSheet(
+    unawaited(showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -126,7 +127,7 @@ class LanguageSection extends ConsumerWidget {
                   ],
                 ),
           ),
-    );
+    ));
   }
 
   Widget _buildLanguageOption({

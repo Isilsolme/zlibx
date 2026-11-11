@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'mirror_trust_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,14 +23,16 @@ class DomainSelector extends ConsumerWidget {
 
     // Find line number for current domain
     final idx = domains.indexOf(currentDomain);
-    final label = idx >= 0 ? 'Line ${idx + 1}' : 'Custom';
+    final label = idx >= 0
+        ? AppLocalizations.of(context)!.lineNumber(idx + 1)
+        : AppLocalizations.of(context)!.custom;
     final effectiveColor = color ?? Theme.of(context).colorScheme.primary;
 
     if (compact) {
       return IconButton(
         icon: const Icon(Icons.dns_outlined),
         color: color ?? Theme.of(context).colorScheme.onSurface,
-        tooltip: 'Switch Network ($label)',
+        tooltip: AppLocalizations.of(context)!.switchNetwork(label),
         onPressed: () => _showDialog(context),
       );
     }
@@ -72,10 +75,10 @@ class DomainSelector extends ConsumerWidget {
   }
 
   void _showDialog(BuildContext context) {
-    showDialog(
+    unawaited(showDialog(
       context: context,
       builder: (context) => const DomainSelectionDialog(),
-    );
+    ));
   }
 }
 
@@ -156,7 +159,7 @@ class DomainSelectionDialog extends ConsumerWidget {
               // Find the original index in the domain list for "Line N" label
               final lineIndex = domains.indexOf(result.domain);
               final lineLabel = lineIndex >= 0
-                  ? 'Line ${lineIndex + 1}'
+                  ? AppLocalizations.of(context)!.lineNumber(lineIndex + 1)
                   : result.domain;
               // SLUM-reported down: greyed out, not tappable (still shown).
               final isDown =
@@ -313,7 +316,7 @@ class DomainSelectionDialog extends ConsumerWidget {
           controller: controller,
           decoration: InputDecoration(
             labelText: AppLocalizations.of(context)!.domainUrl,
-            hintText: 'e.g., example.com',
+            hintText: AppLocalizations.of(context)!.exampleDomainHint,
           ),
         ),
         actions: [
@@ -339,7 +342,7 @@ class DomainSelectionDialog extends ConsumerWidget {
               }
               // Non-built-in domain: warn first. The saved session is
               // NOT auto-sent there; the user logs in again afterwards.
-              showDialog(
+              unawaited(showDialog(
                 context: context,
                 builder: (warnCtx) => AlertDialog(
                   title: Text(l.customDomainWarningTitle),
@@ -364,7 +367,7 @@ class DomainSelectionDialog extends ConsumerWidget {
                     ),
                   ],
                 ),
-              );
+              ));
             },
             child: Text(AppLocalizations.of(context)!.save),
           ),

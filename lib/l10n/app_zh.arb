@@ -82,6 +82,7 @@
   "cancel": "取消",
   "cannotOpenFolder": "无法打开文件夹",
   "checkForUpdates": "检查更新",
+  "checkingNetwork": "正在检查网络...",
   "checkingUpdates": "正在检查更新...",
   "chooseCustomDownloadDir": "选择自定义下载目录",
   "chooseDownloadSource": "选择下载渠道",
@@ -120,6 +121,7 @@
       }
     }
   },
+  "custom": "自定义",
   "customDomain": "自定义域名",
   "customDomainInvalid": "域名格式无效，请输入如 example.com 的域名",
   "customDomainReloginHint": "已切换到自定义线路，请重新登录",
@@ -178,6 +180,7 @@
   "enterSearchHint": "输入书名、作者或关键词",
   "enterTitle": "例如：科幻精选",
   "error": "错误",
+  "exampleDomainHint": "例如 example.com",
   "failedSendCode": "发送验证码失败",
   "favoriteFailed": "收藏更新失败，请稍后重试。",
   "favoriteRemoved": "已取消收藏",
@@ -216,6 +219,14 @@
   "like": "收藏",
   "likeFailed": "点赞失败",
   "lineCachedLoginHint": "已使用缓存登录信息，点此切换线路",
+  "lineNumber": "线路 {index}",
+  "@lineNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "lineStatusUnavailable": "不可用",
   "lineUnavailable": "线路不可用",
   "lineUnavailableCurrent": "当前线路不可用",
@@ -314,6 +325,7 @@
   "name": "姓名",
   "network": "网络",
   "networkLine": "网络线路",
+  "networkUnavailableRetrying": "网络不可用，正在重试...",
   "newReleases": "新书",
   "newVersionFound": "发现新版本 {version}",
   "@newVersionFound": {
@@ -347,6 +359,7 @@
   "openSourceLicenses": "开源许可",
   "original": "原版",
   "page": "页",
+  "pageUnavailable": "页面不可用",
   "pages": "页数",
   "password": "密码",
   "passwordMinLength": "密码至少6个字符",
@@ -496,6 +509,14 @@
   "switchAccount": "切换账号",
   "switchAccountFailed": "账号切换失败，请稍后重试。",
   "switchLine": "切换线路",
+  "switchNetwork": "切换网络（{label}）",
+  "@switchNetwork": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "system": "跟随系统",
   "systemDownloadsFolder": "系统下载文件夹",
   "systemDownloadsMediastore": "系统下载文件夹 (MediaStore)",

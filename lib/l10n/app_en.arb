@@ -82,6 +82,7 @@
   "cancel": "Cancel",
   "cannotOpenFolder": "Could not open folder",
   "checkForUpdates": "Check for Updates",
+  "checkingNetwork": "Checking network...",
   "checkingUpdates": "Checking for updates...",
   "chooseCustomDownloadDir": "Choose a custom download directory",
   "chooseDownloadSource": "Choose a download source",
@@ -120,6 +121,7 @@
       }
     }
   },
+  "custom": "Custom",
   "customDomain": "Custom Domain",
   "customDomainInvalid": "Invalid domain format. Enter a domain like example.com.",
   "customDomainReloginHint": "Switched to a custom line. Please log in again.",
@@ -178,6 +180,7 @@
   "enterSearchHint": "Enter title, author or keyword",
   "enterTitle": "e.g. My Favorite Sci-Fi",
   "error": "Error",
+  "exampleDomainHint": "e.g., example.com",
   "failedSendCode": "Failed to send code",
   "favoriteFailed": "Could not update favorites. Please try again.",
   "favoriteRemoved": "Removed from Favorites",
@@ -216,6 +219,14 @@
   "like": "Like",
   "likeFailed": "Failed to update like",
   "lineCachedLoginHint": "Using cached login. Tap to switch line.",
+  "lineNumber": "Line {index}",
+  "@lineNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "lineStatusUnavailable": "Unavailable",
   "lineUnavailable": "Line Unavailable",
   "lineUnavailableCurrent": "Current line unavailable",
@@ -314,6 +325,7 @@
   "name": "Name",
   "network": "Network",
   "networkLine": "Network Line",
+  "networkUnavailableRetrying": "Network unavailable, retrying...",
   "newReleases": "New Releases",
   "newVersionFound": "New version {version} available",
   "@newVersionFound": {
@@ -347,6 +359,7 @@
   "openSourceLicenses": "Open Source Licenses",
   "original": "Original",
   "page": "Page",
+  "pageUnavailable": "Page unavailable",
   "pages": "Pages",
   "password": "Password",
   "passwordMinLength": "Password must be at least 6 characters",
@@ -496,6 +509,14 @@
   "switchAccount": "Switch account",
   "switchAccountFailed": "Failed to switch account. Please try again.",
   "switchLine": "Switch Line",
+  "switchNetwork": "Switch Network ({label})",
+  "@switchNetwork": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "system": "System",
   "systemDownloadsFolder": "System Downloads Folder",
   "systemDownloadsMediastore": "System Downloads (MediaStore)",

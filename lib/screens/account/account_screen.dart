@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -135,7 +136,7 @@ class AccountScreen extends ConsumerWidget {
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
-    AwesomeDialog(
+    unawaited(AwesomeDialog(
       context: context,
       dialogType: DialogType.warning,
       animType: AnimType.bottomSlide,
@@ -151,7 +152,7 @@ class AccountScreen extends ConsumerWidget {
           AppRoutes.logoutToLogin(context);
         }
       },
-    ).show();
+    ).show());
   }
 }
 

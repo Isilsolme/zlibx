@@ -82,6 +82,7 @@
   "cancel": "キャンセル",
   "cannotOpenFolder": "フォルダを開けません",
   "checkForUpdates": "アップデートを確認",
+  "checkingNetwork": "ネットワークを確認しています...",
   "checkingUpdates": "アップデートを確認中...",
   "chooseCustomDownloadDir": "カスタムのダウンロード先を選択",
   "chooseDownloadSource": "ダウンロード元を選択",
@@ -120,6 +121,7 @@
       }
     }
   },
+  "custom": "カスタム",
   "customDomain": "カスタムドメイン",
   "customDomainInvalid": "ドメインの形式が正しくありません。example.com のようなドメインを入力してください。",
   "customDomainReloginHint": "カスタム回線に切り替えました。再度ログインしてください。",
@@ -178,6 +180,7 @@
   "enterSearchHint": "タイトル、著者、キーワードを入力",
   "enterTitle": "例：お気に入りのSF",
   "error": "エラー",
+  "exampleDomainHint": "例：example.com",
   "failedSendCode": "コードの送信に失敗しました",
   "favoriteFailed": "お気に入りを更新できませんでした。もう一度お試しください。",
   "favoriteRemoved": "お気に入りから削除しました",
@@ -216,6 +219,14 @@
   "like": "お気に入り",
   "likeFailed": "いいねに失敗しました",
   "lineCachedLoginHint": "キャッシュ済みのログイン情報を使用中。タップして回線を切り替え",
+  "lineNumber": "回線 {index}",
+  "@lineNumber": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "lineStatusUnavailable": "利用不可",
   "lineUnavailable": "回線を利用できません",
   "lineUnavailableCurrent": "現在の回線は利用できません",
@@ -314,6 +325,7 @@
   "name": "名前",
   "network": "ネットワーク",
   "networkLine": "回線",
+  "networkUnavailableRetrying": "ネットワークに接続できません。再試行しています...",
   "newReleases": "新着",
   "newVersionFound": "新しいバージョン {version} があります",
   "@newVersionFound": {
@@ -347,6 +359,7 @@
   "openSourceLicenses": "オープンソースライセンス",
   "original": "オリジナル",
   "page": "ページ",
+  "pageUnavailable": "ページを利用できません",
   "pages": "ページ数",
   "password": "パスワード",
   "passwordMinLength": "パスワードは6文字以上で入力してください",
@@ -496,6 +509,14 @@
   "switchAccount": "アカウントを切り替える",
   "switchAccountFailed": "アカウントの切り替えに失敗しました。もう一度お試しください。",
   "switchLine": "回線を切り替え",
+  "switchNetwork": "ネットワークを切り替える（{label}）",
+  "@switchNetwork": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "system": "システム",
   "systemDownloadsFolder": "システムのダウンロードフォルダ",
   "systemDownloadsMediastore": "システムのダウンロードフォルダ (MediaStore)",

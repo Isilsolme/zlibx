@@ -24,7 +24,7 @@ class NetworkSection extends ConsumerWidget {
 
     final idx = domains.indexOf(currentDomain);
     final lineLabel = idx >= 0
-        ? 'Line ${idx + 1}'
+        ? t.lineNumber(idx + 1)
         : (AppLocalizations.of(context)!.customLine);
 
     // Look up the latency for the current line.

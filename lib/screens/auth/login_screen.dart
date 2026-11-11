@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
@@ -59,7 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (ref.read(updateProvider).forceUpdate) {
       // Force update - non-dismissable dialog with download channels
-      showUpdateDialog(context);
+      unawaited(showUpdateDialog(context));
     } else {
       // Normal update - just show info snackbar
       // 品牌视觉（primary 背景 + action）保留原生 SnackBar，只统一入口。
@@ -121,7 +122,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
     if (!trusted || !mounted) return;
     final lineIndex = ref.read(domainListProvider).indexOf(currentDomain);
-    final lineName = lineIndex >= 0 ? 'Line ${lineIndex + 1}' : 'Custom';
+    final lineName = lineIndex >= 0
+        ? AppLocalizations.of(context)!.lineNumber(lineIndex + 1)
+        : AppLocalizations.of(context)!.custom;
     setState(() => _isLoading = true);
 
     final success = await ref
@@ -141,7 +144,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (failureKind == LoginFailureKind.line) {
         // 线路被拦截 / 连接失败 —— 不是账号密码问题，提示切换线路。
         final cf = error == 'cf_blocked';
-        AwesomeDialog(
+        unawaited(AwesomeDialog(
           context: context,
           dialogType: DialogType.warning,
           animType: AnimType.bottomSlide,
@@ -154,14 +157,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           btnOkText: AppLocalizations.of(context)!.switchLine,
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
-            showDialog(
+            unawaited(showDialog(
               context: context,
               builder: (_) => const DomainSelectionDialog(),
-            );
+            ));
           },
-        ).show();
+        ).show());
       } else {
-        AwesomeDialog(
+        unawaited(AwesomeDialog(
           context: context,
           dialogType: DialogType.error,
           animType: AnimType.bottomSlide,
@@ -172,7 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           btnOkText: AppLocalizations.of(context)!.confirmOk,
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
-        ).show();
+        ).show());
       }
     }
   }

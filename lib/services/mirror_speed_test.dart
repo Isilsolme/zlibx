@@ -79,13 +79,13 @@ class MirrorSpeedTest {
       for (final url in urls)
         _probeOne(url).then((ms) => results[Uri.parse(url).host] = ms),
     ]);
-    HiveService.settingsBox.put(_cacheKey(service), {
+    unawaited(HiveService.settingsBox.put(_cacheKey(service), {
       'at': DateTime.now().millisecondsSinceEpoch,
       'ms': {
         for (final entry in results.entries)
           if (entry.value != null) entry.key: entry.value,
       },
-    });
+    }));
     return results;
   }
 

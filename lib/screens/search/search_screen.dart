@@ -399,7 +399,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   bool _runSearch() {
     if (ref.read(updateProvider).isBlocked) {
-      showUpdateDialog(context);
+      unawaited(showUpdateDialog(context));
       return false;
     }
 

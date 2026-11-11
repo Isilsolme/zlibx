@@ -1,3 +1,4 @@
+import 'dart:async';
 // Bottom action bar for external (Anna's Archive / LibGen) detail pages.
 //
 // Unlike the z-lib bar (book_action_bar.dart), this one has no quota
@@ -149,7 +150,7 @@ class _ExternalBookActionBarState
     final existingPath =
         await ref.read(downloadProvider.notifier).checkFileExists(book);
     if (existingPath != null && context.mounted) {
-      AwesomeDialog(
+      unawaited(AwesomeDialog(
         context: context,
         dialogType: DialogType.info,
         animType: AnimType.bottomSlide,
@@ -168,7 +169,7 @@ class _ExternalBookActionBarState
           if (!context.mounted) return;
           _resolveAndDownload(context, ref, book);
         },
-      ).show();
+      ).show());
       return;
     }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -218,7 +219,7 @@ class BookActionBar extends ConsumerWidget {
   void _handleDownload(BuildContext context, WidgetRef ref) async {
     // Check for force update block
     if (ref.read(updateProvider).isBlocked && !isCompleted) {
-      showUpdateDialog(context);
+      unawaited(showUpdateDialog(context));
       return;
     }
 
@@ -232,7 +233,7 @@ class BookActionBar extends ConsumerWidget {
 
       if (existingPath != null && context.mounted) {
 
-        AwesomeDialog(
+        unawaited(AwesomeDialog(
           context: context,
           dialogType: DialogType.info,
           animType: AnimType.bottomSlide,
@@ -251,7 +252,7 @@ class BookActionBar extends ConsumerWidget {
             if (!context.mounted) return;
             _kickoffDownload(context, ref);
           },
-        ).show();
+        ).show());
         return;
       }
 

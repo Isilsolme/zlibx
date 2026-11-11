@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 397 getters/methods, in all 5 locales, plus the 20
+// every one of the 404 getters/methods, in all 5 locales, plus the 22
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -68,6 +68,7 @@ void main() {
     expect(loc.cancel, 'Cancel');
     expect(loc.cannotOpenFolder, 'Could not open folder');
     expect(loc.checkForUpdates, 'Check for Updates');
+    expect(loc.checkingNetwork, 'Checking network...');
     expect(loc.checkingUpdates, 'Checking for updates...');
     expect(loc.chooseCustomDownloadDir, 'Choose a custom download directory');
     expect(loc.chooseDownloadSource, 'Choose a download source');
@@ -92,6 +93,7 @@ void main() {
     expect(loc.createBooklist, 'New booklist');
     expect(loc.currentAccount, 'Current account');
     expect(loc.currentVersionLabel('X'), 'Current version: vX');
+    expect(loc.custom, 'Custom');
     expect(loc.customDomain, 'Custom Domain');
     expect(loc.customDomainInvalid, 'Invalid domain format. Enter a domain like example.com.');
     expect(loc.customDomainReloginHint, 'Switched to a custom line. Please log in again.');
@@ -150,6 +152,7 @@ void main() {
     expect(loc.enterSearchHint, 'Enter title, author or keyword');
     expect(loc.enterTitle, 'e.g. My Favorite Sci-Fi');
     expect(loc.error, 'Error');
+    expect(loc.exampleDomainHint, 'e.g., example.com');
     expect(loc.failedSendCode, 'Failed to send code');
     expect(loc.favoriteFailed, 'Could not update favorites. Please try again.');
     expect(loc.favoriteRemoved, 'Removed from Favorites');
@@ -188,6 +191,7 @@ void main() {
     expect(loc.like, 'Like');
     expect(loc.likeFailed, 'Failed to update like');
     expect(loc.lineCachedLoginHint, 'Using cached login. Tap to switch line.');
+    expect(loc.lineNumber(1), 'Line 1');
     expect(loc.lineStatusUnavailable, 'Unavailable');
     expect(loc.lineUnavailable, 'Line Unavailable');
     expect(loc.lineUnavailableCurrent, 'Current line unavailable');
@@ -252,6 +256,7 @@ void main() {
     expect(loc.name, 'Name');
     expect(loc.network, 'Network');
     expect(loc.networkLine, 'Network Line');
+    expect(loc.networkUnavailableRetrying, 'Network unavailable, retrying...');
     expect(loc.newReleases, 'New Releases');
     expect(loc.newVersionFound('X'), 'New version X available');
     expect(loc.noActiveDownloads, 'No active downloads');
@@ -278,6 +283,7 @@ void main() {
     expect(loc.openSourceLicenses, 'Open Source Licenses');
     expect(loc.original, 'Original');
     expect(loc.page, 'Page');
+    expect(loc.pageUnavailable, 'Page unavailable');
     expect(loc.pages, 'Pages');
     expect(loc.password, 'Password');
     expect(loc.passwordMinLength, 'Password must be at least 6 characters');
@@ -389,6 +395,7 @@ void main() {
     expect(loc.switchAccount, 'Switch account');
     expect(loc.switchAccountFailed, 'Failed to switch account. Please try again.');
     expect(loc.switchLine, 'Switch Line');
+    expect(loc.switchNetwork('X'), 'Switch Network (X)');
     expect(loc.system, 'System');
     expect(loc.systemDownloadsFolder, 'System Downloads Folder');
     expect(loc.systemDownloadsMediastore, 'System Downloads (MediaStore)');
@@ -469,6 +476,7 @@ void main() {
     expect(loc.cancel, 'キャンセル');
     expect(loc.cannotOpenFolder, 'フォルダを開けません');
     expect(loc.checkForUpdates, 'アップデートを確認');
+    expect(loc.checkingNetwork, 'ネットワークを確認しています...');
     expect(loc.checkingUpdates, 'アップデートを確認中...');
     expect(loc.chooseCustomDownloadDir, 'カスタムのダウンロード先を選択');
     expect(loc.chooseDownloadSource, 'ダウンロード元を選択');
@@ -493,6 +501,7 @@ void main() {
     expect(loc.createBooklist, 'ブックリストを作成');
     expect(loc.currentAccount, '現在のアカウント');
     expect(loc.currentVersionLabel('X'), '現在のバージョン: vX');
+    expect(loc.custom, 'カスタム');
     expect(loc.customDomain, 'カスタムドメイン');
     expect(loc.customDomainInvalid, 'ドメインの形式が正しくありません。example.com のようなドメインを入力してください。');
     expect(loc.customDomainReloginHint, 'カスタム回線に切り替えました。再度ログインしてください。');
@@ -551,6 +560,7 @@ void main() {
     expect(loc.enterSearchHint, 'タイトル、著者、キーワードを入力');
     expect(loc.enterTitle, '例：お気に入りのSF');
     expect(loc.error, 'エラー');
+    expect(loc.exampleDomainHint, '例：example.com');
     expect(loc.failedSendCode, 'コードの送信に失敗しました');
     expect(loc.favoriteFailed, 'お気に入りを更新できませんでした。もう一度お試しください。');
     expect(loc.favoriteRemoved, 'お気に入りから削除しました');
@@ -589,6 +599,7 @@ void main() {
     expect(loc.like, 'お気に入り');
     expect(loc.likeFailed, 'いいねに失敗しました');
     expect(loc.lineCachedLoginHint, 'キャッシュ済みのログイン情報を使用中。タップして回線を切り替え');
+    expect(loc.lineNumber(1), '回線 1');
     expect(loc.lineStatusUnavailable, '利用不可');
     expect(loc.lineUnavailable, '回線を利用できません');
     expect(loc.lineUnavailableCurrent, '現在の回線は利用できません');
@@ -653,6 +664,7 @@ void main() {
     expect(loc.name, '名前');
     expect(loc.network, 'ネットワーク');
     expect(loc.networkLine, '回線');
+    expect(loc.networkUnavailableRetrying, 'ネットワークに接続できません。再試行しています...');
     expect(loc.newReleases, '新着');
     expect(loc.newVersionFound('X'), '新しいバージョン X があります');
     expect(loc.noActiveDownloads, '進行中のダウンロードはありません');
@@ -679,6 +691,7 @@ void main() {
     expect(loc.openSourceLicenses, 'オープンソースライセンス');
     expect(loc.original, 'オリジナル');
     expect(loc.page, 'ページ');
+    expect(loc.pageUnavailable, 'ページを利用できません');
     expect(loc.pages, 'ページ数');
     expect(loc.password, 'パスワード');
     expect(loc.passwordMinLength, 'パスワードは6文字以上で入力してください');
@@ -790,6 +803,7 @@ void main() {
     expect(loc.switchAccount, 'アカウントを切り替える');
     expect(loc.switchAccountFailed, 'アカウントの切り替えに失敗しました。もう一度お試しください。');
     expect(loc.switchLine, '回線を切り替え');
+    expect(loc.switchNetwork('X'), 'ネットワークを切り替える（X）');
     expect(loc.system, 'システム');
     expect(loc.systemDownloadsFolder, 'システムのダウンロードフォルダ');
     expect(loc.systemDownloadsMediastore, 'システムのダウンロードフォルダ (MediaStore)');
@@ -870,6 +884,7 @@ void main() {
     expect(loc.cancel, '취소');
     expect(loc.cannotOpenFolder, '폴더를 열 수 없습니다');
     expect(loc.checkForUpdates, '업데이트 확인');
+    expect(loc.checkingNetwork, '네트워크 확인 중...');
     expect(loc.checkingUpdates, '업데이트를 확인하는 중...');
     expect(loc.chooseCustomDownloadDir, '사용자 지정 다운로드 폴더 선택');
     expect(loc.chooseDownloadSource, '다운로드 경로 선택');
@@ -894,6 +909,7 @@ void main() {
     expect(loc.createBooklist, '새 북리스트');
     expect(loc.currentAccount, '현재 계정');
     expect(loc.currentVersionLabel('X'), '현재 버전: vX');
+    expect(loc.custom, '사용자 지정');
     expect(loc.customDomain, '사용자 지정 도메인');
     expect(loc.customDomainInvalid, '도메인 형식이 올바르지 않습니다. example.com과 같은 도메인을 입력해 주세요.');
     expect(loc.customDomainReloginHint, '사용자 지정 회선으로 전환했습니다. 다시 로그인해 주세요.');
@@ -952,6 +968,7 @@ void main() {
     expect(loc.enterSearchHint, '제목, 저자 또는 키워드 입력');
     expect(loc.enterTitle, '예: 내가 좋아하는 SF');
     expect(loc.error, '오류');
+    expect(loc.exampleDomainHint, '예: example.com');
     expect(loc.failedSendCode, '코드 전송에 실패했습니다');
     expect(loc.favoriteFailed, '즐겨찾기를 업데이트할 수 없습니다. 다시 시도해 주세요.');
     expect(loc.favoriteRemoved, '즐겨찾기에서 삭제했습니다');
@@ -990,6 +1007,7 @@ void main() {
     expect(loc.like, '즐겨찾기');
     expect(loc.likeFailed, '좋아요에 실패했습니다');
     expect(loc.lineCachedLoginHint, '저장된 로그인 정보를 사용 중입니다. 눌러서 회선 전환');
+    expect(loc.lineNumber(1), '회선 1');
     expect(loc.lineStatusUnavailable, '사용 불가');
     expect(loc.lineUnavailable, '회선을 사용할 수 없음');
     expect(loc.lineUnavailableCurrent, '현재 회선을 사용할 수 없음');
@@ -1054,6 +1072,7 @@ void main() {
     expect(loc.name, '이름');
     expect(loc.network, '네트워크');
     expect(loc.networkLine, '네트워크 회선');
+    expect(loc.networkUnavailableRetrying, '네트워크를 사용할 수 없어 다시 시도하는 중...');
     expect(loc.newReleases, '신간');
     expect(loc.newVersionFound('X'), '새 버전 X을(를) 사용할 수 있습니다');
     expect(loc.noActiveDownloads, '진행 중인 다운로드가 없습니다');
@@ -1080,6 +1099,7 @@ void main() {
     expect(loc.openSourceLicenses, '오픈소스 라이선스');
     expect(loc.original, '원본');
     expect(loc.page, '페이지');
+    expect(loc.pageUnavailable, '페이지를 사용할 수 없습니다');
     expect(loc.pages, '페이지 수');
     expect(loc.password, '비밀번호');
     expect(loc.passwordMinLength, '비밀번호는 6자 이상이어야 합니다');
@@ -1191,6 +1211,7 @@ void main() {
     expect(loc.switchAccount, '계정 전환');
     expect(loc.switchAccountFailed, '계정 전환에 실패했습니다. 다시 시도해 주세요.');
     expect(loc.switchLine, '회선 전환');
+    expect(loc.switchNetwork('X'), '네트워크 전환 (X)');
     expect(loc.system, '시스템');
     expect(loc.systemDownloadsFolder, '시스템 다운로드 폴더');
     expect(loc.systemDownloadsMediastore, '시스템 다운로드 폴더 (MediaStore)');
@@ -1271,6 +1292,7 @@ void main() {
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '无法打开文件夹');
     expect(loc.checkForUpdates, '检查更新');
+    expect(loc.checkingNetwork, '正在检查网络...');
     expect(loc.checkingUpdates, '正在检查更新...');
     expect(loc.chooseCustomDownloadDir, '选择自定义下载目录');
     expect(loc.chooseDownloadSource, '选择下载渠道');
@@ -1295,6 +1317,7 @@ void main() {
     expect(loc.createBooklist, '新建书单');
     expect(loc.currentAccount, '当前账号');
     expect(loc.currentVersionLabel('X'), '当前版本: vX');
+    expect(loc.custom, '自定义');
     expect(loc.customDomain, '自定义域名');
     expect(loc.customDomainInvalid, '域名格式无效，请输入如 example.com 的域名');
     expect(loc.customDomainReloginHint, '已切换到自定义线路，请重新登录');
@@ -1353,6 +1376,7 @@ void main() {
     expect(loc.enterSearchHint, '输入书名、作者或关键词');
     expect(loc.enterTitle, '例如：科幻精选');
     expect(loc.error, '错误');
+    expect(loc.exampleDomainHint, '例如 example.com');
     expect(loc.failedSendCode, '发送验证码失败');
     expect(loc.favoriteFailed, '收藏更新失败，请稍后重试。');
     expect(loc.favoriteRemoved, '已取消收藏');
@@ -1391,6 +1415,7 @@ void main() {
     expect(loc.like, '收藏');
     expect(loc.likeFailed, '点赞失败');
     expect(loc.lineCachedLoginHint, '已使用缓存登录信息，点此切换线路');
+    expect(loc.lineNumber(1), '线路 1');
     expect(loc.lineStatusUnavailable, '不可用');
     expect(loc.lineUnavailable, '线路不可用');
     expect(loc.lineUnavailableCurrent, '当前线路不可用');
@@ -1455,6 +1480,7 @@ void main() {
     expect(loc.name, '姓名');
     expect(loc.network, '网络');
     expect(loc.networkLine, '网络线路');
+    expect(loc.networkUnavailableRetrying, '网络不可用，正在重试...');
     expect(loc.newReleases, '新书');
     expect(loc.newVersionFound('X'), '发现新版本 X');
     expect(loc.noActiveDownloads, '没有正在进行的下载');
@@ -1481,6 +1507,7 @@ void main() {
     expect(loc.openSourceLicenses, '开源许可');
     expect(loc.original, '原版');
     expect(loc.page, '页');
+    expect(loc.pageUnavailable, '页面不可用');
     expect(loc.pages, '页数');
     expect(loc.password, '密码');
     expect(loc.passwordMinLength, '密码至少6个字符');
@@ -1592,6 +1619,7 @@ void main() {
     expect(loc.switchAccount, '切换账号');
     expect(loc.switchAccountFailed, '账号切换失败，请稍后重试。');
     expect(loc.switchLine, '切换线路');
+    expect(loc.switchNetwork('X'), '切换网络（X）');
     expect(loc.system, '跟随系统');
     expect(loc.systemDownloadsFolder, '系统下载文件夹');
     expect(loc.systemDownloadsMediastore, '系统下载文件夹 (MediaStore)');
@@ -1672,6 +1700,7 @@ void main() {
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '無法開啟資料夾');
     expect(loc.checkForUpdates, '檢查更新');
+    expect(loc.checkingNetwork, '正在檢查網路...');
     expect(loc.checkingUpdates, '正在檢查更新...');
     expect(loc.chooseCustomDownloadDir, '選擇自訂下載目錄');
     expect(loc.chooseDownloadSource, '選擇下載渠道');
@@ -1696,6 +1725,7 @@ void main() {
     expect(loc.createBooklist, '新增書單');
     expect(loc.currentAccount, '目前帳號');
     expect(loc.currentVersionLabel('X'), '目前版本: vX');
+    expect(loc.custom, '自訂');
     expect(loc.customDomain, '自訂網域');
     expect(loc.customDomainInvalid, '網域格式無效，請輸入如 example.com 的網域');
     expect(loc.customDomainReloginHint, '已切換至自訂線路，請重新登入');
@@ -1754,6 +1784,7 @@ void main() {
     expect(loc.enterSearchHint, '輸入書名、作者或關鍵字');
     expect(loc.enterTitle, '例如：科幻精選');
     expect(loc.error, '錯誤');
+    expect(loc.exampleDomainHint, '例如 example.com');
     expect(loc.failedSendCode, '傳送驗證碼失敗');
     expect(loc.favoriteFailed, '收藏更新失敗，請稍後再試。');
     expect(loc.favoriteRemoved, '已取消收藏');
@@ -1792,6 +1823,7 @@ void main() {
     expect(loc.like, '收藏');
     expect(loc.likeFailed, '點讚失敗');
     expect(loc.lineCachedLoginHint, '已使用快取登入資訊，點此切換線路');
+    expect(loc.lineNumber(1), '線路 1');
     expect(loc.lineStatusUnavailable, '不可用');
     expect(loc.lineUnavailable, '線路不可用');
     expect(loc.lineUnavailableCurrent, '目前線路不可用');
@@ -1856,6 +1888,7 @@ void main() {
     expect(loc.name, '姓名');
     expect(loc.network, '網路');
     expect(loc.networkLine, '網路線路');
+    expect(loc.networkUnavailableRetrying, '網路無法使用，正在重試...');
     expect(loc.newReleases, '新書');
     expect(loc.newVersionFound('X'), '發現新版本 X');
     expect(loc.noActiveDownloads, '沒有正在進行的下載');
@@ -1882,6 +1915,7 @@ void main() {
     expect(loc.openSourceLicenses, '開源許可');
     expect(loc.original, '原版');
     expect(loc.page, '頁');
+    expect(loc.pageUnavailable, '頁面無法使用');
     expect(loc.pages, '頁數');
     expect(loc.password, '密碼');
     expect(loc.passwordMinLength, '密碼至少需 6 個字元');
@@ -1993,6 +2027,7 @@ void main() {
     expect(loc.switchAccount, '切換帳號');
     expect(loc.switchAccountFailed, '帳號切換失敗，請稍後再試。');
     expect(loc.switchLine, '切換線路');
+    expect(loc.switchNetwork('X'), '切換網路（X）');
     expect(loc.system, '跟隨系統');
     expect(loc.systemDownloadsFolder, '系統下載資料夾');
     expect(loc.systemDownloadsMediastore, '系統下載資料夾 (MediaStore)');
