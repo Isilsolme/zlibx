@@ -35,7 +35,10 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
   /// followed as GET (browser behaviour). The session Cookie is only
   /// sent to our own host: a hop to another host drops it (Dio's
   /// automatic following would re-send it to whatever host a 302
-  /// points at).
+  /// points at). A same-host hop may re-issue cookies (the challenge's
+  /// `__diamwall` on the first 307): they are learned into the session
+  /// / wall-cookie jar before following. Cross-host target hops learn
+  /// nothing.
   ///
   /// Redirect failures (no Location, non-https target, too many hops,
   /// unparsable Location) return an error [_Raw] — never throw: the
@@ -47,6 +50,10 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
     if (Uri.parse(url).host != Uri.parse(_base).host) {
       headers.remove('Cookie');
     }
+    // Set once the Cookie header has been stripped for a cross-host hop:
+    // it stays off for the rest of the chain even if a later hop comes
+    // back to our own host (pre-fix behaviour).
+    var cookieStripped = false;
     var lastStatus = 0;
     for (var hop = 0; hop < 5; hop++) {
       try {
@@ -81,9 +88,32 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
         if (next.scheme != 'https') {
           return _Raw(status: code, error: 'redirect to non-https URL');
         }
+        // Learn what this hop re-issued before following it. Only a hop
+        // that stays on our own host may teach the jar: a cross-host
+        // target's cookies must not enter it. The request host only
+        // differs from the base after a cross-host target — and cookies
+        // set by another host must not enter the jar even when that hop
+        // redirects back to us.
+        if (next.host == Uri.parse(_base).host &&
+            Uri.parse(url).host == Uri.parse(_base).host) {
+          _harvestRedirectCookies(
+            res.headers['set-cookie'] ?? const <String>[],
+          );
+        }
         url = next.toString();
         if (next.host != Uri.parse(_base).host) {
           headers = Map<String, String>.from(headers)..remove('Cookie');
+          cookieStripped = true;
+        } else if (!cookieStripped) {
+          // Same-host hop: re-derive the Cookie header from the jar so
+          // the follow-up carries what this hop re-issued. Nothing was
+          // harvested — the rebuild is a no-op.
+          final cookie = _headers['Cookie'];
+          if (cookie != null) {
+            headers['Cookie'] = cookie;
+          } else {
+            headers.remove('Cookie');
+          }
         }
       } on DioException catch (e) {
         return _fromError(e);

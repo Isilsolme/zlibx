@@ -27,6 +27,13 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 //   observed, so the implementation counts a final 2xx with an empty
 //   body as success (same precedent as createBooklist) and a final
 //   JSON body must carry success: 1.
+//
+// Redirect-cookie regression tests (2026-11-09 capture, item: hop
+// set-cookie was dropped): the fake can answer the first delete /
+// comment-like hop with a `__diamwall` set-cookie and records every
+// request's headers, pinning that the follow-up request carries the
+// learned cookie next to the session pair, and that a cross-host
+// target hop learns nothing and drops the Cookie header as before.
 
 const _booklistId = 4090055;
 const _bookId = 18337950;
@@ -39,6 +46,15 @@ const _currentUserBookId = 11959979;
 const _currentUserPath = '/papi/booklist/current-user/$_currentUserBookId';
 const _currentUserListId = 4088695;
 const _currentUserEntryId = 161213534;
+// Session + profile: loginWithToken validates against /eapi/user/profile
+// before the redirect-cookie tests can assert on Cookie headers.
+const _sessionUserId = '35899435';
+const _sessionUserKey = 'sessionkey-abc123';
+const _profilePath = '/eapi/user/profile';
+// Comment like: the POST side of the redirect-cookie fix (`_postText`),
+// 307 to the same URL like the 2026-11-06 capture.
+const _likeCommentId = 1046367;
+const _likePath = '/papi/comments/like/$_likeCommentId/1';
 
 /// One current-user entry, shaped like the live 2026-11-09 response for
 /// 白鹿原 (book 11959979): the list `id` plus `readlistBookId`, null when
@@ -71,7 +87,7 @@ const _deleteListId = 4095945;
 const _deletePath = '/papi/booklist/$_deleteListId/delete';
 
 /// Serves canned add/delete responses so the calls run without a
-/// network. Records every request's method, path and body.
+/// network. Records every request's method, path, headers and body.
 class _FakeAdapter implements HttpClientAdapter {
   _FakeAdapter({
     this.addPayload = const {
@@ -105,18 +121,48 @@ class _FakeAdapter implements HttpClientAdapter {
   bool deleteRedirectFirst = false;
   bool deleteRedirectAlways = false;
   bool deleteEmptyBody = false;
+  // When set, the first delete redirect hop also carries
+  // `set-cookie: __diamwall=<value>` (the DDoS-Guard challenge).
+  String? deleteWallCookie;
+  // When true, the delete redirect targets another host instead of the
+  // same URL (cross-host hop: no cookie learning, Cookie header dropped).
+  bool deleteRedirectCrossHost = false;
   bool removeRedirectFirst = false;
   bool removeRedirectAlways = false;
   bool removeEmptyBody = false;
   bool addEmptyBody = false;
+  // Comment-like redirect hop (POST /papi/comments/like/... walks
+  // `_postText`): same 307 + optional set-cookie as delete.
+  bool likeRedirectFirst = false;
+  String? likeWallCookie;
+  Map<String, dynamic> likePayload = const {
+    'success': 1,
+    'likes': [
+      {'item_id': _likeCommentId, 'count': 3},
+    ],
+    'isLiked': [
+      {'item_id': _likeCommentId, 'status': 1},
+    ],
+  };
+  Map<String, dynamic> profilePayload = const {
+    'success': 1,
+    'user': {
+      'id': _sessionUserId,
+      'email': 'reader@example.com',
+      'name': 'Reader',
+      'remixUserkey': _sessionUserKey,
+    },
+  };
 
   final List<String> requestedMethods = [];
   final List<String> requestedPaths = [];
   final List<Object?> requestedBodies = [];
+  final List<Map<String, dynamic>> requestedHeaders = [];
   int addCalls = 0;
   int deleteCalls = 0;
   int removeCalls = 0;
   int currentUserCalls = 0;
+  int likeCalls = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -128,6 +174,10 @@ class _FakeAdapter implements HttpClientAdapter {
     requestedMethods.add(options.method);
     requestedPaths.add(path);
     requestedBodies.add(options.data);
+    requestedHeaders.add(Map<String, dynamic>.from(options.headers));
+    if (path == _profilePath) {
+      return _json(profilePayload);
+    }
     if (path == _currentUserPath) {
       currentUserCalls++;
       return _json(currentUserPayload, statusCode: currentUserStatusCode);
@@ -165,16 +215,39 @@ class _FakeAdapter implements HttpClientAdapter {
       }
       return _json(removePayload, statusCode: removeStatusCode);
     }
-    if (path == _deletePath) {
-      deleteCalls++;
-      if (deleteRedirectAlways || (deleteRedirectFirst && deleteCalls == 1)) {
+    if (path == _likePath) {
+      likeCalls++;
+      if (likeRedirectFirst && likeCalls == 1) {
+        final wallCookie = likeWallCookie;
         return ResponseBody.fromString(
           '',
           307,
           headers: {
             HttpHeaders.locationHeader: [
-              'https://zh.z-library.sk$_deletePath',
+              'https://zh.z-library.sk$_likePath',
             ],
+            if (wallCookie != null)
+              HttpHeaders.setCookieHeader: ['__diamwall=$wallCookie'],
+          },
+        );
+      }
+      return _json(likePayload);
+    }
+    if (path == _deletePath) {
+      deleteCalls++;
+      if (deleteRedirectAlways || (deleteRedirectFirst && deleteCalls == 1)) {
+        final wallCookie = deleteWallCookie;
+        return ResponseBody.fromString(
+          '',
+          307,
+          headers: {
+            HttpHeaders.locationHeader: [
+              deleteRedirectCrossHost
+                  ? 'https://static.example.org$_deletePath'
+                  : 'https://zh.z-library.sk$_deletePath',
+            ],
+            if (wallCookie != null)
+              HttpHeaders.setCookieHeader: ['__diamwall=$wallCookie'],
           },
         );
       }
@@ -205,6 +278,14 @@ class _FakeAdapter implements HttpClientAdapter {
 ZLibraryApi _apiWith(_FakeAdapter adapter) {
   return ZLibraryApi(dio: Dio()..httpClientAdapter = adapter);
 }
+
+/// Indexes (into the recorded requests) of every call to [path], in
+/// order — the redirect-cookie tests pick hops out of the recording,
+/// which also holds the profile request that loginWithToken makes.
+List<int> _hopIndexes(List<String> paths, String path) => [
+      for (var i = 0; i < paths.length; i++)
+        if (paths[i] == path) i,
+    ];
 
 void main() {
   test('add sends a body-less GET to the add-book URL', () async {
@@ -310,6 +391,86 @@ void main() {
     expect(response.success, isFalse);
     expect(response.error, 'too many redirects');
     expect(adapter.deleteCalls, 5);
+  });
+
+  test('delete 307 hop set-cookie rides the follow-up request', () async {
+    final adapter = _FakeAdapter()
+      ..deleteRedirectFirst = true
+      ..deleteWallCookie = 'ddg-token=';
+    final api = _apiWith(adapter);
+    final login = await api.loginWithToken(_sessionUserId, _sessionUserKey);
+    expect(login.success, isTrue);
+
+    final response = await api.deleteBooklist(_deleteListId);
+
+    expect(response.success, isTrue);
+    expect(adapter.deleteCalls, 2);
+    final hops = _hopIndexes(adapter.requestedPaths, _deletePath);
+    expect(hops.length, 2);
+    // First hop: session only — nothing was learned yet.
+    final firstHop = adapter.requestedHeaders[hops[0]];
+    expect(firstHop['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(firstHop['Cookie'], contains('remix_userkey=$_sessionUserKey'));
+    expect(firstHop['Cookie'], isNot(contains('__diamwall')));
+    // Follow-up: the hop's __diamwall rides along next to the unchanged
+    // session pair. The value keeps its trailing '=' (name/value split
+    // on the first '=' only).
+    final secondHop = adapter.requestedHeaders[hops[1]];
+    expect(secondHop['Cookie'], contains('__diamwall=ddg-token='));
+    expect(secondHop['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(secondHop['Cookie'], contains('remix_userkey=$_sessionUserKey'));
+  });
+
+  test('delete cross-host redirect learns nothing, drops the Cookie',
+      () async {
+    final adapter = _FakeAdapter()
+      ..deleteRedirectFirst = true
+      ..deleteRedirectCrossHost = true
+      ..deleteWallCookie = 'ddg-token=';
+    final api = _apiWith(adapter);
+    final login = await api.loginWithToken(_sessionUserId, _sessionUserKey);
+    expect(login.success, isTrue);
+
+    final response = await api.deleteBooklist(_deleteListId);
+
+    expect(response.success, isTrue);
+    final hops = _hopIndexes(adapter.requestedPaths, _deletePath);
+    expect(hops.length, 2);
+    // The first hop went out with the session; the redirect target is
+    // on another host, so its set-cookie is not harvested and the
+    // follow-up request to that host carries no Cookie header at all.
+    expect(adapter.requestedHeaders[hops[0]].containsKey('Cookie'), isTrue);
+    expect(adapter.requestedHeaders[hops[1]].containsKey('Cookie'), isFalse);
+    // Nothing entered the jar: the next same-host request carries the
+    // session pair only, without the hop's cookie.
+    await api.addBookToBooklist(booklistId: _booklistId, bookId: _bookId);
+    final addHeaders = adapter.requestedHeaders.last;
+    expect(addHeaders['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(addHeaders['Cookie'], isNot(contains('__diamwall')));
+  });
+
+  test('comment like 307 hop set-cookie rides the re-POSTed request',
+      () async {
+    final adapter = _FakeAdapter()
+      ..likeRedirectFirst = true
+      ..likeWallCookie = 'ddg-token=';
+    final api = _apiWith(adapter);
+    final login = await api.loginWithToken(_sessionUserId, _sessionUserKey);
+    expect(login.success, isTrue);
+
+    final response = await api.likeBookComment(_likeCommentId, like: true);
+
+    expect(response.success, isTrue);
+    expect(response.data?.count, 3);
+    expect(response.data?.liked, isTrue);
+    final hops = _hopIndexes(adapter.requestedPaths, _likePath);
+    expect(hops.length, 2);
+    // 307 keeps the method: the follow-up is a POST to the same URL,
+    // and it carries the hop cookie next to the session pair.
+    expect(adapter.requestedMethods[hops[1]], 'POST');
+    final secondHop = adapter.requestedHeaders[hops[1]];
+    expect(secondHop['Cookie'], contains('__diamwall=ddg-token='));
+    expect(secondHop['Cookie'], contains('remix_userkey=$_sessionUserKey'));
   });
 
   test('remove sends a body-less GET to the remove-book URL', () async {
