@@ -30,10 +30,11 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 //
 // Redirect-cookie regression tests (2026-11-09 capture, item: hop
 // set-cookie was dropped): the fake can answer the first delete /
-// comment-like hop with a `__diamwall` set-cookie and records every
-// request's headers, pinning that the follow-up request carries the
-// learned cookie next to the session pair, and that a cross-host
-// target hop learns nothing and drops the Cookie header as before.
+// comment-like / comment-delete hop with a `__diamwall` set-cookie and
+// records every request's headers, pinning that the follow-up request
+// carries the learned cookie next to the session pair, and that a
+// cross-host target hop learns nothing and drops the Cookie header as
+// before.
 
 const _booklistId = 4090055;
 const _bookId = 18337950;
@@ -55,6 +56,10 @@ const _profilePath = '/eapi/user/profile';
 // 307 to the same URL like the 2026-11-06 capture.
 const _likeCommentId = 1046367;
 const _likePath = '/papi/comments/like/$_likeCommentId/1';
+// Comment delete: the DELETE side (`_delete`), same wall, same fix —
+// the 2026-11-09 capture answered 200 directly, no 307 seen yet.
+const _commentDeleteId = 1046367;
+const _commentDeletePath = '/papi/comments/delete/$_commentDeleteId';
 
 /// One current-user entry, shaped like the live 2026-11-09 response for
 /// 白鹿原 (book 11959979): the list `id` plus `readlistBookId`, null when
@@ -135,6 +140,11 @@ class _FakeAdapter implements HttpClientAdapter {
   // `_postText`): same 307 + optional set-cookie as delete.
   bool likeRedirectFirst = false;
   String? likeWallCookie;
+  // Comment-delete redirect hop (DELETE /papi/comments/delete/... walks
+  // `_delete`): same 307 + optional set-cookie, same cross-host variant.
+  bool commentDeleteRedirectFirst = false;
+  String? commentDeleteWallCookie;
+  bool commentDeleteRedirectCrossHost = false;
   Map<String, dynamic> likePayload = const {
     'success': 1,
     'likes': [
@@ -163,6 +173,7 @@ class _FakeAdapter implements HttpClientAdapter {
   int removeCalls = 0;
   int currentUserCalls = 0;
   int likeCalls = 0;
+  int commentDeleteCalls = 0;
 
   @override
   Future<ResponseBody> fetch(
@@ -237,6 +248,27 @@ class _FakeAdapter implements HttpClientAdapter {
         );
       }
       return _json(likePayload);
+    }
+    if (path == _commentDeletePath) {
+      commentDeleteCalls++;
+      if (commentDeleteRedirectFirst && commentDeleteCalls == 1) {
+        final wallCookie = commentDeleteWallCookie;
+        return ResponseBody.fromString(
+          '',
+          307,
+          headers: {
+            HttpHeaders.locationHeader: [
+              commentDeleteRedirectCrossHost
+                  ? 'https://static.example.org$_commentDeletePath'
+                  // Same URL, like the real server (see the remove branch).
+                  : options.uri.toString(),
+            ],
+            if (wallCookie != null)
+              HttpHeaders.setCookieHeader: ['__diamwall=$wallCookie'],
+          },
+        );
+      }
+      return _json(const {'success': 1});
     }
     if (path == _deletePath) {
       deleteCalls++;
@@ -477,6 +509,62 @@ void main() {
     final secondHop = adapter.requestedHeaders[hops[1]];
     expect(secondHop['Cookie'], contains('__diamwall=ddg-token='));
     expect(secondHop['Cookie'], contains('remix_userkey=$_sessionUserKey'));
+  });
+
+  test('comment delete 307 hop set-cookie rides the re-sent DELETE',
+      () async {
+    final adapter = _FakeAdapter()
+      ..commentDeleteRedirectFirst = true
+      ..commentDeleteWallCookie = 'ddg-token=';
+    final api = _apiWith(adapter);
+    final login = await api.loginWithToken(_sessionUserId, _sessionUserKey);
+    expect(login.success, isTrue);
+
+    final response = await api.deleteBookComment(_commentDeleteId);
+
+    expect(response.success, isTrue);
+    expect(response.data, isTrue);
+    final hops = _hopIndexes(adapter.requestedPaths, _commentDeletePath);
+    expect(hops.length, 2);
+    // First hop: session only — nothing was learned yet.
+    final firstHop = adapter.requestedHeaders[hops[0]];
+    expect(firstHop['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(firstHop['Cookie'], isNot(contains('__diamwall')));
+    // 307 keeps the method: the follow-up is a DELETE to the same URL,
+    // and it carries the hop cookie next to the session pair.
+    expect(adapter.requestedMethods[hops[1]], 'DELETE');
+    final secondHop = adapter.requestedHeaders[hops[1]];
+    expect(secondHop['Cookie'], contains('__diamwall=ddg-token='));
+    expect(secondHop['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(secondHop['Cookie'], contains('remix_userkey=$_sessionUserKey'));
+  });
+
+  test('comment delete cross-host redirect learns nothing, drops the '
+      'Cookie', () async {
+    final adapter = _FakeAdapter()
+      ..commentDeleteRedirectFirst = true
+      ..commentDeleteRedirectCrossHost = true
+      ..commentDeleteWallCookie = 'ddg-token=';
+    final api = _apiWith(adapter);
+    final login = await api.loginWithToken(_sessionUserId, _sessionUserKey);
+    expect(login.success, isTrue);
+
+    final response = await api.deleteBookComment(_commentDeleteId);
+
+    expect(response.success, isTrue);
+    final hops = _hopIndexes(adapter.requestedPaths, _commentDeletePath);
+    expect(hops.length, 2);
+    // The first hop went out with the session; the redirect target is
+    // on another host, so its set-cookie is not harvested and the
+    // follow-up request to that host carries no Cookie header at all.
+    expect(adapter.requestedHeaders[hops[0]].containsKey('Cookie'), isTrue);
+    expect(adapter.requestedHeaders[hops[1]].containsKey('Cookie'), isFalse);
+    // Nothing entered the jar: the next same-host request carries the
+    // session pair only, without the hop's cookie.
+    await api.addBookToBooklist(booklistId: _booklistId, bookId: _bookId);
+    final addHeaders = adapter.requestedHeaders.last;
+    expect(addHeaders['Cookie'], contains('remix_userid=$_sessionUserId'));
+    expect(addHeaders['Cookie'], isNot(contains('__diamwall')));
   });
 
   test('remove sends a body-less GET to the remove-book URL', () async {

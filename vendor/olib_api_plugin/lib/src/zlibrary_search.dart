@@ -498,7 +498,11 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// DELETE with no request body, following redirects by hand — same
   /// pattern as `_postText`: 307/308 are re-sent as DELETE, 301/302/303
   /// are followed as GET (browser behaviour). The session Cookie is
-  /// only sent to our own host: a hop to another host drops it.
+  /// only sent to our own host: a hop to another host drops it. A
+  /// same-host hop may re-issue cookies (the DDoS-Guard challenge sets
+  /// `__diamwall` on the first 307 and expects the follow-up request to
+  /// carry it): they are learned into the session / wall-cookie jar
+  /// before following. Cross-host target hops learn nothing.
   ///
   /// Redirect failures (no Location, non-https target, too many hops,
   /// unparsable Location) return an error [_Raw] — never throw: the
@@ -511,6 +515,10 @@ mixin ZLibrarySearch on ZLibraryApiBase {
     if (Uri.parse(url).host != Uri.parse(_base).host) {
       headers.remove('Cookie');
     }
+    // Set once the Cookie header has been stripped for a cross-host hop:
+    // it stays off for the rest of the chain even if a later hop comes
+    // back to our own host (pre-fix behaviour).
+    var cookieStripped = false;
     var isDelete = true;
     var lastStatus = 0;
     for (var hop = 0; hop < 5; hop++) {
@@ -559,9 +567,32 @@ mixin ZLibrarySearch on ZLibraryApiBase {
         if (next.scheme != 'https') {
           return _Raw(status: code, error: 'redirect to non-https URL');
         }
+        // Learn what this hop re-issued before following it. Only a hop
+        // that stays on our own host may teach the jar: a cross-host
+        // target's cookies must not enter it. The request host only
+        // differs from the base after a cross-host target — and cookies
+        // set by another host must not enter the jar even when that hop
+        // redirects back to us.
+        if (next.host == Uri.parse(_base).host &&
+            Uri.parse(url).host == Uri.parse(_base).host) {
+          _harvestRedirectCookies(
+            res.headers['set-cookie'] ?? const <String>[],
+          );
+        }
         url = next.toString();
         if (next.host != Uri.parse(_base).host) {
           headers = Map<String, String>.from(headers)..remove('Cookie');
+          cookieStripped = true;
+        } else if (!cookieStripped) {
+          // Same-host hop: re-derive the Cookie header from the jar so
+          // the follow-up carries what this hop re-issued. Nothing was
+          // harvested — the rebuild is a no-op.
+          final cookie = _headers['Cookie'];
+          if (cookie != null) {
+            headers['Cookie'] = cookie;
+          } else {
+            headers.remove('Cookie');
+          }
         }
         // 301/302/303 turn the follow-up into a GET; 307/308 keep
         // the original DELETE.
