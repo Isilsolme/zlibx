@@ -230,7 +230,7 @@ List<FullTextSnippetPart> _parseSnippet(dom.Element card) {
   final parts = <FullTextSnippetPart>[];
   for (final node in part.nodes) {
     final isEm = node is dom.Element && node.localName == 'em';
-    final text = node.text.replaceAll(RegExp(r'\s+'), ' ');
+    final text = node.text?.replaceAll(RegExp(r'\s+'), ' ') ?? '';
     if (text.trim().isEmpty) continue;
     parts.add(
       FullTextSnippetPart(text: text, highlighted: isEm),
