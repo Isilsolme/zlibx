@@ -25,12 +25,20 @@ class BookActionBar extends ConsumerWidget {
   final bool isDownloading;
   final bool isCompleted;
 
+  /// Why the book is unavailable for download, or null when it is
+  /// available: `'copyright'` or `'removed'` (see
+  /// [BookDetailArgs.unavailableReason]). Removed books still open
+  /// the detail page, but the download button is replaced by a
+  /// disabled label — the site lists them without a file.
+  final String? unavailableReason;
+
   const BookActionBar({
     super.key,
     required this.book,
     required this.downloadTask,
     required this.isDownloading,
     required this.isCompleted,
+    this.unavailableReason,
   });
 
   @override
@@ -52,11 +60,20 @@ class BookActionBar extends ConsumerWidget {
       child: Row(
         children: [
           // ── Download Button (Secondary or Primary if no read) ──
+          // Removed books get a disabled label instead: the file is
+          // gone on the site, but the page itself stays reachable.
           Expanded(
-            child: _buildDownloadButton(
-              context, ref, l10n,
-              isPrimary: !hasReadOnline,
-            ),
+            child: unavailableReason != null
+                ? _buildUnavailableButton(
+                    context,
+                    unavailableReason == 'copyright'
+                        ? l10n.copyrightRemoved
+                        : l10n.removedBook,
+                  )
+                : _buildDownloadButton(
+                    context, ref, l10n,
+                    isPrimary: !hasReadOnline,
+                  ),
           ),
 
           if (hasReadOnline) ...[
@@ -68,6 +85,35 @@ class BookActionBar extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Disabled stand-in for the download button on removed books.
+  Widget _buildUnavailableButton(
+    BuildContext context,
+    String label,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
+      child: ElevatedButton.icon(
+        onPressed: null,
+        icon: const Icon(Icons.block_rounded, size: 20),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: cs.surfaceContainerHighest,
+          foregroundColor: cs.onSurfaceVariant,
+          disabledBackgroundColor: cs.surfaceContainerHighest,
+          disabledForegroundColor: cs.onSurfaceVariant,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          minimumSize: const Size(0, 48),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          elevation: 0,
+        ),
       ),
     );
   }

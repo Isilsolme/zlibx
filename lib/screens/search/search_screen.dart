@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../providers/books_provider.dart';
+import '../../providers/fulltext_search_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
 import 'widgets/active_filter_chips.dart';
 import 'widgets/empty_query_view.dart';
+import 'widgets/fulltext_hit_tile.dart';
+import 'widgets/fulltext_mode_selector.dart';
 import 'widgets/search_bar_field.dart';
 import 'widgets/search_skeleton_grid.dart';
 import 'widgets/search_suggestions_view.dart';
@@ -49,6 +53,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _selectedOrder = 'default';
   String _selectedExtension = 'all';
 
+  // ── Full-text mode (z站 only): phrase/words match + exact flag.
+  // The order default differs per mode ('popular' for full-text,
+  // 'default' for general search) — see _switchFullTextMode.
+  bool _isFullText = false;
+  String _fullTextMatchType = 'phrase';
+  bool _fullTextExact = false;
+
   bool _isListView = false;
   bool _isQueryEmpty = true;
   List<String> _recentSearches = [];
@@ -65,8 +76,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   int get _activeFilterCount =>
       (_selectedLanguage != 'all' ? 1 : 0) +
-      (_selectedOrder != 'default' ? 1 : 0) +
-      (_selectedExtension != 'all' ? 1 : 0);
+      (_selectedOrder != (_isFullText ? 'popular' : 'default') ? 1 : 0) +
+      (_selectedExtension != 'all' ? 1 : 0) +
+      (_isFullText && _fullTextMatchType != 'phrase' ? 1 : 0) +
+      (_isFullText && _fullTextExact ? 1 : 0);
 
   @override
   void initState() {
@@ -206,6 +219,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _searchController.clear();
     setState(() => _lastSubmittedQuery = '');
     ref.read(searchProvider.notifier).reset();
+    ref.read(fulltextSearchProvider.notifier).reset();
     ref.read(externalSearchProvider.notifier).reset();
   }
 
@@ -227,7 +241,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _resetOrderFilter() {
-    _selectedOrder = 'default';
+    _selectedOrder = _isFullText ? 'popular' : 'default';
     _applyFilterChange();
   }
 
@@ -245,7 +259,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _openFilterSheet(
         l10n,
         getLanguageDisplayNames(locale),
-        getOrderDisplayNames(locale),
+        _isFullText
+            ? getFulltextOrderDisplayNames(locale)
+            : getOrderDisplayNames(locale),
         getExtensionDisplayNames(locale),
       ),
     );
@@ -334,6 +350,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (_isFullText) ...[
+                      section(
+                        l10n.matchMode,
+                        {
+                          'phrase': l10n.matchByPhrase,
+                          'words': l10n.matchByWords,
+                        },
+                        _fullTextMatchType,
+                        (v) => _fullTextMatchType = v,
+                      ),
+                      SwitchListTile(
+                        title: Text(l10n.exactMatch),
+                        value: _fullTextExact,
+                        contentPadding: EdgeInsets.zero,
+                        onChanged: (value) {
+                          setSheetState(() => _fullTextExact = value);
+                          _applyFilterChange();
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     section(
                       l10n.language,
                       languageNames,
@@ -358,8 +395,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           onPressed: () {
                             setSheetState(() {
                               _selectedLanguage = 'all';
-                              _selectedOrder = 'default';
+                              _selectedOrder =
+                                  _isFullText ? 'popular' : 'default';
                               _selectedExtension = 'all';
+                              _fullTextMatchType = 'phrase';
+                              _fullTextExact = false;
                             });
                             _applyFilterChange();
                           },
@@ -409,6 +449,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return true;
     }
 
+    if (_isFullText) {
+      ref.read(fulltextSearchProvider.notifier).search(
+        FullTextSearchParams(
+          query: query,
+          type: _fullTextMatchType,
+          exact: _fullTextExact,
+          languages: searchLanguages[_selectedLanguage] != null
+              ? [searchLanguages[_selectedLanguage]!]
+              : null,
+          extensions: searchExtensions[_selectedExtension] != null
+              ? [searchExtensions[_selectedExtension]!]
+              : null,
+          order: _selectedOrder,
+        ),
+      );
+      return true;
+    }
+
     ref
         .read(searchProvider.notifier)
         .search(
@@ -440,11 +498,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_searchController.text.trim().isNotEmpty) _performSearch();
   }
 
+  /// Switch between general and full-text search (z站 only). The
+  /// sort selection resets to the new mode's default ('popular' for
+  /// full-text, 'default' for general) so a sort value from one mode
+  /// can never leak into the other endpoint's request.
+  void _switchFullTextMode(bool isFullText) {
+    if (isFullText == _isFullText) return;
+    setState(() {
+      _isFullText = isFullText;
+      _selectedOrder = isFullText ? 'popular' : 'default';
+      _suggestions = [];
+      _suggestionsLoading = false;
+      _showSuggestions = false;
+      _lastSubmittedQuery = '';
+    });
+    ref.read(searchProvider.notifier).reset();
+    ref.read(fulltextSearchProvider.notifier).reset();
+    if (_searchController.text.trim().isNotEmpty) _performSearch();
+  }
+
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       if (_source != BookSource.zlibrary) {
         ref.read(externalSearchProvider.notifier).loadMore();
+      } else if (_isFullText) {
+        ref.read(fulltextSearchProvider.notifier).loadMore();
       } else {
         ref.read(searchProvider.notifier).loadMore();
       }
@@ -455,33 +534,67 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     AppRoutes.openBookDetailForDisplayBook(context, book);
   }
 
+  void _openFullTextHit(FullTextHit hit) {
+    AppRoutes.openBookDetailForDisplayBook(
+      context,
+      hit.book.toDisplay(),
+      unavailableReason: hit.unavailableReason,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
     final languageNames = getLanguageDisplayNames(locale);
-    final orderNames = getOrderDisplayNames(locale);
+    final orderNames = _isFullText
+        ? getFulltextOrderDisplayNames(locale)
+        : getOrderDisplayNames(locale);
     final extensionNames = getExtensionDisplayNames(locale);
     final isExternal = _source != BookSource.zlibrary;
 
     final searchState = ref.watch(searchProvider);
     final externalState = ref.watch(externalSearchProvider);
+    final fulltextState = ref.watch(fulltextSearchProvider);
+    final isFullTextMode = _isFullText && !isExternal;
     final books = isExternal
         ? externalState.books
         : searchState.books.map((book) => book.toDisplay()).toList();
-    final resultCount = books.length;
-    final hasSearched =
-        isExternal ? externalState.hasSearched : searchState.hasSearched;
-    final isLoading =
-        isExternal ? externalState.isLoading : searchState.isLoading;
-    final isLoadingMore =
-        isExternal ? externalState.isLoadingMore : searchState.isLoadingMore;
-    final error = isExternal ? externalState.error : searchState.error;
-    final currentPage =
-        isExternal ? externalState.currentPage : searchState.currentPage;
+    final resultCount =
+        isFullTextMode ? fulltextState.hits.length : books.length;
+    final hasSearched = isExternal
+        ? externalState.hasSearched
+        : isFullTextMode
+            ? fulltextState.hasSearched
+            : searchState.hasSearched;
+    final isLoading = isExternal
+        ? externalState.isLoading
+        : isFullTextMode
+            ? fulltextState.isLoading
+            : searchState.isLoading;
+    final isLoadingMore = isExternal
+        ? externalState.isLoadingMore
+        : isFullTextMode
+            ? fulltextState.isLoadingMore
+            : searchState.isLoadingMore;
+    final loginRequired = isFullTextMode && fulltextState.loginRequired;
+    final error = isExternal
+        ? externalState.error
+        : isFullTextMode
+            ? (fulltextState.error == fulltextTokenUnavailable
+                ? l10n.fullTextUnavailable
+                : fulltextState.error)
+            : searchState.error;
+    final currentPage = isExternal
+        ? externalState.currentPage
+        : isFullTextMode
+            ? fulltextState.currentPage
+            : searchState.currentPage;
     final totalPagesText = isExternal
         ? (externalState.hasMore ? '…' : '${externalState.currentPage}')
-        : '${searchState.totalPages}';
+        : isFullTextMode
+            ? '${fulltextState.totalPages}'
+            : '${searchState.totalPages}';
 
     return Scaffold(
       appBar: GradientAppBar(title: l10n.searchBooks),
@@ -493,6 +606,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             isExternal: isExternal,
             activeFilterCount: _activeFilterCount,
             isQueryEmpty: _isQueryEmpty,
+            hintText: _isFullText ? l10n.fullTextSearchHint : null,
             onSubmitted: _performSearch,
             onFilterTap: _openFilterSheetForCurrentLocale,
             onClear: _clearSearch,
@@ -502,6 +616,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             selected: _source,
             onSwitch: _switchSource,
           ),
+          if (!isExternal)
+            FulltextModeSelector(
+              l10n: l10n,
+              isFullText: _isFullText,
+              onSwitch: _switchFullTextMode,
+            ),
           if (!isExternal && _activeFilterCount > 0)
             SearchActiveFilterChips(
               l10n: l10n,
@@ -543,6 +663,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   )
                 : isLoading
                 ? const SearchSkeletonGrid()
+                : loginRequired
+                ? EmptyState(
+                    icon: Icons.login_rounded,
+                    title: l10n.fullTextLoginRequired,
+                    action: FilledButton(
+                      onPressed: () => AppRoutes.openLogin(context),
+                      child: Text(l10n.login),
+                    ),
+                  )
                 : error != null && resultCount == 0
                 ? EmptyState(
                     icon: Icons.error_outline_rounded,
@@ -610,21 +739,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     ),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(
-                                _isListView
-                                    ? Icons.grid_view_rounded
-                                    : Icons.view_list_rounded,
-                                color: Theme.of(context).colorScheme.primary,
-                                size: 22,
+                            if (!isFullTextMode)
+                              IconButton(
+                                icon: Icon(
+                                  _isListView
+                                      ? Icons.grid_view_rounded
+                                      : Icons.view_list_rounded,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 22,
+                                ),
+                                tooltip: _isListView
+                                    ? l10n.gridView
+                                    : l10n.listView,
+                                onPressed: () {
+                                  setState(() => _isListView = !_isListView);
+                                },
                               ),
-                              tooltip: _isListView
-                                  ? l10n.gridView
-                                  : l10n.listView,
-                              onPressed: () {
-                                setState(() => _isListView = !_isListView);
-                              },
-                            ),
                           ],
                         ),
                       ),
@@ -642,6 +772,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     ref
                                         .read(externalSearchProvider.notifier)
                                         .loadMore();
+                                  } else if (isFullTextMode) {
+                                    ref
+                                        .read(fulltextSearchProvider.notifier)
+                                        .loadMore();
                                   } else {
                                     ref
                                         .read(searchProvider.notifier)
@@ -654,7 +788,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                           ),
                         ),
                       Expanded(
-                        child: _isListView
+                        child: isFullTextMode
+                            ? ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                itemCount: fulltextState.hits.length +
+                                    (isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index >= fulltextState.hits.length) {
+                                    return const LoadingWidget.more();
+                                  }
+                                  final hit = fulltextState.hits[index];
+                                  return FullTextHitTile(
+                                    hit: hit,
+                                    l10n: l10n,
+                                    onTap: () => _openFullTextHit(hit),
+                                  );
+                                },
+                              )
+                            : _isListView
                             ? ListView.builder(
                                 controller: _scrollController,
                                 padding: const EdgeInsets.fromLTRB(

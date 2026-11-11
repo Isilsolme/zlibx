@@ -70,14 +70,18 @@ class AppRoutes {
   /// `BookDetailArgs.fromDisplayBook`.
   static Future<T?> openBookDetailForDisplayBook<T extends Object?>(
     BuildContext context,
-    DisplayBook book,
-  ) {
+    DisplayBook book, {
+    String? unavailableReason,
+  }) {
     final zBook = book.asZLibBook;
     return openBookDetail<T>(
       context,
       zBook != null
-          ? BookDetailArgs(book: zBook)
-          : BookDetailArgs.fromDisplayBook(displayBook: book),
+          ? BookDetailArgs(book: zBook, unavailableReason: unavailableReason)
+          : BookDetailArgs.fromDisplayBook(
+              displayBook: book,
+              unavailableReason: unavailableReason,
+            ),
     );
   }
 

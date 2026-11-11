@@ -1,0 +1,120 @@
+import 'package:olib_api_plugin/olib_api_plugin.dart';
+
+import 'booklist_solver.dart';
+import 'wall_cookie_bridge.dart';
+import 'webview_challenge_solver.dart';
+
+/// Data layer for full-text search: fetching (fast Dio first, the
+/// WebView solver on the browser-check wall) and parsing.
+///
+/// A full-text search (`/fulltext/?q=…&token=…&type=…`, 50 hits per
+/// page) is plain HTML; the plugin's [ZLibraryApi.searchFullText]
+/// fetches and parses it. Like the category pages there is no
+/// persistent cache here: searches are read-only listings, so every
+/// search revalidates from the network (v1).
+class FulltextRepository {
+  FulltextRepository(this._api);
+
+  final ZLibraryApi _api;
+
+  /// One page of full-text search results.
+  Future<ApiResponse<FullTextSearchPage>> search({
+    required String query,
+    String type = 'phrase',
+    bool exact = false,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    String? order,
+    int page = 1,
+  }) => _api.searchFullText(
+    query: query,
+    type: type,
+    exact: exact,
+    yearFrom: yearFrom,
+    yearTo: yearTo,
+    languages: languages,
+    extensions: extensions,
+    order: order,
+    page: page,
+  );
+
+  /// The full URL of one full-text results page — the solver
+  /// fallback's URL. The cached session token rides along when the
+  /// plugin has one; without it the server answers with the search
+  /// form instead of results.
+  String searchPageUrl({
+    required String query,
+    String type = 'phrase',
+    bool exact = false,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    String? order,
+    int page = 1,
+  }) => _api.fulltextPageUrl(
+    query: query,
+    type: type,
+    exact: exact,
+    yearFrom: yearFrom,
+    yearTo: yearTo,
+    languages: languages,
+    extensions: extensions,
+    order: order,
+    page: page,
+    token: _api.fulltextToken,
+  );
+
+  /// The plugin's short error for a browser-check wall (plus the older
+  /// shapes a wall can surface as).
+  bool isChallengeError(String? error) =>
+      BooklistSolver.isChallengeError(error);
+
+  /// Parses solver-fetched HTML into a results page, or null when it
+  /// fails to parse. A parse failure here must not escape the load
+  /// (which runs from a microtask) and leave the screen loading
+  /// forever — treat a broken page like a fetch failure. A page with
+  /// no `#searchResultBox` is not a results page at all (the solver
+  /// most likely landed on the search form, e.g. when no token was
+  /// available for the URL) — also null, so the caller keeps the
+  /// original challenge error instead of painting an empty result.
+  FullTextSearchPage? parsePage(String html, {required String baseUrl}) {
+    if (!html.contains('searchResultBox')) return null;
+    try {
+      return parseFullTextSearchPage(html, baseUrl: baseUrl);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Fetches [url] through the WebView solver and returns the real
+  /// page HTML, or null when the solve failed. When [userId] and
+  /// [userKey] are both given, the login session is installed into the
+  /// WebView's CookieManager first. Unlike [BooklistSolver.fetchHtml]
+  /// the solved page is NOT stored in the booklist HTML cache — that
+  /// cache is keyed by booklist URLs and search pages do not belong
+  /// in it.
+  Future<String?> fetchViaSolver(
+    String url, {
+    String? userId,
+    String? userKey,
+  }) async {
+    if (userId != null && userKey != null && userKey.isNotEmpty) {
+      await installSessionCookies(
+        userId: userId,
+        userKey: userKey,
+        pageUrl: url,
+      );
+    }
+    final html = await WebviewChallengeSolver.fetchHtmlAfterChallenge(url);
+    if (html == null ||
+        html.isEmpty ||
+        BooklistSolver.isChallengeHtml(html)) {
+      return null;
+    }
+    await bridgeWallCookies(_api, url);
+    return html;
+  }
+}

@@ -8,12 +8,14 @@ import 'book.dart';
 import 'book_comment.dart';
 import 'book_detail_html.dart';
 import 'booklist.dart';
+import 'fulltext.dart';
 import 'user.dart';
 
 part 'zlibrary_auth.dart';
 part 'zlibrary_search.dart';
 part 'zlibrary_booklists.dart';
 part 'zlibrary_categories.dart';
+part 'zlibrary_fulltext.dart';
 part 'zlibrary_downloads.dart';
 
 /// App-facing byte sink for the pending-MediaStore download flow
@@ -816,7 +818,7 @@ abstract class ZLibraryApiBase {
 ///   send_code, verify_code. Those methods fall back or fail loudly rather
 ///   than silently returning wrong data; see their doc comments.
 
-class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth, ZLibrarySearch, ZLibraryBooklists, ZLibraryCategories, ZLibraryDownloads {
+class ZLibraryApi extends ZLibraryApiBase with ZLibraryAuth, ZLibrarySearch, ZLibraryBooklists, ZLibraryCategories, ZLibraryFullText, ZLibraryDownloads {
   ZLibraryApi({super.domain, super.dio});
 
   String get domain => _domain;

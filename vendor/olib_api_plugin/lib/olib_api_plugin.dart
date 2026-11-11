@@ -12,5 +12,6 @@ export 'src/book.dart';
 export 'src/book_comment.dart';
 export 'src/book_detail_html.dart';
 export 'src/booklist.dart';
+export 'src/fulltext.dart';
 export 'src/user.dart';
 export 'src/zlibrary_api.dart';

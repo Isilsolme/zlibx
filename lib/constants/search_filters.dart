@@ -124,6 +124,50 @@ const searchOrders = {
   'year': 'year',
 };
 
+/// Sort order options for full-text search ONLY. The site's
+/// `/fulltext` sort has 8 values; the three missing from
+/// [searchOrders] are `titleA`, `filesize` and `filesizeA`. These
+/// must never be sent to the eapi search — the general-search UI
+/// only ever offers [searchOrders], and the search screen switches
+/// the sheet's sort list (and resets the selection) with the mode.
+/// Site semantics, do not swap: `titleA` is A–Z, `title` is Z–A.
+const fulltextSearchOrders = {
+  'popular': 'popular',
+  'bestmatch': 'bestmatch',
+  'date': 'date',
+  'titleA': 'titleA',
+  'title': 'title',
+  'year': 'year',
+  'filesize': 'filesize',
+  'filesizeA': 'filesizeA',
+};
+
+/// Localized full-text sort order names.
+Map<String, String> getFulltextOrderDisplayNames(String locale) {
+  if (locale.startsWith('zh')) {
+    return {
+      'popular': '最受欢迎',
+      'bestmatch': '最佳吻合',
+      'date': '最近添加',
+      'titleA': '按名称 (A-Z)',
+      'title': '按名称 (Z-A)',
+      'year': '按年份',
+      'filesize': '文件大小↓',
+      'filesizeA': '文件大小↑',
+    };
+  }
+  return {
+    'popular': 'Most Popular',
+    'bestmatch': 'Best Match',
+    'date': 'Recently Added',
+    'titleA': 'Title (A-Z)',
+    'title': 'Title (Z-A)',
+    'year': 'Year',
+    'filesize': 'File Size ↓',
+    'filesizeA': 'File Size ↑',
+  };
+}
+
 /// Localized sort order names
 Map<String, String> getOrderDisplayNames(String locale) {
   if (locale.startsWith('zh')) {

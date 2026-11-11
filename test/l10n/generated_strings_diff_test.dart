@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 407 getters/methods, in all 5 locales, plus the 27
+// every one of the 418 getters/methods, in all 5 locales, plus the 27
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -116,6 +116,7 @@ void main() {
     expect(loc.confirmRemoveMsg(1), 'Remove 1 book(s) from favorites?');
     expect(loc.confirmRemoveTitle, 'Confirm Remove');
     expect(loc.continueAnyway, 'Continue anyway');
+    expect(loc.copyrightRemoved, 'Removed for copyright');
     expect(loc.couldNotLoadBooks, 'Could not load books');
     expect(loc.create, 'Create');
     expect(loc.createBooklist, 'New booklist');
@@ -169,6 +170,7 @@ void main() {
     expect(loc.enterPassword, 'Please enter your password');
     expect(loc.enterSearchHint, 'Enter title, author or keyword');
     expect(loc.error, 'Error');
+    expect(loc.exactMatch, 'Exact match');
     expect(loc.exampleDomainHint, 'e.g., example.com');
     expect(loc.favoriteBooklist, 'Favorite');
     expect(loc.favoriteFailed, 'Could not update favorites. Please try again.');
@@ -180,6 +182,11 @@ void main() {
     expect(loc.fileSize, 'File Size');
     expect(loc.floatingNav, 'Floating navigation bar');
     expect(loc.followDevice, 'Follow device language');
+    expect(loc.fullTextLoginRequired, 'Sign in to use full-text search');
+    expect(loc.fullTextSearch, 'Full-text search');
+    expect(loc.fullTextSearchHint, 'Search by phrase or words');
+    expect(loc.fullTextUnavailable, 'Full-text search unavailable');
+    expect(loc.generalSearch, 'General search');
     expect(loc.githubOpenSource, 'GitHub Open Source');
     expect(loc.goodMorning, 'Good morning,');
     expect(loc.gotIt, 'OK');
@@ -234,6 +241,9 @@ void main() {
     expect(loc.logoutConfirmDesc, 'You will need to log in again with your credentials.');
     expect(loc.logoutConfirmTitle, 'Log out?');
     expect(loc.manageAccounts, 'Switch or manage accounts');
+    expect(loc.matchByPhrase, 'By phrase');
+    expect(loc.matchByWords, 'By words');
+    expect(loc.matchMode, 'Match mode');
     expect(loc.mediastoreDesc, 'Uses MediaStore API to save to public Downloads');
     expect(loc.mirrorAutoDesc, 'Easiest protection first, then fastest. Recommended.');
     expect(loc.mirrorAutoOrder, 'Automatic mirror order');
@@ -319,6 +329,7 @@ void main() {
     expect(loc.removeAccountMessage, 'Its saved login details will be removed from this device.');
     expect(loc.removeAccountTitle, 'Remove this account?');
     expect(loc.removeFavorite, 'Remove Favorite');
+    expect(loc.removedBook, 'Removed');
     expect(loc.replyTo, 'Reply to');
     expect(loc.resetToDefault, 'Reset to Default');
     expect(loc.resetToDefaultDirDone, 'Reset to default directory');
@@ -527,6 +538,7 @@ void main() {
     expect(loc.confirmRemoveMsg(1), 'お気に入りから1冊を削除しますか？');
     expect(loc.confirmRemoveTitle, '削除の確認');
     expect(loc.continueAnyway, 'このまま続行');
+    expect(loc.copyrightRemoved, '著作権のため削除');
     expect(loc.couldNotLoadBooks, '書籍を読み込めませんでした');
     expect(loc.create, '作成');
     expect(loc.createBooklist, 'ブックリストを作成');
@@ -580,6 +592,7 @@ void main() {
     expect(loc.enterPassword, 'パスワードを入力してください');
     expect(loc.enterSearchHint, 'タイトル、著者、キーワードを入力');
     expect(loc.error, 'エラー');
+    expect(loc.exactMatch, '完全一致');
     expect(loc.exampleDomainHint, '例：example.com');
     expect(loc.favoriteBooklist, 'お気に入りに追加');
     expect(loc.favoriteFailed, 'お気に入りを更新できませんでした。もう一度お試しください。');
@@ -591,6 +604,11 @@ void main() {
     expect(loc.fileSize, 'ファイルサイズ');
     expect(loc.floatingNav, 'フローティングバー');
     expect(loc.followDevice, 'デバイスの言語に従う');
+    expect(loc.fullTextLoginRequired, '全文検索を利用するにはログインしてください');
+    expect(loc.fullTextSearch, '全文検索');
+    expect(loc.fullTextSearchHint, 'フレーズまたは単語で検索');
+    expect(loc.fullTextUnavailable, '全文検索は利用できません');
+    expect(loc.generalSearch, '一般検索');
     expect(loc.githubOpenSource, 'GitHub オープンソース');
     expect(loc.goodMorning, 'おはようございます、');
     expect(loc.gotIt, 'OK');
@@ -645,6 +663,9 @@ void main() {
     expect(loc.logoutConfirmDesc, 'ログアウトすると、再度アカウント情報でログインする必要があります。');
     expect(loc.logoutConfirmTitle, 'ログアウトしますか？');
     expect(loc.manageAccounts, 'アカウントの切り替え・管理');
+    expect(loc.matchByPhrase, 'フレーズで検索');
+    expect(loc.matchByWords, '単語で検索');
+    expect(loc.matchMode, '一致モード');
     expect(loc.mediastoreDesc, 'MediaStore API を使って公開ダウンロードフォルダに保存します');
     expect(loc.mirrorAutoDesc, '保護の弱い順、次に速い順。推奨。');
     expect(loc.mirrorAutoOrder, 'ミラーの自動並び替え');
@@ -730,6 +751,7 @@ void main() {
     expect(loc.removeAccountMessage, 'このデバイスに保存されたログイン情報が削除されます。');
     expect(loc.removeAccountTitle, 'このアカウントを削除しますか？');
     expect(loc.removeFavorite, 'お気に入りから削除');
+    expect(loc.removedBook, '削除済み');
     expect(loc.replyTo, '返信');
     expect(loc.resetToDefault, 'デフォルトに戻す');
     expect(loc.resetToDefaultDirDone, 'デフォルトのフォルダに戻しました');
@@ -938,6 +960,7 @@ void main() {
     expect(loc.confirmRemoveMsg(1), '즐겨찾기에서 1권을 삭제하시겠습니까?');
     expect(loc.confirmRemoveTitle, '삭제 확인');
     expect(loc.continueAnyway, '그래도 계속');
+    expect(loc.copyrightRemoved, '저작권으로 삭제됨');
     expect(loc.couldNotLoadBooks, '책을 불러올 수 없습니다');
     expect(loc.create, '만들기');
     expect(loc.createBooklist, '새 북리스트');
@@ -991,6 +1014,7 @@ void main() {
     expect(loc.enterPassword, '비밀번호를 입력해 주세요');
     expect(loc.enterSearchHint, '제목, 저자 또는 키워드 입력');
     expect(loc.error, '오류');
+    expect(loc.exactMatch, '정확히 일치');
     expect(loc.exampleDomainHint, '예: example.com');
     expect(loc.favoriteBooklist, '즐겨찾기 추가');
     expect(loc.favoriteFailed, '즐겨찾기를 업데이트할 수 없습니다. 다시 시도해 주세요.');
@@ -1002,6 +1026,11 @@ void main() {
     expect(loc.fileSize, '파일 크기');
     expect(loc.floatingNav, '플로팅 탐색 모음');
     expect(loc.followDevice, '기기 언어 따르기');
+    expect(loc.fullTextLoginRequired, '전문 검색을 사용하려면 로그인하세요');
+    expect(loc.fullTextSearch, '전문 검색');
+    expect(loc.fullTextSearchHint, '구 또는 단어로 검색');
+    expect(loc.fullTextUnavailable, '전문 검색을 사용할 수 없습니다');
+    expect(loc.generalSearch, '일반 검색');
     expect(loc.githubOpenSource, 'GitHub 오픈소스');
     expect(loc.goodMorning, '좋은 아침입니다,');
     expect(loc.gotIt, '확인');
@@ -1056,6 +1085,9 @@ void main() {
     expect(loc.logoutConfirmDesc, '로그아웃하면 계정 정보로 다시 로그인해야 합니다.');
     expect(loc.logoutConfirmTitle, '로그아웃하시겠어요?');
     expect(loc.manageAccounts, '계정 전환 및 관리');
+    expect(loc.matchByPhrase, '구로 검색');
+    expect(loc.matchByWords, '단어로 검색');
+    expect(loc.matchMode, '일치 모드');
     expect(loc.mediastoreDesc, 'MediaStore API로 공용 다운로드 폴더에 저장합니다');
     expect(loc.mirrorAutoDesc, '보호가 약한 순, 그 다음 빠른 순. 권장.');
     expect(loc.mirrorAutoOrder, '미러 자동 정렬');
@@ -1141,6 +1173,7 @@ void main() {
     expect(loc.removeAccountMessage, '이 기기에 저장된 로그인 정보가 삭제됩니다.');
     expect(loc.removeAccountTitle, '이 계정을 삭제하시겠습니까?');
     expect(loc.removeFavorite, '즐겨찾기에서 삭제');
+    expect(loc.removedBook, '삭제됨');
     expect(loc.replyTo, '답글');
     expect(loc.resetToDefault, '기본값으로 재설정');
     expect(loc.resetToDefaultDirDone, '기본 폴더로 재설정했습니다');
@@ -1349,6 +1382,7 @@ void main() {
     expect(loc.confirmRemoveMsg(1), '确定从收藏中移除 1 本书？');
     expect(loc.confirmRemoveTitle, '确认移除');
     expect(loc.continueAnyway, '仍然继续');
+    expect(loc.copyrightRemoved, '版权下架');
     expect(loc.couldNotLoadBooks, '无法加载书籍');
     expect(loc.create, '创建');
     expect(loc.createBooklist, '新建书单');
@@ -1402,6 +1436,7 @@ void main() {
     expect(loc.enterPassword, '请输入密码');
     expect(loc.enterSearchHint, '输入书名、作者或关键词');
     expect(loc.error, '错误');
+    expect(loc.exactMatch, '精确对应');
     expect(loc.exampleDomainHint, '例如 example.com');
     expect(loc.favoriteBooklist, '收藏');
     expect(loc.favoriteFailed, '收藏更新失败，请稍后重试。');
@@ -1413,6 +1448,11 @@ void main() {
     expect(loc.fileSize, '文件大小');
     expect(loc.floatingNav, '悬浮栏');
     expect(loc.followDevice, '跟随设备语言');
+    expect(loc.fullTextLoginRequired, '请先登录后使用全文检索');
+    expect(loc.fullTextSearch, '全文检索');
+    expect(loc.fullTextSearchHint, '按短语或单词搜索');
+    expect(loc.fullTextUnavailable, '全文检索不可用');
+    expect(loc.generalSearch, '通用搜索');
     expect(loc.githubOpenSource, 'GitHub 开源');
     expect(loc.goodMorning, '早上好，');
     expect(loc.gotIt, '好的');
@@ -1467,6 +1507,9 @@ void main() {
     expect(loc.logoutConfirmDesc, '退出后需要重新输入账号密码登录。');
     expect(loc.logoutConfirmTitle, '退出登录？');
     expect(loc.manageAccounts, '切换或管理账号');
+    expect(loc.matchByPhrase, '按词搜索');
+    expect(loc.matchByWords, '按字搜索');
+    expect(loc.matchMode, '匹配模式');
     expect(loc.mediastoreDesc, '使用 MediaStore API 保存到公共下载目录');
     expect(loc.mirrorAutoDesc, '先按防护难易度，再按速度排序。推荐。');
     expect(loc.mirrorAutoOrder, '自动排序镜像');
@@ -1552,6 +1595,7 @@ void main() {
     expect(loc.removeAccountMessage, '将从此设备中删除该账号保存的登录信息。');
     expect(loc.removeAccountTitle, '移除这个账号？');
     expect(loc.removeFavorite, '取消收藏');
+    expect(loc.removedBook, '已移除');
     expect(loc.replyTo, '回复');
     expect(loc.resetToDefault, '恢复默认');
     expect(loc.resetToDefaultDirDone, '已恢复默认目录');
@@ -1760,6 +1804,7 @@ void main() {
     expect(loc.confirmRemoveMsg(1), '確定要從收藏中移除 1 本書嗎？');
     expect(loc.confirmRemoveTitle, '確認移除');
     expect(loc.continueAnyway, '仍然繼續');
+    expect(loc.copyrightRemoved, '版權下架');
     expect(loc.couldNotLoadBooks, '無法載入書籍');
     expect(loc.create, '建立');
     expect(loc.createBooklist, '新增書單');
@@ -1813,6 +1858,7 @@ void main() {
     expect(loc.enterPassword, '請輸入密碼');
     expect(loc.enterSearchHint, '輸入書名、作者或關鍵字');
     expect(loc.error, '錯誤');
+    expect(loc.exactMatch, '精確對應');
     expect(loc.exampleDomainHint, '例如 example.com');
     expect(loc.favoriteBooklist, '收藏');
     expect(loc.favoriteFailed, '收藏更新失敗，請稍後再試。');
@@ -1824,6 +1870,11 @@ void main() {
     expect(loc.fileSize, '檔案大小');
     expect(loc.floatingNav, '懸浮欄');
     expect(loc.followDevice, '跟隨裝置語言');
+    expect(loc.fullTextLoginRequired, '請先登入後使用全文檢索');
+    expect(loc.fullTextSearch, '全文檢索');
+    expect(loc.fullTextSearchHint, '按短語或單詞搜尋');
+    expect(loc.fullTextUnavailable, '全文檢索不可用');
+    expect(loc.generalSearch, '通用搜尋');
     expect(loc.githubOpenSource, 'GitHub 開源');
     expect(loc.goodMorning, '早安，');
     expect(loc.gotIt, '好的');
@@ -1878,6 +1929,9 @@ void main() {
     expect(loc.logoutConfirmDesc, '登出後需要重新輸入帳號密碼登入。');
     expect(loc.logoutConfirmTitle, '登出？');
     expect(loc.manageAccounts, '切換或管理帳號');
+    expect(loc.matchByPhrase, '按詞搜尋');
+    expect(loc.matchByWords, '按字搜尋');
+    expect(loc.matchMode, '匹配模式');
     expect(loc.mediastoreDesc, '使用 MediaStore API 儲存到公共下載目錄');
     expect(loc.mirrorAutoDesc, '先按防護難易度，再按速度排序。推薦。');
     expect(loc.mirrorAutoOrder, '自動排序鏡像');
@@ -1963,6 +2017,7 @@ void main() {
     expect(loc.removeAccountMessage, '將從此裝置中刪除該帳號儲存的登入資訊。');
     expect(loc.removeAccountTitle, '移除這個帳號？');
     expect(loc.removeFavorite, '取消收藏');
+    expect(loc.removedBook, '已移除');
     expect(loc.replyTo, '回覆');
     expect(loc.resetToDefault, '恢復預設');
     expect(loc.resetToDefaultDirDone, '已恢復預設目錄');

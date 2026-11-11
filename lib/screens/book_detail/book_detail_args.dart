@@ -13,10 +13,21 @@ class BookDetailArgs {
   final Book? book;
   final DisplayBook? displayBook;
 
-  const BookDetailArgs({required this.book}) : displayBook = null;
+  /// Why the book is unavailable for download, or null when it is
+  /// available: `'copyright'` (site took it down on a copyright
+  /// complaint, `deleted` 1) or `'removed'` (`deleted` 5/9). Set by
+  /// the full-text search screen for removed hits; the detail page
+  /// hides the download button while keeping the page itself
+  /// reachable (site behaviour).
+  final String? unavailableReason;
 
-  const BookDetailArgs.fromDisplayBook({required this.displayBook})
-    : book = null;
+  const BookDetailArgs({required this.book, this.unavailableReason})
+    : displayBook = null;
+
+  const BookDetailArgs.fromDisplayBook({
+    required this.displayBook,
+    this.unavailableReason,
+  }) : book = null;
 
   /// 是否 Anna's Archive 详情（按 DisplayBook.source 判断）。
   bool get isAnnasArchive => displayBook?.isAnnasArchive ?? false;

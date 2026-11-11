@@ -13,6 +13,7 @@ class SearchBarField extends StatelessWidget {
     required this.isExternal,
     required this.activeFilterCount,
     required this.isQueryEmpty,
+    this.hintText,
     required this.onSubmitted,
     required this.onFilterTap,
     required this.onClear,
@@ -23,6 +24,10 @@ class SearchBarField extends StatelessWidget {
   final bool isExternal;
   final int activeFilterCount;
   final bool isQueryEmpty;
+
+  /// Overrides the default hint (full-text mode shows the site's
+  /// "search by phrase or words" hint); null keeps [l10n.searchForBooks].
+  final String? hintText;
   final VoidCallback onSubmitted;
   final VoidCallback onFilterTap;
   final VoidCallback onClear;
@@ -38,7 +43,7 @@ class SearchBarField extends StatelessWidget {
         textInputAction: TextInputAction.search,
         onSubmitted: (_) => onSubmitted(),
         decoration: InputDecoration(
-          hintText: l10n.searchForBooks,
+          hintText: hintText ?? l10n.searchForBooks,
           hintStyle: TextStyle(color: cs.onSurfaceVariant),
           prefixIcon: Icon(Icons.search_rounded, color: cs.onSurfaceVariant),
           suffixIcon: Row(

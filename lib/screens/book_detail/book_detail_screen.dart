@@ -82,6 +82,7 @@ class BookDetailScreen extends ConsumerWidget {
         downloadTask: downloadTask,
         isDownloading: isDownloading,
         isCompleted: isCompleted,
+        unavailableReason: args.unavailableReason,
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
