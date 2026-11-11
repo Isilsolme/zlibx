@@ -47,6 +47,14 @@ class MyComment {
   });
 }
 
+/// My comments arrive in server order, oldest first — the comments
+/// endpoints have no sort parameter, same as the book comments list.
+/// The screen shows newest first, so the server order is reversed.
+/// The displayed date is a relative string (e.g. "3 days ago"), so
+/// there is nothing to parse; reversal is the whole sort.
+List<MyComment> orderMyCommentsNewestFirst(List<MyComment> serverOrder) =>
+    serverOrder.reversed.toList();
+
 /// "My Comments": the signed-in user's own posted comments, the same
 /// collection the website shows on the profile Comments tab
 /// (`GET /papi/comments/user/{userId}/{page}?limit=500`, confirmed by a
@@ -127,6 +135,8 @@ class _MyCommentsScreenState extends ConsumerState<MyCommentsScreen> {
       // 失败按空列表处理，下拉重试
       logIgnored('my_comments', error);
     }
+    // 服务器按最旧在前返回；列表按最新在前展示。
+    comments = orderMyCommentsNewestFirst(comments);
     if (!mounted) return;
     setState(() {
       _comments = comments;
