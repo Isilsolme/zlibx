@@ -19,6 +19,17 @@ import 'package:zlibx/services/webview_challenge_solver.dart';
 
 /// Service to fetch mirror links in the background without showing UI
 class MirrorFetcherService {
+  /// Total wait budget for one fetch. The Anna slow_download page shows
+  /// a countdown first and releases its direct link only after it —
+  /// later than onLoadStop — so the link extraction polls within this
+  /// budget instead of reading the page once. Provisional 30s: the
+  /// lower end of the 30-60s window the countdown can take; re-tune
+  /// after measuring the real countdown on a device.
+  static const Duration slowLinkWaitTimeout = Duration(seconds: 30);
+
+  /// Cadence of the slow_download link re-check while waiting.
+  static const Duration slowLinkPollInterval = Duration(seconds: 1);
+
   static final MirrorFetcherService _instance = MirrorFetcherService._internal();
   factory MirrorFetcherService() => _instance;
   MirrorFetcherService._internal();
@@ -55,7 +66,8 @@ class MirrorFetcherService {
           // protected mirror — the exact opposite of this service's job.
           // Detect it and keep waiting: the challenge auto-solves and
           // redirects, firing another onLoadStop with the real page. The
-          // 15s outer timeout below still bounds the whole wait.
+          // outer timeout below (slowLinkWaitTimeout) still bounds the
+          // whole wait.
           try {
             final title = await controller.getTitle() ?? '';
             final bodySnippet = await controller.evaluateJavascript(
@@ -83,13 +95,34 @@ class MirrorFetcherService {
 
           try {
             if (url.toString().contains("slow_download")) {
-              // For slow_download pages, extract the direct link
+              // The slow_download page shows a countdown first and
+              // releases the direct link only after it — later than
+              // onLoadStop — so a single extraction here usually finds
+              // nothing and the flow used to fall to the unprotected
+              // plain-HTML fallback. Poll with the same selector once
+              // per second until the link appears or the outer timeout
+              // bounds the wait (same selector as Route 4's
+              // extractSlowDownloadLink in lib/core/annas_archive.dart).
               String query =
                   """var paragraphTag=document.querySelector('p[class="mb-4 text-xl font-bold"]');var anchorTagHref=paragraphTag.querySelector('a').href;var url=()=>{return anchorTagHref};url();""";
-              String? mirrorLink = await controller.evaluateJavascript(source: query);
-              if (mirrorLink != null) {
-                bookDownloadLinks.add(mirrorLink);
-                _logger.info('Extracted slow_download link', tag: 'MirrorFetcher');
+              while (!completer.isCompleted) {
+                String? mirrorLink;
+                try {
+                  mirrorLink =
+                      await controller.evaluateJavascript(source: query);
+                } catch (pollError) {
+                  // The selector throws while the countdown paragraph is
+                  // absent: "not ready yet", poll again.
+                  _logger.debug('slow_download link not ready yet',
+                      tag: 'MirrorFetcher',
+                      metadata: {'error': pollError.toString()});
+                }
+                if (mirrorLink != null && mirrorLink.isNotEmpty) {
+                  bookDownloadLinks.add(mirrorLink);
+                  _logger.info('Extracted slow_download link', tag: 'MirrorFetcher');
+                  break;
+                }
+                await Future<void>.delayed(slowLinkPollInterval);
               }
             } else {
               // For other mirror pages, extract all IPFS/mirror links
@@ -135,12 +168,20 @@ class MirrorFetcherService {
       await webView.run();
       _logger.debug('Headless webview started', tag: 'MirrorFetcher');
 
-      // Wait for the page to load and links to be extracted
-      // Maximum wait time of 15 seconds
+      // Wait for the page to load and links to be extracted; the
+      // slow_download poll above keeps waiting within this budget.
       final result = await completer.future.timeout(
-        const Duration(seconds: 15),
+        slowLinkWaitTimeout,
         onTimeout: () {
-          _logger.warning('Mirror fetch timed out after 15 seconds', tag: 'MirrorFetcher');
+          _logger.warning(
+              'Mirror fetch timed out after '
+              '${slowLinkWaitTimeout.inSeconds} seconds',
+              tag: 'MirrorFetcher');
+          // Release the poll loop: it stops at its next check instead
+          // of lingering after this future has already resolved.
+          if (!completer.isCompleted) {
+            completer.complete([]);
+          }
           return [];
         },
       );
