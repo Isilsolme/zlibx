@@ -203,6 +203,8 @@ final bookDetailsProvider =
       isbn13: metadata.isbn13,
       ipfsCid: metadata.ipfsCid,
       ipfsCidBlake2b: metadata.ipfsCidBlake2b,
+      ratingInterest: metadata.ratingInterest,
+      ratingQuality: metadata.ratingQuality,
     );
   } catch (error) {
     logIgnored('book_details_metadata', error);

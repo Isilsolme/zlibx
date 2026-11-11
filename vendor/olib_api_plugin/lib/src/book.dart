@@ -51,6 +51,17 @@ class Book {
   final String? ipfsCid;
   final String? ipfsCidBlake2b;
 
+  /// Detail-page-only rating (NOT in the eapi book object): the
+  /// community interest / quality scores rendered in the page header
+  /// (`book-rating-interest-score` / `book-rating-quality-score`
+  /// spans — see `parseBookDetailProperties`). Rendered strings
+  /// (`3.0`); null when the page hides the span (unrated book) or the
+  /// HTML fetch was skipped/failed. Distinct from [interestScore]:
+  /// that one comes from eapi/search payloads, these two only ever
+  /// come from the detail page.
+  final String? ratingInterest;
+  final String? ratingQuality;
+
   /// Booklist-detail-only fields (NOT in the eapi book object): the
   /// readlist membership-row id (`booklistsindex` attribute) and the
   /// per-book note (`div[slot="note"]`) of a `<z-bookcard>` on a
@@ -84,6 +95,8 @@ class Book {
     this.isbn13,
     this.ipfsCid,
     this.ipfsCidBlake2b,
+    this.ratingInterest,
+    this.ratingQuality,
     this.readlistBookId,
     this.note,
   });
@@ -207,6 +220,8 @@ class Book {
     String? isbn13,
     String? ipfsCid,
     String? ipfsCidBlake2b,
+    String? ratingInterest,
+    String? ratingQuality,
     int? readlistBookId,
     String? note,
   }) {
@@ -234,6 +249,8 @@ class Book {
       isbn13: isbn13 ?? this.isbn13,
       ipfsCid: ipfsCid ?? this.ipfsCid,
       ipfsCidBlake2b: ipfsCidBlake2b ?? this.ipfsCidBlake2b,
+      ratingInterest: ratingInterest ?? this.ratingInterest,
+      ratingQuality: ratingQuality ?? this.ratingQuality,
       readlistBookId: readlistBookId ?? this.readlistBookId,
       note: note ?? this.note,
     );

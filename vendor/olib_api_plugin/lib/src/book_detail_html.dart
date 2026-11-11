@@ -26,6 +26,17 @@ import 'package:html/parser.dart' as html_parser;
 /// shape too: `property_categories` carries its value inside a link
 /// (take the text), and `property_content_type` (`内容类型:` / `书籍`)
 /// exists but is not parsed — it is skipped like any other row.
+///
+/// The rating is NOT a `bookProperty` row: it lives in the page
+/// header block `div.book-rating-detail > div.book-rating`, two
+/// spans around a slash — `span.book-rating-interest-score` (社区
+/// 评分, 0–5) and `span.book-rating-quality-score` (质量分, 0–5).
+/// Verified against the 超速学习 capture 2026-11-12 (zh.z-library.sk,
+/// interest `3.0` / quality `5.0`). An unrated book keeps the spans
+/// in the DOM but hides them with the extra class `none` (the page's
+/// own JS re-fills the values and removes `none` after the user
+/// rates) — a `none`-classed span parses to null so the app never
+/// shows a stale/hidden value.
 class BookDetailMetadata {
   final String? volume;
   final String? isbn10;
@@ -33,12 +44,21 @@ class BookDetailMetadata {
   final String? ipfsCid;
   final String? ipfsCidBlake2b;
 
+  /// Community interest score as rendered (`3.0`), or null when the
+  /// page hides the span (unrated) or it carries no text.
+  final String? ratingInterest;
+
+  /// Community quality score as rendered (`5.0`), same null rules.
+  final String? ratingQuality;
+
   const BookDetailMetadata({
     this.volume,
     this.isbn10,
     this.isbn13,
     this.ipfsCid,
     this.ipfsCidBlake2b,
+    this.ratingInterest,
+    this.ratingQuality,
   });
 
   bool get isEmpty =>
@@ -46,7 +66,9 @@ class BookDetailMetadata {
       isbn10 == null &&
       isbn13 == null &&
       ipfsCid == null &&
-      ipfsCidBlake2b == null;
+      ipfsCidBlake2b == null &&
+      ratingInterest == null &&
+      ratingQuality == null;
 }
 
 /// Parse the detail-page metadata rows out of a detail page's HTML.
@@ -84,6 +106,17 @@ BookDetailMetadata parseBookDetailProperties(String html) {
         .toList();
   }
 
+  // Rating spans: visible text only — the site hides an unrated span
+  // with the extra class `none`, which must parse to null (see the
+  // class doc).
+  String? ratingScore(String selector) {
+    final span = doc.querySelector(selector);
+    if (span == null) return null;
+    if (span.classes.contains('none')) return null;
+    final text = span.text.trim();
+    return text.isEmpty ? null : text;
+  }
+
   final copies = ipfsCopies();
   return BookDetailMetadata(
     volume: byClass('volume') ?? byLabel('卷') ?? byLabel('volume'),
@@ -91,6 +124,8 @@ BookDetailMetadata parseBookDetailProperties(String html) {
     isbn13: byClass('isbn_13') ?? byLabel('isbn 13'),
     ipfsCid: copies.isNotEmpty ? copies[0] : null,
     ipfsCidBlake2b: copies.length > 1 ? copies[1] : null,
+    ratingInterest: ratingScore('.book-rating-interest-score'),
+    ratingQuality: ratingScore('.book-rating-quality-score'),
   );
 }
 

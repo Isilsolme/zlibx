@@ -70,6 +70,58 @@ const _detailHtml = '''
 
 void main() {
   group('parseBookDetailProperties', () {
+    group('rating (book-rating-detail header block)', () {
+      // Shape from the 超速学习 capture 2026-11-12 (zh.z-library.sk):
+      // `div.book-rating-detail > div.book-rating`, two spans around a
+      // slash. Not a `bookProperty` row.
+      const ratedHtml = '''
+<html><body>
+<div class="book-rating-detail">
+  <div class="book-rating cursor-pointer">
+    <span class="icon star-icon zlibicon-star"></span>
+    <span class="icon star-icon zlibicon-star-f"></span>
+    <span class="book-rating-interest-score ">
+        3.0        </span> /
+    <span class="book-rating-quality-score ">
+        5.0        </span>
+  </div>
+</div>
+<div class="bookDetailsBox"></div>
+</body></html>
+''';
+      test('parses both scores from a rated book', () {
+        final meta = parseBookDetailProperties(ratedHtml);
+        expect(meta.ratingInterest, '3.0');
+        expect(meta.ratingQuality, '5.0');
+        expect(meta.isEmpty, isFalse);
+      });
+
+      const hiddenHtml = '''
+<html><body>
+<div class="book-rating-detail">
+  <div class="book-rating">
+    <span class="book-rating-interest-score none"></span>
+    <span class="book-rating-quality-score none"></span>
+  </div>
+</div>
+</body></html>
+''';
+      test('an unrated book (spans hidden with class none) parses to null',
+          () {
+        final meta = parseBookDetailProperties(hiddenHtml);
+        expect(meta.ratingInterest, isNull);
+        expect(meta.ratingQuality, isNull);
+        expect(meta.isEmpty, isTrue);
+      });
+
+      test('a page with no rating block parses to null', () {
+        const html = '<html><body><div class="bookDetailsBox"></div></body></html>';
+        final meta = parseBookDetailProperties(html);
+        expect(meta.ratingInterest, isNull);
+        expect(meta.ratingQuality, isNull);
+      });
+    });
+
     test('extracts all five values, both IPFS CIDs from data-copy', () {
       final meta = parseBookDetailProperties(_detailHtml);
       expect(meta.volume, '第21章 赫敏的秘密');
