@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_metrics.dart';
 
 /// 评论下方的药丸形操作按钮：图标 + 计数。
 /// 激活态（已点赞）带主色底与放大动效；忙碌中忽略点击并降透明度。
@@ -26,7 +27,7 @@ class CommentMetricChip extends StatelessWidget {
     return IgnorePointer(
       ignoring: busy,
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 150),
+        duration: AppMotion.fast,
         opacity: busy ? 0.5 : 1,
         child: Material(
           color: Colors.transparent,
@@ -34,7 +35,7 @@ class CommentMetricChip extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(10),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: AppMotion.quick,
               padding: const EdgeInsets.symmetric(
                 horizontal: 8,
                 vertical: 4,
@@ -50,7 +51,7 @@ class CommentMetricChip extends StatelessWidget {
                 children: [
                   AnimatedScale(
                     scale: active ? 1.15 : 1,
-                    duration: const Duration(milliseconds: 180),
+                    duration: AppMotion.quick,
                     child: Icon(icon, size: 16, color: color),
                   ),
                   const SizedBox(width: 4),

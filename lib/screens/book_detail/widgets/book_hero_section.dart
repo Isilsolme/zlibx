@@ -7,6 +7,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../models/display_book.dart';
 import '../../../providers/books_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../../theme/app_metrics.dart';
 import '../../../utils/app_snack.dart';
 import '../../../widgets/loading_widget.dart';
 import '../../../widgets/state_transition_switch.dart';
@@ -90,7 +91,7 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
           ),
           title: AnimatedOpacity(
             opacity: collapsed ? 1 : 0,
-            duration: const Duration(milliseconds: 150),
+            duration: AppMotion.fast,
             child: Text(
               widget.book.title,
               maxLines: 1,

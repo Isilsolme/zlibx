@@ -17,6 +17,7 @@ import '../screens/search/search_screen.dart';
 import '../screens/settings/history_screen.dart';
 import '../screens/similar/similar_books_screen.dart';
 import '../screens/splash/splash_screen.dart';
+import '../theme/app_metrics.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -160,7 +161,7 @@ class AppRoutes {
   static Future<T?> splashToHome<T extends Object?>(BuildContext context) =>
       Navigator.of(context).pushReplacement<T, Object?>(
         PageRouteBuilder<T>(
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: AppMotion.slow,
           pageBuilder: (context, animation, secondaryAnimation) =>
               const HomeScreen(),
           transitionsBuilder:
@@ -174,7 +175,7 @@ class AppRoutes {
   static Future<T?> splashToLogin<T extends Object?>(BuildContext context) =>
       Navigator.of(context).pushReplacement<T, Object?>(
         PageRouteBuilder<T>(
-          transitionDuration: const Duration(milliseconds: 300),
+          transitionDuration: AppMotion.slow,
           pageBuilder: (context, animation, secondaryAnimation) =>
               const LoginScreen(),
           transitionsBuilder:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../models/display_book.dart';
+import '../theme/app_metrics.dart';
 import '../utils/cover_cache.dart';
 import 'book_cover_backdrop.dart';
 import 'cover_placeholder.dart';
@@ -66,7 +67,7 @@ class _BookCardState extends State<BookCard> {
     // Soft Card UI with press-scale feedback
     return AnimatedScale(
       scale: _scale,
-      duration: const Duration(milliseconds: 150),
+      duration: AppMotion.fast,
       curve: Curves.easeOutCubic,
       child: Container(
         decoration: BoxDecoration(

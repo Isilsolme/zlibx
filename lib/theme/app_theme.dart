@@ -78,13 +78,14 @@ class AppTheme {
   static ColorScheme? _lastDarkScheme;
   static ThemeData? _lastDarkTheme;
 
-  /// 页面转场基线：Android 用 Material 3 的 Zoom（对预测性返回手势
-  /// 友好），Apple 平台保持 Cupertino 滑动手感，桌面统一 Zoom。
+  /// 页面转场基线：Android 用预测性返回（PredictiveBack）转场，返回手势
+  /// 会跟手显示上一页预览（Android 14+；更低版本回退到 FadeForwards）；
+  /// Apple 平台保持 Cupertino 滑动手感，桌面统一 Zoom。
   /// 此前未配置，三端各走各自默认，体验不一致。
   static const PageTransitionsTheme _pageTransitionsTheme =
       PageTransitionsTheme(
     builders: {
-      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+      TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.windows: ZoomPageTransitionsBuilder(),

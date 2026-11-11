@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../providers/speed_test_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/app_metrics.dart';
 import '../../utils/app_log.dart';
 import '../../widgets/domain_selector.dart';
 
@@ -45,7 +46,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Logo entrance: scale from 0.3→1.0 + fade in
     _logoController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: AppMotion.slowest,
     );
     _logoScale = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
@@ -60,7 +61,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     // Content entrance (title + status): staggered after logo
     _contentController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: AppMotion.verySlow,
     );
     _titleSlide = Tween<double>(begin: 20.0, end: 0.0).animate(
       CurvedAnimation(
@@ -416,7 +417,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       );
                     },
                     child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
+                      duration: AppMotion.slow,
                       transitionBuilder: (child, animation) {
                         return FadeTransition(
                           opacity: animation,

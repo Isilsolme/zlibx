@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_metrics.dart';
 
 class EmptyState extends StatelessWidget {
   final IconData icon;
@@ -57,7 +58,7 @@ class EmptyState extends StatelessWidget {
     if (MediaQuery.disableAnimationsOf(context)) return content;
     return TweenAnimationBuilder<double>(
       tween: _entranceTween,
-      duration: const Duration(milliseconds: 400),
+      duration: AppMotion.slower,
       curve: Curves.easeOutCubic,
       builder: (context, value, child) => Opacity(
         opacity: value,

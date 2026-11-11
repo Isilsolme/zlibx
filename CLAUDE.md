@@ -14,17 +14,17 @@ flutter run                      # Run debug build
 flutter build apk --release --target-platform android-arm64  # Build release APK (arm64-v8a only)
 dart run flutter_launcher_icons  # Regenerate app icons (source: tool/icons/olib-app-logo.png)
 flutter analyze                  # Run linter
-flutter test                     # Run widget tests in test/widgets/
+flutter test                     # Run the test suite under test/
 ```
 
-There is no code generation in this project: `Book`/`User` and all other models are hand-written (no freezed, no json_serializable, no build_runner). Do not add generated-model tooling.
+Models are hand-written: `Book`/`User` and all other models use no freezed, no json_serializable, no build_runner. Do not add generated-model tooling. Localization is the one exception — gen-l10n generates `lib/l10n/generated/` from the ARB files (see Internationalization).
 
 ## Architecture
 
 **Layered organization** in `lib/`:
 
 - **`services/`** — API clients and storage. The Z-Library client is `ZLibraryApi` in `vendor/olib_api_plugin/lib/src/zlibrary_api.dart` (Dio with a hand-managed Cookie header; there is no cookie jar). External sources live in `lib/services/annas_archieve.dart` (Anna's Archive — yes, the filename typo is real, do not rename it casually) and `lib/services/libgen_service.dart` (LibGen). Mirror lists come from open-slum.org via `lib/services/slum_catalogue.dart`, `lib/core/slum.dart`, `lib/services/instance_manager.dart`. Cloudflare/DDoS-Guard-style challenge pages are solved in a WebView by `lib/services/webview_challenge_solver.dart` with `lib/services/challenge_html_cache.dart`. One shared Dio factory lives in `lib/services/http_client.dart` (`createDio`); do not create ad-hoc `Dio()` instances.
-- **`providers/`** — Riverpod state management. `StateNotifierProvider` for mutable state (auth, downloads, domain selection, settings). `FutureProvider` / `FutureProvider.family` for async data (search, book details, popular lists).
+- **`providers/`** — Riverpod state management. `NotifierProvider` (Riverpod 2 `Notifier`) for mutable state (auth, downloads, domain selection, settings). `FutureProvider` / `FutureProvider.family` for async data (search, book details, popular lists).
 - **`screens/`** — UI pages, each a `ConsumerWidget` or `ConsumerStatefulWidget`.
 - **`models/`** — Hand-written models (`Book`, `User` in the vendor plugin; `display_book.dart` etc. in `lib/models/`).
 - **`widgets/`** — Shared reusable UI components.
@@ -36,16 +36,16 @@ There is no code generation in this project: `Book`/`User` and all other models 
 
 **Local storage**: Hive boxes for non-secret state (settings, caches, download history). Credentials (account session, tokens) live in `flutter_secure_storage` (Android Keystore), never in Hive — see `lib/services/secure_storage.dart` and `lib/services/auth_storage.dart`.
 
-**Internationalization**: Custom hand-rolled system (not `intl` ARB). Translation files are Dart `Map<String, String>` in `lib/l10n/translations/` — 5 languages: en, zh, zh_Hant, ja, ko. Usage: `AppLocalizations.of(context).get('key')`.
+**Internationalization**: gen-l10n ARB. Message files are `lib/l10n/app_<locale>.arb` (template `app_en.arb`, 397 keys). The language picker offers 5 languages — en, zh, zh_Hant, ja, ko — and the tree also carries `app_zh_TW.arb` / `app_zh_HK.arb` / `app_zh_MO.arb` for regional Traditional Chinese locales. `l10n.yaml` sets `synthetic-package: false` + `output-dir: lib/l10n/generated`; `generate: true` in `pubspec.yaml` regenerates that directory on `flutter pub get`, and `.gitignore` keeps it out of the repo. Usage: `AppLocalizations.of(context)!` (the getter returns a nullable). Pass the complete `AppLocalizations.localizationsDelegates` list — in `MaterialApp` and in widget tests — otherwise the debug-only localization check fails for non-English locales.
 
 ## Tests
 
-`test/` is organised as `test/parsers/` (HTML/JSON parsers), `test/services/` (providers, caches, storage, downloader, trust) and `test/widgets/` (widget tests). `.gitignore` ignores `test/*` but un-ignores exactly these three directories — a new test directory needs a matching `!test/<dir>/` line, otherwise it is silently not committed.
+`test/` is organised as `test/parsers/` (HTML/JSON parsers), `test/services/` (providers, caches, storage, downloader, trust), `test/widgets/` (widget tests), `test/l10n/` (localization string/resolution tests) and `test/routes/` (route table and argument guards). `.gitignore` ignores `test/*` but un-ignores exactly these five directories — a new test directory needs a matching `!test/<dir>/` line, otherwise it is silently not committed.
 
 ## Key Patterns
 
-- `ZLibraryApi` uses lazy async init (`_initFuture`) — all methods await it before proceeding.
-- Domain/mirror switching updates Dio's base URL at runtime; device-side speed testing is in `lib/services/mirror_speed_test.dart`.
+- `ZLibraryApi` has no async init step: `zlibraryApiProvider` constructs it on the persisted domain (`resolveInitialDomain()`), and every request is built against that host.
+- Domain/mirror switching goes through `DomainNotifier` → `ZLibraryApi.setDomain`, which changes the host for subsequent requests; device-side speed testing is in `lib/services/mirror_speed_test.dart`.
 - Multi-account support: `AuthStorage` persists multiple credential sets in secure storage.
 - Downloads are single-stream with resume (`Range` + `If-Range` + append to a stable `<final>.part` file, validator in `<final>.part.meta`). Segmented parallel downloading is deliberately NOT implemented. The external-source / LAN path goes through `lib/services/resumable_downloader.dart` (rejects HTML answers, flags truncated streams); the Z-Library path has its own equivalent checks in `vendor/olib_api_plugin` (`_downloadOnce`) — keep the two in step.
 - Swallowed exceptions must go through `logIgnored(tag, error)` (`lib/utils/diagnostics.dart`), never a bare `debugPrint`: it keeps a bounded in-memory trail (tag + exception type only, no message) that works in release builds.

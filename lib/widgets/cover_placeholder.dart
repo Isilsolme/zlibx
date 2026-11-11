@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import '../theme/app_metrics.dart';
 
 /// Shared cover placeholder for every "cover is loading / missing" surface.
 ///
@@ -19,8 +21,9 @@ class CoverPlaceholder extends StatelessWidget {
       _shimmer ? const _ShimmerCover() : const _StaticCover();
 }
 
-/// Animated gradient sweep, 1500 ms per pass (same timing as the old
-/// BookCard shimmer it replaces). Stops when animations are disabled.
+/// Animated gradient sweep, 1500 ms per pass ([AppMotion.shimmer], the same
+/// timing as the old BookCard shimmer it replaces). Every visible shimmer
+/// shares one controller, so all covers sweep in phase.
 class _ShimmerCover extends StatefulWidget {
   const _ShimmerCover();
 
@@ -28,37 +31,72 @@ class _ShimmerCover extends StatefulWidget {
   State<_ShimmerCover> createState() => _ShimmerCoverState();
 }
 
-class _ShimmerCoverState extends State<_ShimmerCover>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
+/// One controller for every shimmer on screen. A grid of 50 loading covers
+/// used to create 50 AnimationControllers (50 tickers); the holder is
+/// reference-counted by the widgets currently allowed to animate (system
+/// animations on + TickerMode enabled). The first consumer starts the
+/// repeat, the last one stops it, so a backgrounded route does not keep the
+/// ticker running.
+class _SharedShimmer {
+  _SharedShimmer._();
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-    _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
-    );
+  static final _SharedShimmer instance = _SharedShimmer._();
+
+  final TickerProvider _vsync = _ShimmerTickerProvider();
+
+  late final AnimationController _controller = AnimationController(
+    vsync: _vsync,
+    duration: AppMotion.shimmer,
+  );
+
+  late final Animation<double> animation =
+      Tween<double>(begin: -1.0, end: 2.0).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+  );
+
+  int _consumers = 0;
+
+  void attach() {
+    _consumers++;
+    if (!_controller.isAnimating) _controller.repeat();
   }
+
+  void detach() {
+    if (_consumers > 0) _consumers--;
+    if (_consumers == 0) _controller.stop();
+  }
+}
+
+/// A bare [Ticker]: TickerMode muting is handled by [_SharedShimmer]'s
+/// per-consumer reference count, not by a single widget's mixin.
+class _ShimmerTickerProvider implements TickerProvider {
+  @override
+  Ticker createTicker(TickerCallback onTick) => Ticker(onTick);
+}
+
+class _ShimmerCoverState extends State<_ShimmerCover> {
+  bool _attached = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled) {
-      _controller.stop();
-    } else if (!_controller.isAnimating) {
-      _controller.repeat();
+    final shouldAnimate = !MediaQuery.disableAnimationsOf(context) &&
+        TickerMode.valuesOf(context).enabled;
+    if (shouldAnimate == _attached) return;
+    _attached = shouldAnimate;
+    if (shouldAnimate) {
+      _SharedShimmer.instance.attach();
+    } else {
+      _SharedShimmer.instance.detach();
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_attached) {
+      _attached = false;
+      _SharedShimmer.instance.detach();
+    }
     super.dispose();
   }
 
@@ -69,9 +107,11 @@ class _ShimmerCoverState extends State<_ShimmerCover>
         isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE);
     final highlightColor =
         isDark ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5);
+    final animation = _SharedShimmer.instance.animation;
     return AnimatedBuilder(
-      animation: _animation,
+      animation: animation,
       builder: (context, child) {
+        final value = animation.value;
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -79,9 +119,9 @@ class _ShimmerCoverState extends State<_ShimmerCover>
               end: Alignment.bottomRight,
               colors: [baseColor, highlightColor, baseColor],
               stops: [
-                (_animation.value - 0.3).clamp(0.0, 1.0),
-                _animation.value.clamp(0.0, 1.0),
-                (_animation.value + 0.3).clamp(0.0, 1.0),
+                (value - 0.3).clamp(0.0, 1.0),
+                value.clamp(0.0, 1.0),
+                (value + 0.3).clamp(0.0, 1.0),
               ],
             ),
           ),

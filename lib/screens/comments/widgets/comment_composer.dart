@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../theme/app_metrics.dart';
 import '../../../widgets/loading_widget.dart';
 
 /// 评论区底部输入区：可选的“回复 @某人”横幅 + 胶囊输入框 + 发送键。
@@ -48,7 +49,7 @@ class CommentComposer extends StatelessWidget {
         children: [
           // “正在回复”横幅：出现/收起带尺寸过渡，不打断输入框布局。
           AnimatedSize(
-            duration: const Duration(milliseconds: 180),
+            duration: AppMotion.quick,
             curve: Curves.easeOut,
             alignment: Alignment.bottomCenter,
             child: replyBannerText == null
@@ -187,7 +188,7 @@ class _SendButton extends StatelessWidget {
           onPressed: canSend ? onSubmit : null,
           tooltip: tooltip,
           icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 150),
+            duration: AppMotion.fast,
             transitionBuilder: (child, animation) => FadeTransition(
               opacity: animation,
               child: ScaleTransition(scale: animation, child: child),

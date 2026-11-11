@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
+import '../../../theme/app_metrics.dart';
 
 /// 从 search_screen 抽出的零状态段：搜索源三段选择器（滑动高亮）。
 /// 切换经 [onSwitch] 回调交回搜索页。
@@ -82,7 +83,7 @@ class _SourceSegment extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: AppMotion.quick,
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(

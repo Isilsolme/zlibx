@@ -23,6 +23,7 @@ import '../account/account_screen.dart';
 import '../downloads/local_downloads_screen.dart';
 import '../settings/settings_screen.dart';
 
+import '../../theme/app_metrics.dart';
 import '../../utils/app_snack.dart';
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -80,7 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (!didPop && _selectedIndex != 0) {
           _pageController.animateToPage(
             0,
-            duration: const Duration(milliseconds: 300),
+            duration: AppMotion.slow,
             curve: Curves.easeInOut,
           );
         }
@@ -233,7 +234,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         child: AnimatedOpacity(
                           opacity: _selectedIndex == i ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 200),
+                          duration: AppMotion.standard,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
                               color: cs.primaryContainer,
@@ -312,7 +313,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return AnimatedSlide(
       offset:
           hideEnabled && !navVisible ? const Offset(0, 1.5) : Offset.zero,
-      duration: const Duration(milliseconds: 250),
+      duration: AppMotion.medium,
       curve: Curves.easeInOut,
       child: navBar,
     );
@@ -327,7 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // current tab leaves the page animation a no-op.
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 300),
+      duration: AppMotion.slow,
       curve: Curves.easeInOut,
     );
   }
@@ -450,7 +451,7 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         0,
-        duration: const Duration(milliseconds: 400),
+        duration: AppMotion.slower,
         curve: Curves.easeOut,
       );
     }

@@ -26,3 +26,38 @@ abstract final class AppSpacing {
   static const double xl = 24;
   static const double xxl = 32;
 }
+
+/// 全 app 动效时长基线。此前动画时长散落 30+ 处（150/180/200/250/
+/// 300/400/900/1500ms 等）；收敛策略同 [AppRadius] / [AppSpacing]：
+/// 新代码必须用这里，触碰到的旧代码顺手替换，不做一次性全库替换。
+///
+/// 这里只收动画时长：网络超时、防抖 Timer、`Future.delayed` 等非动画
+/// 用途的 Duration 保持原样。
+abstract final class AppMotion {
+  /// 微反馈：按下/松开、淡入淡出（150）。
+  static const Duration fast = Duration(milliseconds: 150);
+
+  /// 小部件展开/收起、着色过渡（180）。
+  static const Duration quick = Duration(milliseconds: 180);
+
+  /// 选中态、轻量切换（200）。
+  static const Duration standard = Duration(milliseconds: 200);
+
+  /// 导航栏、中等距离位移（250）。
+  static const Duration medium = Duration(milliseconds: 250);
+
+  /// 页面转场、明显位移（300）。
+  static const Duration slow = Duration(milliseconds: 300);
+
+  /// 大段滚动、进场动画（400）。
+  static const Duration slower = Duration(milliseconds: 400);
+
+  /// 骨架 shimmer 的循环周期（1500）。
+  static const Duration shimmer = Duration(milliseconds: 1500);
+
+  /// 启动页内容错峰入场（800）。
+  static const Duration verySlow = Duration(milliseconds: 800);
+
+  /// 最长过渡：启动页 logo 入场、书单骨架呼吸（900）。
+  static const Duration slowest = Duration(milliseconds: 900);
+}

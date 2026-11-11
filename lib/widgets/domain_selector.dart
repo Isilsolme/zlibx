@@ -5,6 +5,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../providers/domain_provider.dart';
 import '../providers/speed_test_provider.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_metrics.dart';
 import 'loading_widget.dart';
 
 import '../utils/app_snack.dart';
@@ -109,7 +110,7 @@ class DomainSelectionDialog extends ConsumerWidget {
           ),
           // Progress / count badge
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
+            duration: AppMotion.standard,
             child: speedState.testing
                 ? Row(
                     key: const ValueKey('testing'),

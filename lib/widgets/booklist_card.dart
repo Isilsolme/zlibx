@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../theme/app_metrics.dart';
 import '../utils/cover_cache.dart';
 /// Rounded booklist cover with a soft shadow and a themed placeholder.
 class BooklistCover extends StatelessWidget {
@@ -236,7 +237,7 @@ class _BooklistSkeletonListState extends State<BooklistSkeletonList>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 900),
+    duration: AppMotion.slowest,
   )..repeat(reverse: true);
 
   @override

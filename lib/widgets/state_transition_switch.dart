@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_metrics.dart';
 
 /// loading / content / error / empty 三态切换的统一过渡容器。
 ///
@@ -14,7 +15,7 @@ class StateTransitionSwitch extends StatelessWidget {
   const StateTransitionSwitch({
     super.key,
     required this.child,
-    this.duration = const Duration(milliseconds: 250),
+    this.duration = AppMotion.medium,
   });
 
   @override

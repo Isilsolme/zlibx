@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../models/display_book.dart';
 import '../../providers/booklist_detail_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/app_metrics.dart';
 import '../../widgets/book_list_tile.dart';
 import '../../widgets/booklist_card.dart';
 import '../../widgets/empty_state.dart';
@@ -331,7 +332,7 @@ class _ExpandableTextState extends State<_ExpandableText> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               AnimatedSize(
-                duration: const Duration(milliseconds: 200),
+                duration: AppMotion.standard,
                 alignment: Alignment.topCenter,
                 child: text,
               ),

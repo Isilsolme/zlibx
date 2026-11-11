@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/unified_shelf_item.dart';
+import '../../../theme/app_metrics.dart';
 import '../../../widgets/cover_placeholder.dart';
 
 /// 封面 + 书名/作者的网格卡片，与首页、搜索页的卡片语言保持一致。
@@ -305,7 +306,7 @@ class _ShelfCover extends StatelessWidget {
             (constraints.maxWidth * MediaQuery.devicePixelRatioOf(context))
                 .ceil();
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppMotion.quick,
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             borderRadius: borderRadius,
@@ -336,7 +337,7 @@ class _ShelfCover extends StatelessWidget {
       imageUrl: cover!,
       fit: BoxFit.cover,
       memCacheWidth: cacheWidth > 0 ? cacheWidth : null,
-      fadeInDuration: const Duration(milliseconds: 250),
+      fadeInDuration: AppMotion.medium,
       placeholder: (_, __) => const CoverPlaceholder.static(),
       errorWidget: (_, __, ___) => const CoverPlaceholder.static(),
     );
@@ -413,7 +414,7 @@ class _SelectMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 150),
+      duration: AppMotion.fast,
       child: selected
           ? _CircleBadge(
               key: const ValueKey(true),
