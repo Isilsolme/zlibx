@@ -52,9 +52,9 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   ///
   /// The eapi book object does not carry volume / ISBN / IPFS, so the
   /// detail page HTML is the only source. This fetch is best-effort:
-  /// a non-2xx status, an empty body, a redirect, or a challenge page
-  /// all return null — no solver fallback, no error, and the caller
-  /// keeps the eapi book unchanged. It never throws.
+  /// a non-2xx status, an empty body, an unresolvable redirect, or a
+  /// challenge page all return null — no solver fallback, no error,
+  /// and the caller keeps the eapi book unchanged. It never throws.
   ///
   /// Thin delegate over [fetchBookDetailExtras] — same single fetch,
   /// only the metadata half of the result.
@@ -71,14 +71,20 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// in the same document).
   ///
   /// Same best-effort contract as [fetchBookDetailMetadata]: a
-  /// non-2xx status, an empty body, a redirect, or a challenge page
-  /// return null; a page that loads but carries neither section
-  /// returns an extras object with an all-null metadata and no
-  /// booklists. It never throws.
+  /// non-2xx status, an empty body, an unresolvable redirect, or a
+  /// challenge page return null; a page that loads but carries
+  /// neither section returns an extras object with an all-null
+  /// metadata and no booklists. It never throws.
   Future<BookDetailExtras?> fetchBookDetailExtras(String href) async {
     final path = Uri.tryParse(href)?.path ?? '';
     if (!path.startsWith('/book/')) return null;
-    final raw = await _get(
+    // `_getWithRedirects`, not `_get`: the detail page may hop (e.g.
+    // a canonical-URL redirect), and a non-redirect-following `_get`
+    // would answer the 30x itself and drop the rating + related
+    // booklists. Same helper the article search and category pages
+    // use; it follows up to 5 hops and returns an error _Raw instead
+    // of throwing.
+    final raw = await _getWithRedirects(
       path,
       extraHeaders: const {'Accept': 'text/html'},
     );
