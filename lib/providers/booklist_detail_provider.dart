@@ -440,8 +440,6 @@ class BooklistDetailController
   /// it. A null entry id (book not in this list) or a failed resolve
   /// fails here without calling remove-book at all: falling back to
   /// the book id is the bug that made the server 500 every app remove.
-  /// A failed resolve keeps its own error (e.g. a network error) —
-  /// reporting it as "not in this booklist" hides the real cause.
   ///
   /// Two removes of the same book cannot overlap (a
   /// [_removingBookIds] guard); removes of different books re-locate
@@ -461,21 +459,17 @@ class BooklistDetailController
       return ApiResponse.fail('book is already being removed');
     }
     try {
-      final knownEntryId = book.readlistBookId;
-      final entry = knownEntryId != null
-          ? ApiResponse<int?>.ok(knownEntryId)
+      final entry = book.readlistBookId != null
+          ? ApiResponse.ok(book.readlistBookId)
           : await _resolveEntryId(book);
       if (!_alive) {
         return ApiResponse.fail('remove book failed');
       }
-      if (!entry.success) {
-        return ApiResponse.fail(
-          entry.error ?? 'get booklist entry failed',
-        );
-      }
       final entryId = entry.data;
-      if (entryId == null) {
-        return ApiResponse.fail('book is not in this booklist');
+      if (!entry.success || entryId == null) {
+        return ApiResponse.fail(
+          entry.error ?? 'book is not in this booklist',
+        );
       }
       // Re-locate by id: another remove may have shifted the list
       // while the entry id was being resolved.
@@ -536,24 +530,21 @@ class BooklistDetailController
 
   /// Resolve one book's readlist ENTRY id via `current-user` (the
   /// fallback when the detail page's own card did not carry
-  /// `booklistsindex`). Returns the lookup response as-is: a failed
-  /// lookup stays failed so the caller can report its error, and a
-  /// successful lookup with a null id means the book is not in this
-  /// list. The two must NOT be collapsed into one null — that is what
-  /// made a network failure surface as "book is not in this
-  /// booklist".
+  /// `booklistsindex`). Returns the repository response as-is: a
+  /// failed lookup keeps its own error (the caller reports it), and
+  /// only a successful lookup with null data means the book is not
+  /// in this list. Collapsing a failure to null used to misreport a
+  /// network failure as "book is not in this booklist".
   Future<ApiResponse<int?>> _resolveEntryId(Book book) async {
     final listId = int.tryParse(_list.id);
-    if (listId == null) {
-      return ApiResponse.fail('get booklist entry failed');
-    }
+    if (listId == null) return ApiResponse.ok(null);
     try {
       return await _repository.resolveBookEntry(
         booklistId: listId,
         bookId: book.id,
       );
     } catch (_) {
-      return ApiResponse.fail('get booklist entry failed');
+      return ApiResponse.fail('resolve entry id failed');
     }
   }
 
@@ -574,21 +565,17 @@ class BooklistDetailController
       return ApiResponse.fail('book not in list');
     }
     try {
-      final knownEntryId = book.readlistBookId;
-      final entry = knownEntryId != null
-          ? ApiResponse<int?>.ok(knownEntryId)
+      final entry = book.readlistBookId != null
+          ? ApiResponse.ok(book.readlistBookId)
           : await _resolveEntryId(book);
       if (!_alive) {
         return ApiResponse.fail('save book note failed');
       }
-      if (!entry.success) {
-        return ApiResponse.fail(
-          entry.error ?? 'get booklist entry failed',
-        );
-      }
       final entryId = entry.data;
-      if (entryId == null) {
-        return ApiResponse.fail('book is not in this booklist');
+      if (!entry.success || entryId == null) {
+        return ApiResponse.fail(
+          entry.error ?? 'book is not in this booklist',
+        );
       }
       final response = await _repository.saveBookDescription(
         listId: listId,
