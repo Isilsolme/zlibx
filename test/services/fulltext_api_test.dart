@@ -212,7 +212,7 @@ void main() {
       // name the path, show the request URL with only the token's
       // first/last two chars, echo the submitted query, and carry the
       // counts — and must never contain the full token.
-      final adapter = _FakeAdapter();
+      final adapter = _FakeAdapter(resultsHtml: _oneHitHtml);
       final repository = FulltextRepository(_apiWith(adapter));
       final response =
           await repository.search(query: 'synthetic phrase');
