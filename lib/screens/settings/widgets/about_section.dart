@@ -22,31 +22,11 @@ class AboutSection extends StatelessWidget {
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: Text(AppLocalizations.of(context)!.version),
-                trailing: FutureBuilder<PackageInfo>(
-                  future: PackageInfo.fromPlatform(),
-                  builder: (context, snapshot) {
-                    final version = snapshot.data?.version ?? '...';
-                    return Text(version);
-                  },
-                ),
-              ),
-              const SettingsDivider(),
-              ListTile(
                 leading: const Icon(Icons.book_outlined),
                 title: Text(
                     AppLocalizations.of(context)!.aboutZlibrary),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _showAboutApp(context),
-              ),
-              const SettingsDivider(),
-              ListTile(
-                leading: const Icon(Icons.code),
-                title: Text(AppLocalizations.of(context)!.githubOpenSource),
-                trailing: const Icon(Icons.open_in_new, size: 18),
-                onTap: () =>
-                    _launchUrl('https://github.com/minglaiyo/zlibx'),
               ),
               const SettingsDivider(),
               ListTile(
@@ -57,6 +37,18 @@ class AboutSection extends StatelessWidget {
                 onTap: () => showLicensePage(
                   context: context,
                   applicationName: 'zlibx',
+                ),
+              ),
+              const SettingsDivider(),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: Text(AppLocalizations.of(context)!.version),
+                trailing: FutureBuilder<PackageInfo>(
+                  future: PackageInfo.fromPlatform(),
+                  builder: (context, snapshot) {
+                    final version = snapshot.data?.version ?? '...';
+                    return Text(version);
+                  },
                 ),
               ),
             ],
