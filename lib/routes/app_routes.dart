@@ -279,7 +279,12 @@ class _MissingRouteArgsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: Center(child: Text(AppLocalizations.of(context)!.pageUnavailable)),
+      body: Center(
+        child: Text(
+          AppLocalizations.of(context)?.pageUnavailable ??
+              'Page unavailable',
+        ),
+      ),
     );
   }
 }
