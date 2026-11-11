@@ -17,8 +17,9 @@ import 'widgets/create_booklist_dialog.dart';
 import '../../utils/app_snack.dart';
 
 /// Booklists: the signed-in user's own booklists and public booklists to
-/// discover, with search, sort and list/grid view on both. Tapping a
-/// list opens its books. The "my booklists" tab can create a new list
+/// discover, with search on both; sort and list/grid view live on
+/// discover only — my own lists need neither, and always render as a
+/// grid. Tapping a list opens its books. The "my booklists" tab can create a new list
 /// (`createBooklist`), edit one, change its color, flip it
 /// public/private, favorite it and delete one; adding a book to a list
 /// lives on the book detail page (`addBookToBooklist`) and removing a
@@ -27,8 +28,8 @@ import '../../utils/app_snack.dart';
 ///
 /// Loading, paging, cache and the WebView fallback live in
 /// [BooklistsController]; this widget only renders its state. The
-/// list/grid choice is per-screen state (like the search screen's view
-/// toggle), not persisted.
+/// discover list/grid choice is per-screen state (like the search
+/// screen's view toggle), not persisted.
 class BooklistsScreen extends ConsumerStatefulWidget {
   const BooklistsScreen({super.key});
 
@@ -353,26 +354,30 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
       child: Column(
         children: [
           _searchBar(l10n, controller),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              TextButton.icon(
-                onPressed: () => _pickSortOrder(state.order),
-                icon: const Icon(Icons.swap_vert_rounded, size: 18),
-                label: Text(_sortLabel(l10n, state.order)),
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: _isGridView ? l10n.listView : l10n.gridView,
-                icon: Icon(
-                  _isGridView
-                      ? Icons.view_list_rounded
-                      : Icons.grid_view_rounded,
+          // Sort + view toggle live on discover only: my own lists
+          // need neither, and always render as a grid (see _body).
+          if (state.tab == BooklistTab.discover) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: () => _pickSortOrder(state.order),
+                  icon: const Icon(Icons.swap_vert_rounded, size: 18),
+                  label: Text(_sortLabel(l10n, state.order)),
                 ),
-                onPressed: () => setState(() => _isGridView = !_isGridView),
-              ),
-            ],
-          ),
+                const Spacer(),
+                IconButton(
+                  tooltip: _isGridView ? l10n.listView : l10n.gridView,
+                  icon: Icon(
+                    _isGridView
+                        ? Icons.view_list_rounded
+                        : Icons.grid_view_rounded,
+                  ),
+                  onPressed: () => setState(() => _isGridView = !_isGridView),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -486,7 +491,9 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                 lists: recommended.lists,
               ),
             ),
-          if (_isGridView)
+          // My own lists always render as a grid (no sort or view
+          // controls on that tab); discover follows the toggle.
+          if (state.tab == BooklistTab.mine || _isGridView)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               sliver: SliverGrid.builder(
