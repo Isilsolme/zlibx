@@ -41,6 +41,18 @@ mixin ZLibraryDownloadHistory on ZLibraryApiBase {
     final status = raw.status;
     final is2xx = status != null && status >= 200 && status < 300;
     if (!is2xx) {
+      // A 503/513 is the mirror's browser-check wall even when the
+      // page body carries none of _looksLikeChallengePage's markers
+      // (or is empty): _fromError then answers a bare 'HTTP 503'
+      // that isChallengeError would not match, so the solver fallback
+      // would never trigger. Same status check as
+      // fetchBookDetailExtras.
+      if (status == 503 || status == 513) {
+        return ApiResponse.fail(
+          'HTTP $status: browser check page',
+          statusCode: status,
+        );
+      }
       return ApiResponse.fail(
         raw.error ?? 'download history failed',
         statusCode: status,
@@ -57,5 +69,14 @@ mixin ZLibraryDownloadHistory on ZLibraryApiBase {
       );
     }
     return ApiResponse.ok(parseDownloadStatsPage(body));
+  }
+
+  /// The full URL of one download-history page — the WebView solver
+  /// fallback's URL when the fast Dio request is walled (mirrors wall
+  /// page routes with the browser check; the eapi endpoints answer
+  /// directly). Same role as `articlePageUrl`.
+  String downloadStatsPageUrl({int page = 1}) {
+    final query = page > 1 ? '?page=$page' : '';
+    return '$_base/users/dstats$query';
   }
 }

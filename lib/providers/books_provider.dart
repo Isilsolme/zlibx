@@ -6,6 +6,7 @@ import 'package:zlibx/utils/diagnostics.dart';
 import '../models/display_book.dart';
 import '../services/annas_archieve.dart';
 import '../services/book_detail_page_repository.dart';
+import '../services/download_stats_repository.dart';
 import '../services/external_search.dart';
 import '../services/libgen_service.dart';
 import '../services/network_error.dart';
@@ -726,18 +727,32 @@ class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
   /// `/users/dstats` 全量翻页（每页 50 行，上限 30 页 = 1500 条记录）。
   /// 终止：空页，或整页都是已见过的记录（服务端忽略 page 参数时每页
   /// 回同一批，靠这个不空转）。
+  ///
+  /// 镜像会用浏览器验证墙拦页面路由（HTTP 503 browser check page，
+  /// eapi 端点不拦）：撞墙的那一页改走 WebView challenge solver 过墙
+  /// 重取；过墙后 wall cookies 回灌 Dio，后续页恢复快路径直连。solver
+  /// 也失败时抛出原始墙错误（可重试），绝不把墙页解析成空历史。
   Future<List<Book>> _fetchDownloadStats() async {
+    final repository = DownloadStatsRepository(_api);
     final records = <Book>[];
     final seen = <String>{};
     const maxPages = 30;
     for (var page = 1; page <= maxPages; page++) {
-      final response = await _api.getUserDownloadHistoryPage(page: page);
-      if (!response.success) {
+      final response = await repository.fetchPage(page: page);
+      List<Book>? batch;
+      if (response.success) {
+        batch = response.data ?? const <Book>[];
+      } else if (repository.isChallengeError(response.error)) {
+        batch = await _fetchStatsPageViaSolver(
+          repository,
+          page,
+          originalError: response.error ?? 'download history failed',
+        );
+      } else {
         throw StateError(
           response.error ?? 'Could not load download history',
         );
       }
-      final batch = response.data ?? const <Book>[];
       final before = seen.length;
       for (final book in batch) {
         // 键含时间戳：同一本书下载多次是合法的多条记录，只有"整页
@@ -751,6 +766,28 @@ class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
       if (batch.isEmpty || seen.length == before) break;
     }
     return records;
+  }
+
+  /// 一页 dstats 的 solver 回退：装会话 → WebView 过墙取渲染后的
+  /// HTML → wall cookies 回灌 Dio → 解析。HTML 不是 dstats 页（落在
+  /// 登录页等）或过墙失败时抛原始墙错误——wrong-page 守卫保证绝不满
+  /// 足于一个"看似成功"的错误页。
+  Future<List<Book>> _fetchStatsPageViaSolver(
+    DownloadStatsRepository repository,
+    int page, {
+    required String originalError,
+  }) async {
+    final user = ref.read(authProvider).user;
+    final url = repository.pageUrl(page: page);
+    final html = await repository.fetchViaSolver(
+      url,
+      userId: user?.id,
+      userKey: user?.remixUserkey,
+    );
+    if (html == null) throw StateError(originalError);
+    final parsed = repository.parsePage(html);
+    if (parsed == null) throw StateError(originalError);
+    return parsed;
   }
 
   /// eapi downloaded 列表全量翻页，作 id→Book 元数据表（作者/封面/

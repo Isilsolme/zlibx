@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:zlibx/providers/auth_provider.dart';
 import 'package:zlibx/providers/books_provider.dart';
 import 'package:zlibx/providers/zlibrary_provider.dart';
+import 'package:zlibx/services/webview_challenge_solver.dart';
 
 /// [DownloadedBooksNotifier]（云端下载历史）回归测试。
 ///
@@ -35,12 +37,20 @@ class _FakeZLibraryApi implements ZLibraryApi {
   /// 置为 true 后 dstats 请求全部失败。
   bool failDstats = false;
 
+  /// 置为 true 后 dstats 请求全部返回浏览器验证墙错误（真实设备上
+  /// 镜像拦页面路由时的形态）。
+  bool failDstatsWithWall = false;
+
   /// 置为 true 后 eapi 元数据请求全部失败。
   bool failMeta = false;
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError('unexpected: ${invocation.memberName}');
+
+  @override
+  String downloadStatsPageUrl({int page = 1}) =>
+      'https://fake.test/users/dstats?page=$page';
 
   @override
   Future<ApiResponse<List<Book>>> getUserDownloadHistoryPage({
@@ -50,6 +60,10 @@ class _FakeZLibraryApi implements ZLibraryApi {
     dstatsSeenPages.add(page);
     if (failDstats) {
       return ApiResponse.fail('dstats boom', statusCode: 500);
+    }
+    if (failDstatsWithWall) {
+      return ApiResponse.fail('HTTP 503: browser check page',
+          statusCode: 503);
     }
     return ApiResponse.ok(dstatsPages?[page] ?? const []);
   }
@@ -90,9 +104,18 @@ Book _meta(int id, String author) => Book(
       filesizeString: '1.2 KB',
     );
 
+/// 测试容器里不碰 secure storage：solver 路径会读 authProvider。
+class _SignedOutAuth extends AuthNotifier {
+  @override
+  AuthState build() => AuthState(isLoading: false);
+}
+
 ProviderContainer _container(_FakeZLibraryApi api) {
   final container = ProviderContainer(
-    overrides: [zlibraryApiProvider.overrideWithValue(api)],
+    overrides: [
+      zlibraryApiProvider.overrideWithValue(api),
+      authProvider.overrideWith(_SignedOutAuth.new),
+    ],
   );
   return container;
 }
@@ -244,5 +267,31 @@ void main() {
     await _settle();
 
     expect(container.read(downloadedBooksProvider), isA<AsyncError>());
+  });
+
+  test('镜像验证墙：solver 不可用时抛原始墙错误，不把墙页当空历史', () async {
+    // 测试环境没有 WebView（guiEnabled=false 时 solver 必返回 null），
+    // 锁住回退终点：把原始墙错误抛给 UI（可重试），而不是解析出 0 行。
+    WebviewChallengeSolver.guiEnabled = false;
+    addTearDown(() => WebviewChallengeSolver.guiEnabled = true);
+
+    final api = _FakeZLibraryApi(
+      metaPages: {
+        1: [_meta(1, '作者')],
+      },
+      metaTotalPages: 1,
+    )..failDstatsWithWall = true;
+    final container = _container(api);
+    addTearDown(container.dispose);
+
+    container.read(downloadedBooksProvider);
+    await _settle();
+
+    final state = container.read(downloadedBooksProvider);
+    expect(state, isA<AsyncError>());
+    expect(
+      (state as AsyncError).error.toString(),
+      contains('browser check page'),
+    );
   });
 }
