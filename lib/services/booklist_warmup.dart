@@ -56,7 +56,7 @@ class BooklistWarmup {
       final mineOk = await _warmOne(
         api,
         user,
-        api.booklistsPageUrl(mine: true, page: 1),
+        api.booklistsPageUrl(mine: true, order: 'popular', page: 1),
         needsSession: true,
         // The mine page is account-scoped: store it under this
         // account's partition, the same key the screen reads.

@@ -83,6 +83,13 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   /// slower response for an old tab/query is dropped.
   int _generation = 0;
 
+  /// Tab/query/order of the lists currently painted (recorded in
+  /// [_applyPage]). A reload for the SAME key must not blank them —
+  /// see [loadFirst].
+  BooklistTab? _paintedTab;
+  String _paintedQuery = '';
+  String _paintedOrder = '';
+
   /// Identity of the loadMore currently holding the [BooklistsState.isLoadingMore]
   /// flag (0 = none). A stale loadMore's `finally` must not clear a
   /// newer loadMore's flag — only the holder may release it.
@@ -470,6 +477,21 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
       );
       return;
     }
+    // Same tab/query/order and lists already painted: this is a reload
+    // of what the user is already looking at (provider rebuild, a
+    // second load racing the first) — revalidate in the background
+    // and never blank the painted lists. A tab/query/order change
+    // still blanks: the painted lists belong to the old key.
+    if (state.phase == BooklistsPhase.ready &&
+        state.lists.isNotEmpty &&
+        _paintedTab == state.tab &&
+        _paintedQuery == state.query &&
+        _paintedOrder == state.order) {
+      unawaited(
+        _loadPage(1, replace: true, generation: generation, accountId: accountId),
+      );
+      return;
+    }
     state = state.copyWith(
       phase: BooklistsPhase.loading,
       lists: const [],
@@ -609,6 +631,12 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
   }
 
   void _applyPage(BooklistsPage data, int page, {bool replace = false}) {
+    // The painted lists belong to this key from now on. Safe to read
+    // from state here: a stale load (tab/query/order changed since it
+    // started) is dropped before _applyPage is ever reached.
+    _paintedTab = state.tab;
+    _paintedQuery = state.query;
+    _paintedOrder = state.order;
     state = state.copyWith(
       phase: BooklistsPhase.ready,
       // A background refresh replaces the cached page instead of

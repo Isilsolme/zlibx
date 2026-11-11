@@ -298,6 +298,30 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         state.tab == BooklistTab.mine && state.phase != BooklistsPhase.loggedOut;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          state.tab == BooklistTab.mine
+              ? l10n.booklists
+              : l10n.discoverBooklists,
+        ),
+        actions: [
+          IconButton(
+            tooltip: state.tab == BooklistTab.mine
+                ? l10n.discoverBooklists
+                : l10n.myBooklists,
+            icon: Icon(
+              state.tab == BooklistTab.mine
+                  ? Icons.explore_outlined
+                  : Icons.person_outline_rounded,
+            ),
+            onPressed: () => controller.setTab(
+              state.tab == BooklistTab.mine
+                  ? BooklistTab.discover
+                  : BooklistTab.mine,
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: showFab
           ? FloatingActionButton.extended(
               onPressed: _createBooklist,
@@ -311,7 +335,6 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            SliverAppBar.large(title: Text(l10n.booklists)),
             SliverToBoxAdapter(child: _header(l10n, state, controller)),
             ..._body(l10n, state, controller, recommended),
           ],
@@ -331,28 +354,6 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         children: [
           _searchBar(l10n, controller),
           const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<BooklistTab>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(
-                  value: BooklistTab.mine,
-                  icon: const Icon(Icons.person_outline_rounded),
-                  label: Text(l10n.myBooklists),
-                ),
-                ButtonSegment(
-                  value: BooklistTab.discover,
-                  icon: const Icon(Icons.explore_outlined),
-                  label: Text(l10n.discoverBooklists),
-                ),
-              ],
-              selected: {state.tab},
-              onSelectionChanged: (selected) =>
-                  controller.setTab(selected.first),
-            ),
-          ),
-          const SizedBox(height: 4),
           Row(
             children: [
               TextButton.icon(
