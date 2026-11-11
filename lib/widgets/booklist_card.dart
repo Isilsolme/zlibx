@@ -184,105 +184,114 @@ class BooklistCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (gradient != null)
-              Container(width: 5, decoration: BoxDecoration(gradient: gradient)),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BooklistCover(url: list.coverUrl),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  list.name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.25,
-                                  ),
-                                ),
-                              ),
-                              if (list.isPrivate) ...[
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.lock_outline_rounded,
-                                  size: 16,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ],
-                              if (list.isFavorite) ...[
-                                const SizedBox(width: 6),
-                                Icon(
-                                  Icons.favorite_rounded,
-                                  size: 16,
-                                  color: cs.primary,
-                                ),
-                              ],
-                            ],
-                          ),
-                          if (list.author.isNotEmpty) ...[
-                            const SizedBox(height: 4),
+        // IntrinsicHeight bounds the Row height: the Row stretches its
+        // children so the color strip fills the card, but a sliver child
+        // gets unbounded height, and a stretch Row hands its flex child
+        // a tight infinite height. That throws "BoxConstraints forces an
+        // infinite height" in debug builds (the widget test runs debug;
+        // release strips the assert, which is why the card renders fine
+        // on device).
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (gradient != null)
+                Container(width: 5, decoration: BoxDecoration(gradient: gradient)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      BooklistCover(url: list.coverUrl),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Row(
                               children: [
-                                Icon(
-                                  Icons.person_outline_rounded,
-                                  size: 15,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
-                                    list.author,
-                                    maxLines: 1,
+                                    list.name,
+                                    maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.25,
                                     ),
                                   ),
                                 ),
+                                if (list.isPrivate) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 16,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                ],
+                                if (list.isFavorite) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.favorite_rounded,
+                                    size: 16,
+                                    color: cs.primary,
+                                  ),
+                                ],
                               ],
                             ),
-                          ],
-                          const SizedBox(height: 8),
-                          BooklistMetaPills(list: list),
-                          if (list.description.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              list.description,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: cs.onSurfaceVariant,
-                                height: 1.35,
+                            if (list.author.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.person_outline_rounded,
+                                    size: 15,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      list.author,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: cs.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            ],
+                            const SizedBox(height: 8),
+                            BooklistMetaPills(list: list),
+                            if (list.description.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                list.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                    if (onMenuSelected != null)
-                      _BooklistMenuButton(
-                        list: list,
-                        isMine: isMine,
-                        onSelected: onMenuSelected!,
-                      ),
-                  ],
+                      if (onMenuSelected != null)
+                        _BooklistMenuButton(
+                          list: list,
+                          isMine: isMine,
+                          onSelected: onMenuSelected!,
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
