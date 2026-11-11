@@ -12,8 +12,9 @@ import 'package:zlibx/providers/zlibrary_provider.dart';
 /// the page's `pagerOptions.pagesTotal` when present; without one,
 /// the first page's card count is the effective page size.
 ///
-/// fake only implements the two methods this controller path uses;
-/// any other call throws.
+/// fake only implements the methods this controller path uses
+/// (the two fetches plus the two URL builders `_loadPage` passes
+/// to the solver fallback); any other call throws.
 class _FakeZLibraryApi implements ZLibraryApi {
   _FakeZLibraryApi({
     required this.browsePages,
@@ -32,6 +33,26 @@ class _FakeZLibraryApi implements ZLibraryApi {
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError('unexpected: ${invocation.memberName}');
+
+  @override
+  String categoryPageUrl(int categoryId, {int page = 1, String? order}) =>
+      'https://example.com/category/$categoryId';
+
+  @override
+  String categorySearchUrl({
+    required int categoryId,
+    String? slug,
+    required String query,
+    bool exact = false,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    List<String>? contentTypes,
+    String? order,
+    int page = 1,
+  }) =>
+      'https://example.com/category/$categoryId/s/?q=$query';
 
   @override
   Future<ApiResponse<CategoryPage>> getCategoryBooks(

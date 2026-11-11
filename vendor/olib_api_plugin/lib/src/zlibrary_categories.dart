@@ -217,10 +217,10 @@ mixin ZLibraryCategories on ZLibraryApiBase {
       final value = entry.value;
       if (value is List) {
         for (final item in value) {
-          parts.add('$key[]=${Uri.encodeQueryComponent(item.toString())}');
+          parts.add('$key[]=${Uri.encodeComponent(item.toString())}');
         }
       } else {
-        parts.add('$key=${Uri.encodeQueryComponent(value.toString())}');
+        parts.add('$key=${Uri.encodeComponent(value.toString())}');
       }
     }
     return parts.isEmpty ? '' : '?${parts.join('&')}';
