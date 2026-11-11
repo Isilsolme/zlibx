@@ -17,6 +17,13 @@ class FulltextRepository {
 
   final ZLibraryApi _api;
 
+  /// TEMPORARY diagnostic: the last full-text search's traffic block
+  /// (see `ZLibraryFullText.lastFulltextDiagnostics`). The string
+  /// lives on the [ZLibraryApi] singleton because this repository is
+  /// constructed fresh on every provider access, so instance state
+  /// here would not survive from `search()` to the screen read.
+  String? get lastDiagnostics => _api.lastFulltextDiagnostics;
+
   /// One page of full-text search results.
   Future<ApiResponse<FullTextSearchPage>> search({
     required String query,
@@ -84,26 +91,50 @@ class FulltextRepository {
   /// search form's `q` input (the same wrong-page guard the Dio path
   /// applies): a solver landing on the default listing for a stale
   /// token echoes a different query or none, and must not be painted.
+  /// When [solverUrl] is given, this call also records the solver
+  /// attempt's diagnostics (TEMPORARY — see [lastDiagnostics]): the
+  /// URL with the token redacted, the echoed query, and the counts.
   FullTextSearchPage? parsePage(
     String html, {
     required String baseUrl,
     String? expectedQuery,
+    String? solverUrl,
   }) {
-    if (!html.contains('searchResultBox')) return null;
-    if (expectedQuery != null) {
+    FullTextSearchPage? page;
+    String? error;
+    if (!html.contains('searchResultBox')) {
+      error = 'no searchResultBox';
+    } else if (expectedQuery != null) {
       final capped =
           expectedQuery.length > ZLibraryFullText.fulltextMaxQueryLength
               ? expectedQuery.substring(
                   0, ZLibraryFullText.fulltextMaxQueryLength)
               : expectedQuery;
       final echoed = extractFulltextQuery(html);
-      if (echoed == null || echoed != capped.trim()) return null;
+      if (echoed == null || echoed != capped.trim()) {
+        error = fulltextTokenUnavailable;
+      }
     }
-    try {
-      return parseFullTextSearchPage(html, baseUrl: baseUrl);
-    } catch (_) {
-      return null;
+    if (error == null) {
+      try {
+        page = parseFullTextSearchPage(html, baseUrl: baseUrl);
+      } catch (_) {
+        error = 'parse failed';
+      }
     }
+    if (solverUrl != null) {
+      _api.lastFulltextDiagnostics = [
+        'path: solver (WebView)',
+        'base: $baseUrl',
+        'url: ${redactFulltextTokenInUrl(solverUrl)}',
+        'echoed q: ${extractFulltextQuery(html) ?? 'null'}',
+        'total: ${page?.total ?? '—'}',
+        'totalPages: ${page?.totalPages ?? '—'}',
+        'hits: ${page?.hits.length ?? '—'}',
+        'error: ${error ?? 'none'}',
+      ].join('\n');
+    }
+    return page;
   }
 
   /// Fetches [url] through the WebView solver and returns the real

@@ -126,6 +126,11 @@ class FullTextSearchNotifier extends Notifier<FullTextSearchState> {
   /// The site renders 50 hits per full-text page.
   static int get pageSize => ZLibraryFullText.fulltextPageSize;
 
+  /// TEMPORARY diagnostic: the last full-text search's traffic block
+  /// (see `FulltextRepository.lastDiagnostics`). Null before the
+  /// first search.
+  String? get lastDiagnostics => _repository.lastDiagnostics;
+
   Future<void> search(FullTextSearchParams params) async {
     final requestId = ++_requestId;
     _lastParams = params;
@@ -270,6 +275,7 @@ class FullTextSearchNotifier extends Notifier<FullTextSearchState> {
       html,
       baseUrl: Uri.parse(url).origin,
       expectedQuery: params.query,
+      solverUrl: url,
     );
     if (parsed == null) return (page: null, error: originalError);
     return (page: parsed, error: null);

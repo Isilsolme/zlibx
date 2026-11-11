@@ -206,6 +206,29 @@ void main() {
       expect(uri.queryParameters.containsKey('e'), isFalse);
     });
 
+    test('records last-search diagnostics with a redacted token',
+        () async {
+      // TEMPORARY diagnostic: the block the long-press copies must
+      // name the path, show the request URL with only the token's
+      // first/last two chars, echo the submitted query, and carry the
+      // counts — and must never contain the full token.
+      final adapter = _FakeAdapter();
+      final repository = FulltextRepository(_apiWith(adapter));
+      final response =
+          await repository.search(query: 'synthetic phrase');
+      expect(response.success, isTrue);
+      final diagnostics = repository.lastDiagnostics;
+      expect(diagnostics, isNotNull);
+      expect(diagnostics, contains('path: Dio'));
+      expect(diagnostics, contains('bookroom.lifestyle'));
+      expect(diagnostics, contains('token=ab…12'));
+      expect(diagnostics, isNot(contains('abcdef12')));
+      expect(diagnostics, contains('echoed q: synthetic phrase'));
+      expect(diagnostics, contains('total: 1'));
+      expect(diagnostics, contains('hits: 1'));
+      expect(diagnostics, contains('error: none'));
+    });
+
     test('exact sends e=1 and phrase sends type=phrase', () async {
       final adapter = _FakeAdapter();
       final api = _apiWith(adapter);

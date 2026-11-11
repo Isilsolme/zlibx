@@ -699,30 +699,55 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                l10n.searchResultsCount(resultCount),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                            // TEMPORARY diagnostic: long-pressing the
+                            // results-count chip copies the last
+                            // full-text search's traffic block
+                            // (path / URL with redacted token / echoed
+                            // query / counts / error) to the clipboard
+                            // — no toast, no new strings. Only active
+                            // in full-text mode; tap and scroll are
+                            // untouched (there is no tap handler here).
+                            GestureDetector(
+                              onLongPress: () {
+                                if (!isFullTextMode) return;
+                                final diagnostics = ref
+                                    .read(fulltextSearchProvider.notifier)
+                                    .lastDiagnostics;
+                                if (diagnostics == null ||
+                                    diagnostics.isEmpty) {
+                                  return;
+                                }
+                                unawaited(
+                                  Clipboard.setData(
+                                    ClipboardData(text: diagnostics),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  l10n.searchResultsCount(resultCount),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onPrimaryContainer,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
