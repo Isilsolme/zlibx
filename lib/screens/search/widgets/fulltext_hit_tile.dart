@@ -4,7 +4,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../utils/cover_cache.dart';
-import '../../widgets/cover_placeholder.dart';
+import '../../../widgets/cover_placeholder.dart';
 
 /// One full-text search hit: cover + title + author + meta line,
 /// then the matching passage as a [RichText] whose `<em>` runs are
