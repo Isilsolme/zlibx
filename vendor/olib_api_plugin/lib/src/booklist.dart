@@ -338,7 +338,7 @@ List<Booklist> parseRecommendedBooklists(
         color: entry['color'] is int
             ? entry['color'] as int
             : int.tryParse(entry['color']?.toString() ?? ''),
-        url: _resolveUrl(entry['href']?.toString() ?? '', baseUrl),
+        url: Booklist._resolveUrl(entry['href']?.toString() ?? '', baseUrl),
       ),
     );
   }

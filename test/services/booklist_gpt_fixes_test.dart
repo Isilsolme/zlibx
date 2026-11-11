@@ -110,6 +110,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
   @override
   Future<ApiResponse<BooklistsPage>> searchMyBooklists({
     String query = '',
+    String? order,
     int page = 1,
   }) async {
     searchMyCalls++;

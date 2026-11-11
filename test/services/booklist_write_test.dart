@@ -50,51 +50,48 @@ const _addPath = '/papi/booklist/$_listId/add-book/$_bookId';
 /// network. Records every request's method, path and body.
 class _FakeAdapter implements HttpClientAdapter {
   _FakeAdapter({
-    this.createPayload = const {
-      'success': 1,
-      'readlist': {'id': 1001, 'title': 'Test List Alpha', 'hash': 'aa00'},
-    },
     this.addPayload = const {
       'success': 1,
       'book': {'readlist_id': 3003, 'book_id': '2002'},
     },
-    this.currentUserPayload = const {
-      'success': 1,
-      'list': [
-        {'id': 1001, 'title': 'Test List Alpha', 'readlistBookId': 3003},
-        {'id': 1002, 'title': 'Test List Beta', 'readlistBookId': null},
-      ],
-    },
-    this.recommendationsPayload = const {
-      'success': 1,
-      'html': [
-        {
-          'id': 5001,
-          'href': '/booklist/5001/abc/rec-one.html',
-          'title': 'Rec One',
-          'author': 'Some Author',
-          'authorProfile': '/profile/1/x',
-          'quantity': 5,
-          'views': '42',
-          'comments': '2',
-          'color': 3,
-        },
-        {
-          'id': 5002,
-          'href': '/booklist/5002/def/rec-two.html',
-          'title': 'Rec Two',
-          'author': '',
-          'quantity': '7',
-          'views': '',
-        },
-      ],
-    },
   });
 
-  Map<String, dynamic> createPayload;
+  Map<String, dynamic> createPayload = const {
+    'success': 1,
+    'readlist': {'id': 1001, 'title': 'Test List Alpha', 'hash': 'aa00'},
+  };
   Map<String, dynamic> addPayload;
-  Map<String, dynamic> currentUserPayload;
-  Map<String, dynamic> recommendationsPayload;
+  Map<String, dynamic> currentUserPayload = const {
+    'success': 1,
+    'list': [
+      {'id': 1001, 'title': 'Test List Alpha', 'readlistBookId': 3003},
+      {'id': 1002, 'title': 'Test List Beta', 'readlistBookId': null},
+    ],
+  };
+  Map<String, dynamic> recommendationsPayload = const {
+    'success': 1,
+    'html': [
+      {
+        'id': 5001,
+        'href': '/booklist/5001/abc/rec-one.html',
+        'title': 'Rec One',
+        'author': 'Some Author',
+        'authorProfile': '/profile/1/x',
+        'quantity': 5,
+        'views': '42',
+        'comments': '2',
+        'color': 3,
+      },
+      {
+        'id': 5002,
+        'href': '/booklist/5002/def/rec-two.html',
+        'title': 'Rec Two',
+        'author': '',
+        'quantity': '7',
+        'views': '',
+      },
+    ],
+  };
   bool createEmptyBody = false;
   bool editEmptyBody = false;
 
