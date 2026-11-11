@@ -201,7 +201,11 @@ class _FakeAdapter implements HttpClientAdapter {
           307,
           headers: {
             HttpHeaders.locationHeader: [
-              'https://zh.z-library.sk$_removePath',
+              // Same URL, like the real server: the API's test domain is
+              // bookroom.lifestyle, so a hardcoded zh.z-library.sk here
+              // would be a cross-host hop and the helper would (correctly)
+              // strip the Cookie instead of following with it.
+              options.uri.toString(),
             ],
           },
         );
@@ -224,7 +228,8 @@ class _FakeAdapter implements HttpClientAdapter {
           307,
           headers: {
             HttpHeaders.locationHeader: [
-              'https://zh.z-library.sk$_likePath',
+              // Same URL, like the real server (see the remove branch).
+              options.uri.toString(),
             ],
             if (wallCookie != null)
               HttpHeaders.setCookieHeader: ['__diamwall=$wallCookie'],
@@ -244,7 +249,8 @@ class _FakeAdapter implements HttpClientAdapter {
             HttpHeaders.locationHeader: [
               deleteRedirectCrossHost
                   ? 'https://static.example.org$_deletePath'
-                  : 'https://zh.z-library.sk$_deletePath',
+                  // Same URL, like the real server (see the remove branch).
+                  : options.uri.toString(),
             ],
             if (wallCookie != null)
               HttpHeaders.setCookieHeader: ['__diamwall=$wallCookie'],
