@@ -30,16 +30,6 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   String? get fulltextToken =>
       _fulltextTokenUserId == _userId ? _fulltextToken : null;
 
-  /// TEMPORARY diagnostic: a compact block describing the last
-  /// full-text attempt (Dio or solver) — path, mirror base, request
-  /// URL with the token redacted to first/last two chars, the echoed
-  /// query, parsed total / totalPages / hits, and any error. Set by
-  /// the Dio attempt recorder below and by the repository's solver
-  /// path; read through FulltextRepository.lastDiagnostics. The
-  /// stored string never contains a full token. Remove once the
-  /// fixed-set bug is root-caused.
-  String? lastFulltextDiagnostics;
-
   /// Fetch the session's full-text token from the `/fulltext` page
   /// (or return the cached one). The token is required on every
   /// search request; a failure here fails the search with
@@ -190,47 +180,7 @@ mixin ZLibraryFullText on ZLibraryApiBase {
   }) async {
     final tokenResponse = await ensureFulltextToken();
     final token = tokenResponse.data;
-    // TEMPORARY diagnostic (see [lastFulltextDiagnostics]): records
-    // this attempt's traffic before every return, so the cause of a
-    // wrong page can be read off the block. The token is redacted
-    // here, at record time — the stored string never holds it whole.
-    void recordDiagnostics({
-      String? echoedQuery,
-      FullTextSearchPage? resultPage,
-      String? error,
-    }) {
-      final url = token == null
-          ? '(request not sent: token unavailable)'
-          : redactFulltextTokenInUrl(
-              fulltextPageUrl(
-                query: query,
-                type: type,
-                exact: exact,
-                yearFrom: yearFrom,
-                yearTo: yearTo,
-                languages: languages,
-                extensions: extensions,
-                order: order,
-                page: page,
-                token: token,
-              ),
-            );
-      lastFulltextDiagnostics = [
-        'path: Dio',
-        'base: $_base',
-        'url: $url',
-        'echoed q: ${echoedQuery ?? 'null'}',
-        'total: ${resultPage?.total ?? '—'}',
-        'totalPages: ${resultPage?.totalPages ?? '—'}',
-        'hits: ${resultPage?.hits.length ?? '—'}',
-        'error: ${error ?? 'none'}',
-      ].join('\n');
-    }
-
     if (!tokenResponse.success || token == null) {
-      recordDiagnostics(
-        error: tokenResponse.error ?? fulltextTokenUnavailable,
-      );
       return ApiResponse.fail(
         tokenResponse.error ?? fulltextTokenUnavailable,
         statusCode: tokenResponse.statusCode,
@@ -256,7 +206,6 @@ mixin ZLibraryFullText on ZLibraryApiBase {
     );
     final status = raw.status;
     if (status == null || status < 200 || status >= 300) {
-      recordDiagnostics(error: raw.error ?? 'fulltext search failed');
       return ApiResponse.fail(
         raw.error ?? 'fulltext search failed',
         statusCode: status,
@@ -264,14 +213,12 @@ mixin ZLibraryFullText on ZLibraryApiBase {
     }
     final html = raw.body;
     if (html == null || html.isEmpty) {
-      recordDiagnostics(error: raw.error ?? 'fulltext search failed');
       return ApiResponse.fail(
         raw.error ?? 'fulltext search failed',
         statusCode: status,
       );
     }
     if (ZLibraryApiBase._looksLikeChallengePage(html)) {
-      recordDiagnostics(error: 'HTTP $status: browser check page');
       return ApiResponse.fail(
         'HTTP $status: browser check page',
         statusCode: status,
@@ -285,17 +232,12 @@ mixin ZLibraryFullText on ZLibraryApiBase {
     // a fresh token instead of painting the wrong books.
     final echoedQuery = extractFulltextQuery(html);
     if (echoedQuery == null || echoedQuery != query.trim()) {
-      recordDiagnostics(
-        echoedQuery: echoedQuery,
-        error: fulltextTokenUnavailable,
-      );
       return ApiResponse.fail(
         fulltextTokenUnavailable,
         statusCode: status,
       );
     }
     final pageResult = parseFullTextSearchPage(html, baseUrl: _base);
-    recordDiagnostics(echoedQuery: echoedQuery, resultPage: pageResult);
     return ApiResponse.ok(pageResult);
   }
 

@@ -111,22 +111,6 @@ String? extractFulltextQuery(String html) {
   return value;
 }
 
-/// Redacts the session token in a full-text results URL to its first
-/// and last two characters (`abcdef12` becomes `ab…12`), so a
-/// diagnostic can show the request without ever carrying the live
-/// token. Apply it at the point a URL is recorded, never at display
-/// time — the stored diagnostic string must not contain a full token.
-String redactFulltextTokenInUrl(String url) {
-  return url.replaceAllMapped(
-    RegExp(r'token=([0-9a-zA-Z]+)'),
-    (match) {
-      final token = match.group(1)!;
-      if (token.length <= 4) return 'token=…';
-      return 'token=${token.substring(0, 2)}…${token.substring(token.length - 2)}';
-    },
-  );
-}
-
 /// One page of full-text search results, from the server-rendered
 /// `/fulltext` document.
 ///
