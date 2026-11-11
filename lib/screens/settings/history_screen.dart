@@ -13,9 +13,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../utils/cover_cache.dart';
 
 /// Sort order for the cloud download history list. The default
-/// ([dateDesc]) is the server's own order (newest download first);
-/// the list carries no per-book download timestamp, so "date" sorting
-/// is that order and its reverse.
+/// ([dateDesc]) is the server's own order (newest download first —
+/// the `/users/dstats` per-download log is already sorted that way).
 enum _HistorySort {
   dateDesc,
   dateAsc,
@@ -107,6 +106,13 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // 每次下载的时间（dstats 记录自带；eapi 元数据
+                        // 记录没有）。纯数字格式，无需本地化字符串。
+                        if (book.downloadedAt != null)
+                          Text(
+                            _formatStamp(book.downloadedAt!),
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
                         if (book.author != null) Text(book.author!),
                         if (book.filesizeString != null)
                           Text(
@@ -134,6 +140,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       ),
     );
   }
+
+  /// `yyyy-MM-dd HH:mm`，与 dstats 页面渲染的是同一时刻（解析时未做
+  /// 时区换算，展示原样回放，不会漂移）。
+  static String _formatStamp(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
   List<Book> _sortedBooks(List<Book> books) {
     switch (_sort) {

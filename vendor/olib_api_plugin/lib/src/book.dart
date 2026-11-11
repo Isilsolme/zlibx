@@ -62,6 +62,13 @@ class Book {
   final String? ratingInterest;
   final String? ratingQuality;
 
+  /// When this download happened (per-download record from the site's
+  /// `/users/dstats` history page — see `parseDownloadStatsPage`). The
+  /// eapi book object carries no download timestamp, so this stays
+  /// null for books coming from search / saved / the eapi downloaded
+  /// list; the cloud-history screen shows it when present.
+  final DateTime? downloadedAt;
+
   /// Booklist-detail-only fields (NOT in the eapi book object): the
   /// readlist membership-row id (`booklistsindex` attribute) and the
   /// per-book note (`div[slot="note"]`) of a `<z-bookcard>` on a
@@ -99,6 +106,7 @@ class Book {
     this.ratingQuality,
     this.readlistBookId,
     this.note,
+    this.downloadedAt,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -113,7 +121,7 @@ class Book {
       // `hash: ""` would produce `/eapi/book/{id}/` requests that only
       // the expensive resolveEapiHash search could ever repair.
       hash: _nonEmptyString(json['hash'] ?? json['hashId']) ??
-          _hashFromBookHref(href),
+          hashFromBookHref(href),
       href: _nonEmptyString(href),
       author: _joinAuthor(json['author']),
       cover: _asString(json['cover']),
@@ -149,12 +157,17 @@ class Book {
         json['readlistBookId'] ?? json['readlist_book_id'],
       ),
       note: _nonEmptyString(json['note']),
+      downloadedAt: _asDateTime(
+        json['downloadedAt'] ?? json['downloaded_at'],
+      ),
     );
   }
 
   /// Book hash from a `/book/{hash}/{slug}.html` href, or null when the
-  /// href does not have that shape.
-  static String? _hashFromBookHref(String? href) {
+  /// href does not have that shape. Public because the dstats history
+  /// parser (download_stats.dart) builds [Book]s from the same
+  /// `/book/{hash}/…` links the list JSON carries.
+  static String? hashFromBookHref(String? href) {
     if (href == null || href.isEmpty) return null;
     final segments = Uri.tryParse(href)?.pathSegments ?? const <String>[];
     if (segments.length >= 2 && segments[0] == 'book') {
@@ -190,6 +203,7 @@ class Book {
     if (ipfsCidBlake2b != null) 'ipfsCidBlake2b': ipfsCidBlake2b,
     if (readlistBookId != null) 'readlistBookId': readlistBookId,
     if (note != null) 'note': note,
+    if (downloadedAt != null) 'downloadedAt': downloadedAt!.toIso8601String(),
   };
 
   /// Copy with overrides. A null argument keeps the current value
@@ -224,6 +238,7 @@ class Book {
     String? ratingQuality,
     int? readlistBookId,
     String? note,
+    DateTime? downloadedAt,
   }) {
     return Book(
       id: id ?? this.id,
@@ -253,6 +268,7 @@ class Book {
       ratingQuality: ratingQuality ?? this.ratingQuality,
       readlistBookId: readlistBookId ?? this.readlistBookId,
       note: note ?? this.note,
+      downloadedAt: downloadedAt ?? this.downloadedAt,
     );
   }
 
@@ -313,5 +329,24 @@ class Book {
   static String? _nonEmptyString(dynamic v) {
     final s = _asString(v);
     return (s == null || s.isEmpty) ? null : s;
+  }
+
+  /// ISO-8601 string or epoch milliseconds/seconds — the forms a
+  /// [toJson]/server round-trip produces. Null (or unparsable) stays
+  /// null: an absent timestamp must never read as "now" or epoch 0.
+  static DateTime? _asDateTime(dynamic v) {
+    if (v == null) return null;
+    if (v is DateTime) return v;
+    if (v is num) {
+      // 10-digit = seconds, 13+ digits = milliseconds; anything else is
+      // not a timestamp this model understands.
+      if (v <= 0) return null;
+      if (v >= 100000000000000) return null;
+      final ms = v >= 100000000000 ? v.toInt() : v.toInt() * 1000;
+      return DateTime.fromMillisecondsSinceEpoch(ms);
+    }
+    final s = v.toString();
+    if (s.isEmpty) return null;
+    return DateTime.tryParse(s);
   }
 }

@@ -647,13 +647,18 @@ final savedBooksProvider =
 
 // ── Downloaded Books ────────────────────────────────────────────────
 
-/// 云端下载历史（账号维度，包含其他设备 / 网页端产生的下载记录）。
+/// 云端下载历史（账号维度的逐次下载记录，包含其他设备 / 网页端产生
+/// 的下载）。
 ///
-/// 此前是一个一次性 FutureProvider：只拉第 1 页（limit 100）且整个
-/// 进程生命周期只拉一次，页面也没有任何刷新入口——超过 100 条后，
-/// 更早的记录（其他设备下的书）永远留在第 2 页之后不出现；新记录
-/// 也要重启 app 才能看到。现在与 [SavedBooksNotifier] 同构：全量
-/// 翻页拉取 + 可静默对账，页面打开 / 下拉时都能拿到最新云端列表。
+/// 数据源是网站的「下载历史」页 `/users/dstats`（服务端渲染 HTML，
+/// 每次下载一行、50 行/页、?page=N 翻页）——这是全账号的下载日志。
+/// eapi 的 `/eapi/user/book/downloaded` 不是这份数据：其他设备 /
+/// 网页端的记录不在里面（2026-11-12 用户报告），只拿它来补元数据
+/// （作者/封面/格式/大小），dstats 行本身只有 书id+标题+链接+时间。
+///
+/// 此前实现只读 eapi 列表（全量翻页），但 eapi 里根本没有其他设备 /
+/// 网页端的记录——那些书永远看不到。现在与 [SavedBooksNotifier]
+/// 同构：全量翻页 + 可静默对账，页面打开 / 下拉时都能拿到最新列表。
 class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
   // Getter, not a `late final` field: ref.invalidate (account switch,
   // line change, logout) re-runs build() on the SAME notifier instance,
@@ -667,11 +672,12 @@ class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
     return const AsyncValue.loading();
   }
 
-  /// 全量拉取云端下载历史。服务端默认按下载时间倒序（最新在前），
-  /// 翻页按序拼接即保持该顺序，UI 的"按日期"排序仍等于服务端顺序。
-  /// [silent] 为 true 时是后台静默对账：不置 loading 态，失败时保留
-  /// 已有数据（只在尚无数据时才报 error）——页面打开 / 下拉刷新用
-  /// 它，列表不闪一下 loading。
+  /// 全量拉取云端下载历史。dstats 是权威列表；eapi 列表只用来补
+  /// 元数据，它失败不影响历史本身。服务端按下载时间倒序（最新在
+  /// 前），按序拼接即保持该顺序，UI 的"按日期"排序仍等于服务端顺
+  /// 序。[silent] 为 true 时是后台静默对账：不置 loading 态，失败时
+  /// 保留已有数据（只在尚无数据时才报 error）——页面打开 / 下拉刷
+  /// 新用它，列表不闪一下 loading。
   Future<void> loadDownloadedBooks({bool silent = false}) async {
     // build() 直接调这里，而首次 build 时 state 还不存在：读 `state`
     // 会抛 StateError（见 SavedBooksNotifier 上的注释），`stateOrNull`
@@ -681,42 +687,105 @@ class DownloadedBooksNotifier extends Notifier<AsyncValue<List<Book>>> {
     if (!silent) state = const AsyncValue.loading();
 
     try {
-      const pageSize = 100;
-      final books = <Book>[];
-      final seen = <int>{};
-      for (var page = 1; page <= 100; page++) {
-        final response = await _api.getUserDownloaded(
-          page: page,
-          limit: pageSize,
-        );
-        if (!response.success) {
-          throw StateError(
-            response.error ?? 'Could not load download history',
-          );
-        }
-        final batch = response.data ?? <Book>[];
-        final before = seen.length;
-        for (final book in batch) {
-          if (seen.add(book.id)) books.add(book);
-        }
-        final totalPages = int.tryParse(
-          response.meta?['total_pages']?.toString() ?? '',
-        );
-        // 终止条件故意不用 batch.length < pageSize：镜像可能把 limit
-        // 压到比 100 小，那只说明本页比请求的短，不代表没有下一页。
-        // "到达 total_pages"或"整页都是重复（没有新增）"才可靠——
-        // 后者同时兜住了服务端忽略 page 参数的情况（每页回同一批）。
-        if ((totalPages != null && page >= totalPages) ||
-            seen.length == before) {
-          break;
-        }
-      }
-      state = AsyncValue.data(books);
+      // 两路互不依赖，并行；dstats 失败才是真失败，eapi 元数据拉不
+      // 到时只损失封面/作者等信息，历史记录本身照常显示。
+      final results = await Future.wait([
+        _fetchDownloadStats(),
+        _fetchDownloadedMetadata().then(
+          (meta) => meta,
+          onError: (Object e) {
+            logIgnored('downloaded_meta', e);
+            return const <int, Book>{};
+          },
+        ),
+      ]);
+      final records = results[0] as List<Book>;
+      final meta = results[1] as Map<int, Book>;
+      // 叠加元数据：dstats 行缺作者/封面/格式/大小；eapi 命中同一
+      // book id 时补上（只补空字段，dstats 自己的字段不动）。同一本
+      // 书下载多次会有多条记录（逐次日志），各自独立叠加。
+      state = AsyncValue.data([
+        for (final record in records)
+          meta[record.id] == null
+              ? record
+              : record.copyWith(
+                  author: meta[record.id]!.author,
+                  cover: meta[record.id]!.cover,
+                  extension: meta[record.id]!.extension,
+                  filesize: meta[record.id]!.filesize,
+                  filesizeString: meta[record.id]!.filesizeString,
+                ),
+      ]);
     } catch (e, stack) {
       // 静默对账失败：已有列表是最后已知的好数据，别用 error 覆盖它。
       if (silent && hadData) return;
       state = AsyncValue.error(e, stack);
     }
+  }
+
+  /// `/users/dstats` 全量翻页（每页 50 行，上限 30 页 = 1500 条记录）。
+  /// 终止：空页，或整页都是已见过的记录（服务端忽略 page 参数时每页
+  /// 回同一批，靠这个不空转）。
+  Future<List<Book>> _fetchDownloadStats() async {
+    final records = <Book>[];
+    final seen = <String>{};
+    const maxPages = 30;
+    for (var page = 1; page <= maxPages; page++) {
+      final response = await _api.getUserDownloadHistoryPage(page: page);
+      if (!response.success) {
+        throw StateError(
+          response.error ?? 'Could not load download history',
+        );
+      }
+      final batch = response.data ?? const <Book>[];
+      final before = seen.length;
+      for (final book in batch) {
+        // 键含时间戳：同一本书下载多次是合法的多条记录，只有"整页
+        // 逐条都和之前完全相同"才算没有新增。
+        if (seen.add(
+          '${book.id}|${book.downloadedAt?.toIso8601String()}|${book.title}',
+        )) {
+          records.add(book);
+        }
+      }
+      if (batch.isEmpty || seen.length == before) break;
+    }
+    return records;
+  }
+
+  /// eapi downloaded 列表全量翻页，作 id→Book 元数据表（作者/封面/
+  /// 格式/大小）。失败抛给调用方容忍（见 [loadDownloadedBooks]）。
+  Future<Map<int, Book>> _fetchDownloadedMetadata() async {
+    const pageSize = 100;
+    final byId = <int, Book>{};
+    for (var page = 1; page <= 100; page++) {
+      final response = await _api.getUserDownloaded(
+        page: page,
+        limit: pageSize,
+      );
+      if (!response.success) {
+        throw StateError(
+          response.error ?? 'Could not load download metadata',
+        );
+      }
+      final batch = response.data ?? const <Book>[];
+      final before = byId.length;
+      for (final book in batch) {
+        byId.putIfAbsent(book.id, () => book);
+      }
+      final totalPages = int.tryParse(
+        response.meta?['total_pages']?.toString() ?? '',
+      );
+      // 终止条件故意不用 batch.length < pageSize：镜像可能把 limit
+      // 压到比 100 小，那只说明本页比请求的短，不代表没有下一页。
+      // "到达 total_pages"或"整页都是重复（没有新增）"才可靠——
+      // 后者同时兜住了服务端忽略 page 参数的情况（每页回同一批）。
+      if ((totalPages != null && page >= totalPages) ||
+          byId.length == before) {
+        break;
+      }
+    }
+    return byId;
   }
 }
 

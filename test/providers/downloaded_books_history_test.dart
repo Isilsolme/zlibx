@@ -6,50 +6,89 @@ import 'package:zlibx/providers/zlibrary_provider.dart';
 
 /// [DownloadedBooksNotifier]（云端下载历史）回归测试。
 ///
-/// 旧实现是一个只拉第 1 页（limit 100）、进程内只拉一次的
-/// FutureProvider：超过 100 条后，更早的记录（其他设备下的书）永远
-/// 留在第 2 页之后不出现，页面也没有任何刷新入口——"下载历史（云端）
-/// 不能同步其他设备"。这里锁住修复后的行为：全量翻页、可靠终止、
-/// 打开页面 / 下拉时的静默对账、失败时保留已有数据。
+/// 历史根源（两段）：
+/// 1. 旧实现只读 eapi `/eapi/user/book/downloaded` 第 1 页、进程内只
+///    拉一次且无刷新入口；
+/// 2. 2026-11-12 用户报告 + 保存的 zh.z-library.sk 下载历史页证实：
+///    eapi 列表根本不含其他设备 / 网页端的下载——真正的全账号逐次
+///    日志是网站 `/users/dstats`（HTML，50 行/页）。
+///
+/// 现在的行为：dstats 为权威列表（全量翻页），eapi 列表只补元数据
+/// （作者/封面/格式/大小，失败容忍）。这里锁住这套合并与终止逻辑。
 class _FakeZLibraryApi implements ZLibraryApi {
-  _FakeZLibraryApi(this.pages, {this.totalPages});
+  _FakeZLibraryApi({this.dstatsPages, this.metaPages, this.metaTotalPages});
 
-  /// page -> 该页返回的书；缺页按空列表处理。
-  final Map<int, List<Book>> pages;
+  /// page -> dstats 页解析结果（缺页按空列表处理 = 翻到头）。
+  final Map<int, List<Book>>? dstatsPages;
 
-  /// 随每页响应返回的 total_pages（null 表示响应不带 meta）。
-  final int? totalPages;
+  /// page -> eapi downloaded 元数据页。
+  final Map<int, List<Book>>? metaPages;
 
-  int calls = 0;
-  final List<int?> seenPages = [];
-  final List<int?> seenLimits = [];
+  /// eapi 响应的 total_pages（null 表示不带 meta）。
+  final int? metaTotalPages;
 
-  /// 置为 true 后所有请求都失败（模拟断网 / 被墙）。
-  bool fail = false;
+  int dstatsCalls = 0;
+  final List<int?> dstatsSeenPages = [];
+  int metaCalls = 0;
+  final List<int?> metaSeenPages = [];
+
+  /// 置为 true 后 dstats 请求全部失败。
+  bool failDstats = false;
+
+  /// 置为 true 后 eapi 元数据请求全部失败。
+  bool failMeta = false;
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw UnsupportedError('unexpected: ${invocation.memberName}');
 
   @override
+  Future<ApiResponse<List<Book>>> getUserDownloadHistoryPage({
+    int? page,
+  }) async {
+    dstatsCalls++;
+    dstatsSeenPages.add(page);
+    if (failDstats) {
+      return ApiResponse.fail('dstats boom', statusCode: 500);
+    }
+    return ApiResponse.ok(dstatsPages?[page] ?? const []);
+  }
+
+  @override
   Future<ApiResponse<List<Book>>> getUserDownloaded({
     int? page,
     int? limit,
   }) async {
-    calls++;
-    seenPages.add(page);
-    seenLimits.add(limit);
-    if (fail) {
-      return ApiResponse.fail('boom', statusCode: 500);
+    metaCalls++;
+    metaSeenPages.add(page);
+    if (failMeta) {
+      return ApiResponse.fail('meta boom', statusCode: 500);
     }
     return ApiResponse.ok(
-      pages[page] ?? const [],
-      meta: totalPages == null ? null : {'total_pages': totalPages},
+      metaPages?[page] ?? const [],
+      meta: metaTotalPages == null ? null : {'total_pages': metaTotalPages},
     );
   }
 }
 
-Book _book(int id) => Book(id: id, title: 'Book $id');
+/// dstats 记录：书 id + 标题 + 下载时刻。
+Book _record(int id, String title, DateTime at) => Book(
+      id: id,
+      title: title,
+      href: '/book/hash$id/${Uri.encodeComponent(title)}.html',
+      downloadedAt: at,
+    );
+
+/// eapi 元数据：作者/封面/格式/大小，无时间戳。
+Book _meta(int id, String author) => Book(
+      id: id,
+      title: '元数据书$id',
+      author: author,
+      cover: 'https://cover.example/$id.jpg',
+      extension: 'epub',
+      filesize: 1234,
+      filesizeString: '1.2 KB',
+    );
 
 ProviderContainer _container(_FakeZLibraryApi api) {
   final container = ProviderContainer(
@@ -64,14 +103,21 @@ Future<void> _settle() =>
     Future<void>.delayed(const Duration(milliseconds: 100));
 
 void main() {
-  test('全量翻页：多页记录全部拉齐，顺序保持服务端顺序（新在前）', () async {
+  test('dstats 为权威列表：逐次记录全部展示，eapi 元数据按 id 叠加', () async {
     final api = _FakeZLibraryApi(
-      {
-        1: [_book(3), _book(2)],
-        2: [_book(1)],
-        3: [_book(0)],
+      dstatsPages: {
+        1: [
+          _record(7, '书甲', DateTime(2026, 11, 11, 21, 2)),
+          // 同一本书下载两次 = 两条记录（逐次日志），时间不同。
+          _record(7, '书甲', DateTime(2026, 11, 10, 9, 0)),
+        ],
+        2: [_record(8, '书乙', DateTime(2026, 11, 9, 8, 30))],
+        3: [],
       },
-      totalPages: 3,
+      metaPages: {
+        1: [_meta(7, '作者甲'), _meta(99, '作者丙')],
+      },
+      metaTotalPages: 1,
     );
     final container = _container(api);
     addTearDown(container.dispose);
@@ -79,52 +125,85 @@ void main() {
     container.read(downloadedBooksProvider);
     await _settle();
 
-    final state = container.read(downloadedBooksProvider);
-    expect(state.valueOrNull?.map((b) => b.id).toList(), [3, 2, 1, 0]);
-    expect(api.calls, 3);
-    expect(api.seenPages, [1, 2, 3]);
-    expect(api.seenLimits, [100, 100, 100]);
+    final books = container.read(downloadedBooksProvider).valueOrNull!;
+    // dstats 的 3 条记录都在（同 id 的两条不合并），顺序 = 服务端顺序。
+    expect(books.map((b) => b.downloadedAt).toList(), [
+      DateTime(2026, 11, 11, 21, 2),
+      DateTime(2026, 11, 10, 9, 0),
+      DateTime(2026, 11, 9, 8, 30),
+    ]);
+    // 命中 id=7 的补上元数据；id=8 没有 eapi 记录也不丢。
+    expect(books[0].author, '作者甲');
+    expect(books[0].cover, 'https://cover.example/7.jpg');
+    expect(books[0].extension, 'epub');
+    expect(books[1].author, '作者甲');
+    expect(books[2].author, isNull);
+    expect(books[2].title, '书乙');
+    // dstats 翻到空页才停；eapi 按 total_pages 停。
+    expect(api.dstatsSeenPages, [1, 2, 3]);
+    expect(api.metaSeenPages, [1]);
   });
 
-  test('缺 total_pages 时空页终止：拉到空页即停，不空转', () async {
-    final api = _FakeZLibraryApi({
-      1: [_book(1), _book(2)],
-      2: [],
-    });
-    final container = _container(api);
-    addTearDown(container.dispose);
-
-    container.read(downloadedBooksProvider);
-    await _settle();
-
-    expect(container.read(downloadedBooksProvider).valueOrNull?.length, 2);
-    expect(api.calls, 2);
-  });
-
-  test('服务端把 limit 压小 / 忽略 page（每页回同一批）时按"无新增"终止', () async {
-    // 两页都回同一批书、不带 meta：镜像把 limit 压小或忽略 page 的
-    // 兜底路径。旧逻辑没有翻页，这条锁住"不空转也不丢数据"。
-    final api = _FakeZLibraryApi({
-      1: [_book(1), _book(2)],
-      2: [_book(1), _book(2)],
-    });
-    final container = _container(api);
-    addTearDown(container.dispose);
-
-    container.read(downloadedBooksProvider);
-    await _settle();
-
-    final state = container.read(downloadedBooksProvider);
-    expect(state.valueOrNull?.map((b) => b.id).toList(), [1, 2]);
-    expect(api.calls, 2);
-  });
-
-  test('静默对账：把其他设备新下的记录补进已有列表', () async {
+  test('dstats 空页终止 + 服务端忽略 page（整页重复）按无新记录终止', () async {
+    final same = [
+      _record(1, '书一', DateTime(2026, 11, 11, 10, 0)),
+      _record(2, '书二', DateTime(2026, 11, 11, 9, 0)),
+    ];
     final api = _FakeZLibraryApi(
-      {
-        1: [_book(1)],
+      dstatsPages: {1: same, 2: same, 3: same},
+      metaPages: {1: []},
+      metaTotalPages: 1,
+    );
+    final container = _container(api);
+    addTearDown(container.dispose);
+
+    container.read(downloadedBooksProvider);
+    await _settle();
+
+    final books = container.read(downloadedBooksProvider).valueOrNull!;
+    expect(books.length, 2);
+    // 第 2 页整页都是已见记录 → 停，不把第 3 页也拉了。
+    expect(api.dstatsSeenPages, [1, 2]);
+  });
+
+  test('eapi 元数据失败容忍：dstats 记录照常显示（无作者/封面）', () async {
+    final api = _FakeZLibraryApi(
+      dstatsPages: {
+        1: [_record(5, '书五', DateTime(2026, 11, 11, 12, 0))],
       },
-      totalPages: 1,
+    )..failMeta = true;
+    final container = _container(api);
+    addTearDown(container.dispose);
+
+    container.read(downloadedBooksProvider);
+    await _settle();
+
+    final state = container.read(downloadedBooksProvider);
+    expect(state.valueOrNull?.length, 1);
+    expect(state.valueOrNull!.first.author, isNull);
+  });
+
+  test('dstats 失败才是真失败：报 error（eapi 成功也救不了）', () async {
+    final api = _FakeZLibraryApi(
+      metaPages: {1: [_meta(1, '作者')]},
+      metaTotalPages: 1,
+    )..failDstats = true;
+    final container = _container(api);
+    addTearDown(container.dispose);
+
+    container.read(downloadedBooksProvider);
+    await _settle();
+
+    expect(container.read(downloadedBooksProvider), isA<AsyncError>());
+  });
+
+  test('静默对账：补进其他设备的新记录；失败时保留已有列表', () async {
+    final api = _FakeZLibraryApi(
+      dstatsPages: {
+        1: [_record(1, '书一', DateTime(2026, 11, 10, 10, 0))],
+      },
+      metaPages: {1: []},
+      metaTotalPages: 1,
     );
     final container = _container(api);
     addTearDown(container.dispose);
@@ -133,49 +212,37 @@ void main() {
     await _settle();
     expect(container.read(downloadedBooksProvider).valueOrNull?.length, 1);
 
-    // 模拟"另一台设备刚下了一本书"：服务端列表变长，然后页面打开
-    // / 下拉触发的 silent 对账把它补进来。
-    api.pages[1] = [_book(2), _book(1)];
+    // 另一台设备刚下了一本书：服务端 dstats 变长，页面打开 / 下拉触发
+    // 的 silent 对账把它补进来（新记录在前）。
+    api.dstatsPages![1] = [
+      _record(2, '书二', DateTime(2026, 11, 11, 20, 0)),
+      _record(1, '书一', DateTime(2026, 11, 10, 10, 0)),
+    ];
     await container
         .read(downloadedBooksProvider.notifier)
         .loadDownloadedBooks(silent: true);
-
-    final state = container.read(downloadedBooksProvider);
-    expect(state.valueOrNull?.map((b) => b.id).toList(), [2, 1]);
-  });
-
-  test('静默对账失败保留已有列表，不闪 error', () async {
-    final api = _FakeZLibraryApi(
-      {
-        1: [_book(1)],
-      },
-      totalPages: 1,
+    expect(
+      container.read(downloadedBooksProvider).valueOrNull!.map((b) => b.id),
+      [2, 1],
     );
-    final container = _container(api);
-    addTearDown(container.dispose);
 
-    container.read(downloadedBooksProvider);
-    await _settle();
-    expect(container.read(downloadedBooksProvider).valueOrNull?.length, 1);
-
-    api.fail = true;
+    // 对账失败：保留最后已知的好数据，不闪 error。
+    api.failDstats = true;
     await container
         .read(downloadedBooksProvider.notifier)
         .loadDownloadedBooks(silent: true);
-
     final state = container.read(downloadedBooksProvider);
-    expect(state.valueOrNull?.map((b) => b.id).toList(), [1]);
+    expect(state.valueOrNull!.map((b) => b.id), [2, 1]);
   });
 
   test('首次拉取失败：报 error（可重试），不假装成空历史', () async {
-    final api = _FakeZLibraryApi(const {})..fail = true;
+    final api = _FakeZLibraryApi()..failDstats = true;
     final container = _container(api);
     addTearDown(container.dispose);
 
     container.read(downloadedBooksProvider);
     await _settle();
 
-    final state = container.read(downloadedBooksProvider);
-    expect(state, isA<AsyncError>());
+    expect(container.read(downloadedBooksProvider), isA<AsyncError>());
   });
 }
