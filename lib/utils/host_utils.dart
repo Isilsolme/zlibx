@@ -1,20 +1,36 @@
-/// Second-level labels of the Z-Library site family. A host belongs to the
-/// family only when its registrable label (the one right before the TLD)
-/// is one of these, e.g. `z-library.sk`, `reader.z-lib.fm`,
-/// `bookroom.lifestyle`, `singlelogin.re`.
-const _zlibFamilyLabels = {'z-library', 'z-lib', 'bookroom', 'singlelogin'};
+/// Explicit allow-list of Z-Library site suffixes. A host belongs to the
+/// family only when it is one of these suffixes or a subdomain of one,
+/// e.g. `z-library.sk`, `reader.z-lib.fm`, `bookroom.lifestyle`.
+/// Anything else is not family — including a look-alike registrable
+/// domain whose label matches, such as `z-lib.xyz` or `z-library.top`.
+/// The old rule only checked the label right before the TLD, so any
+/// TLD (or subdomain prefix) paired with a family label passed; the
+/// `singlelogin.*` domains are deliberately absent — `singlelogin.se`
+/// is parked for sale, `singlelogin.re` and `1lib.singlelogin.se` do not
+/// resolve (checked 2026-11-11).
+const _zlibFamilySuffixes = {
+  'z-library.sk',
+  'z-library.im',
+  'z-library.mn',
+  'z-lib.fm',
+  'z-lib.gd',
+  'bookroom.lifestyle',
+};
 
 /// Whether [rawHost] is a Z-Library family host.
 ///
-/// This replaces a loose `host.contains('z-library')` check, which also
-/// accepted look-alike hosts such as `z-library.evil.com` or
-/// `notbookroom.xyz`. Only the label directly before the TLD counts.
+/// This replaces a loose label check, which accepted any host whose
+/// label before the TLD was `z-library`, `z-lib`, `bookroom` or
+/// `singlelogin` — including look-alike hosts such as `z-lib.xyz`.
+/// Only an explicit suffix (or its subdomain) counts.
 bool isZlibFamilyHost(String rawHost) {
   final host = rawHost.trim().toLowerCase();
   if (host.isEmpty || host.contains(':') || host.contains('/')) return false;
   final labels = host.split('.');
   if (labels.length < 2 || labels.any((l) => l.isEmpty)) return false;
-  return _zlibFamilyLabels.contains(labels[labels.length - 2]);
+  return _zlibFamilySuffixes.any(
+    (suffix) => host == suffix || host.endsWith('.$suffix'),
+  );
 }
 
 /// Language prefixes some mirrors put in front of the domain

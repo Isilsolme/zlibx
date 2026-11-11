@@ -9,10 +9,10 @@ void main() {
         'reader.z-library.sk',
         'z-lib.fm',
         'Z-LIB.GD',
+        'z-library.mn',
         'bookroom.lifestyle',
         'reader.bookroom.lifestyle',
-        'singlelogin.re',
-        '1lib.singlelogin.se',
+        'z-library.im',
       ]) {
         expect(isZlibFamilyHost(host), isTrue, reason: host);
       }
@@ -31,6 +31,16 @@ void main() {
         'z-library.sk:443',
         'z-library..sk',
         '',
+        // Any TLD paired with a family label is not family.
+        'z-lib.xyz',
+        'z-library.top',
+        'bookroom.xyz',
+        'evil.z-lib.xyz',
+        // singlelogin.* is dead: .se is parked for sale, .re and
+        // 1lib.singlelogin.se do not resolve (checked 2026-11-11).
+        'singlelogin.se',
+        'singlelogin.re',
+        '1lib.singlelogin.se',
       ]) {
         expect(isZlibFamilyHost(host), isFalse, reason: host);
       }
