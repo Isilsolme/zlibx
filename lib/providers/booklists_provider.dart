@@ -167,7 +167,20 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     try {
       final response = await _repository.deleteBooklist(listId);
       if (!_alive) return response;
-      if (response.success) return response;
+      if (response.success) {
+        // The list is already gone from the visible page (optimistic
+        // removal above). Invalidate the cached mine page and the
+        // deleted list's detail page so a later refresh cannot repaint
+        // the stale page with the list back in it — that repaint is
+        // what made a delete look slow. No reload: there is nothing
+        // left to fetch.
+        _invalidateMinePage();
+        _repository.invalidateBooklist(
+          list.url,
+          accountId: _accountIdFor(BooklistTab.mine),
+        );
+        return response;
+      }
       _restoreDeleted(generation, removed, index);
       return response;
     } catch (_) {
@@ -232,6 +245,45 @@ class BooklistsController extends AutoDisposeNotifier<BooklistsState> {
     if (index < 0) return;
     final lists = [...state.lists]..[index] = updated;
     state = state.copyWith(lists: lists);
+  }
+
+  /// Invalidate the cached mine list page (the URL `loadFirst` reads
+  /// and writes), so a later refresh fetches fresh instead of
+  /// repainting the pre-write page.
+  void _invalidateMinePage() {
+    _repository.invalidateBooklist(
+      _repository.booklistsPageUrl(
+        mine: true,
+        query: state.query,
+        order: state.order,
+        page: 1,
+      ),
+      accountId: _accountIdFor(BooklistTab.mine),
+    );
+  }
+
+  /// A list was just created on the account: prepend it to the visible
+  /// mine page (when the mine tab is showing an unfiltered page) and
+  /// invalidate the cached mine page, so a later refresh cannot repaint
+  /// the pre-create page without it. The position is optimistic: under
+  /// a non-date sort the next refresh settles the true order.
+  void noteBooklistCreated(Booklist created) {
+    _invalidateMinePage();
+    if (state.tab != BooklistTab.mine ||
+        state.phase != BooklistsPhase.ready ||
+        state.query.isNotEmpty) {
+      return;
+    }
+    if (state.lists.any((item) => item.id == created.id)) return;
+    state = state.copyWith(lists: [created, ...state.lists]);
+  }
+
+  /// The create answer carried no list (empty body): invalidate the
+  /// cached mine page and refresh it in the background, without
+  /// blanking the lists already on screen.
+  void refreshMineAfterCreate() {
+    _invalidateMinePage();
+    unawaited(loadFirst());
   }
 
   /// Edit one of the user's own lists (mine tab only): on success the

@@ -67,8 +67,9 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   }
 
   /// Ask for a name (and optional description, color, private flag),
-  /// create the list on the account, then reload "my booklists" so
-  /// the new list shows up.
+  /// create the list on the account, then show it at the top of "my
+  /// booklists" without a reload (or refresh in the background when
+  /// the answer carried no list).
   Future<void> _createBooklist() async {
     final l10n = AppLocalizations.of(context)!;
     final result = await showDialog<
@@ -94,8 +95,16 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     if (!mounted) return;
     if (response.success) {
       showAppSnackOn(messenger, l10n.booklistCreated);
-      if (ref.read(booklistsControllerProvider).tab == BooklistTab.mine) {
-        await controller.loadFirst();
+      // The answer usually carries the created list: put it at the top
+      // of the mine page instead of reloading the whole page. When the
+      // answer is an empty body (no list to insert), refresh the mine
+      // page in the background instead of blocking on it.
+      final created = response.data;
+      if (created != null) {
+        controller.noteBooklistCreated(created);
+      } else if (ref.read(booklistsControllerProvider).tab ==
+          BooklistTab.mine) {
+        controller.refreshMineAfterCreate();
       }
     } else {
       showAppSnackOn(
@@ -241,7 +250,9 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
 
   /// Delete one of the user's own lists: confirm first (destructive),
   /// then the controller's optimistic removal; on failure the list is
-  /// restored and the error is shown, on success the tab reloads.
+  /// restored and the error is shown, on success nothing more is
+  /// needed — the controller already removed it and invalidated the
+  /// cached page.
   Future<void> _confirmDelete(Booklist list) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -268,7 +279,6 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     if (!mounted) return;
     if (response.success) {
       showAppSnackOn(messenger, l10n.booklistDeleted);
-      await controller.loadFirst();
     } else {
       showAppSnackOn(
         messenger,
