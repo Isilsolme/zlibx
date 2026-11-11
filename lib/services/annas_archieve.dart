@@ -8,7 +8,6 @@ import 'dart:convert';
 
 // Package imports:
 import 'package:dio/dio.dart';
-import 'package:meta/meta.dart';
 
 // Project imports:
 import 'package:zlibx/core/annas_archive.dart';
@@ -292,13 +291,6 @@ class AnnasArchieve {
     );
   }
 
-  String getMd5(String url) => ArchiveParsing.md5FromLink(url);
-
-  // Remove emojis, icons and non-standard characters from text
-  String cleanText(String text) => ArchiveParsing.cleanText(text);
-
-  String getFormat(String info) => ArchiveParsing.formatFromInfo(info);
-
   // --------------------------------------------------------------------
   // _parser FUNCTION (Search Results - Fixed nth-of-type issue)
   // --------------------------------------------------------------------
@@ -329,19 +321,6 @@ class AnnasArchieve {
         ),
     ];
   }
-
-  /// Test-only wrappers around the private parsers so tests can verify real
-  /// HTML parsing without going through the network layer.
-  @visibleForTesting
-  List<BookData> parser(
-          dynamic resData, String fileType, String currentBaseUrl) =>
-      _parser(resData, fileType, currentBaseUrl);
-
-  @visibleForTesting
-  Future<BookInfoData?> bookInfoParser(
-          dynamic resData, String url, String currentBaseUrl) =>
-      _bookInfoParser(resData, url, currentBaseUrl);
-  // --------------------------------------------------------------------
 
   // --------------------------------------------------------------------
   // _bookInfoParser FUNCTION (Detail Page - Fixed 'unable to get data' error)

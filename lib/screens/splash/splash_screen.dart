@@ -370,7 +370,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Your Open Library',
+                                AppLocalizations.of(context)!
+                                    .yourOpenLibrary,
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha:0.6),
                                   fontSize: 14,

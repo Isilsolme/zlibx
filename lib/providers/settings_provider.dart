@@ -38,16 +38,6 @@ class ThemeModeNotifier extends Notifier<AppThemeMode> {
     await _storage.setThemeMode(mode.index);
   }
 
-  ThemeMode get themeMode {
-    switch (state) {
-      case AppThemeMode.light:
-        return ThemeMode.light;
-      case AppThemeMode.dark:
-        return ThemeMode.dark;
-      case AppThemeMode.system:
-        return ThemeMode.system;
-    }
-  }
 }
 
 /// Theme mode provider
@@ -110,59 +100,11 @@ class LocaleNotifier extends Notifier<Locale?> {
     }
   }
 
-  /// Get display name for current locale
-  String getDisplayName() {
-    if (state == null) return 'System';
-    // getLocaleKey returns null only for a null locale; state is
-    // non-null here, so the fallback is unreachable in practice.
-    final key = getLocaleKey(state!) ?? 'en';
-    return localeDisplayNames[key] ?? key;
-  }
 }
 
 /// Locale provider
 final localeProvider =
     NotifierProvider<LocaleNotifier, Locale?>(LocaleNotifier.new);
-
-/// Available font options
-enum AppFontFamily {
-  poppins,  // Google Fonts Poppins (default)
-  roboto,
-  openSans,
-  lato,
-  merriweather,
-  lora,
-  notoSerif,
-  system,   // System default font
-}
-
-/// Font family notifier for managing app font
-class FontFamilyNotifier extends Notifier<AppFontFamily> {
-  @override
-  AppFontFamily build() => _loadFontFamily();
-
-  /// Sync Hive read; returns the persisted font as the initial state
-  /// instead of assigning it (see LocaleNotifier).
-  AppFontFamily _loadFontFamily() {
-    final fontKey = HiveService.settingsBox.get('fontFamily');
-    if (fontKey != null && fontKey is String) {
-      return AppFontFamily.values.firstWhere(
-        (f) => f.name == fontKey,
-        orElse: () => AppFontFamily.poppins,
-      );
-    }
-    return AppFontFamily.poppins;
-  }
-
-  Future<void> setFontFamily(AppFontFamily font) async {
-    state = font;
-    await HiveService.settingsBox.put('fontFamily', font.name);
-  }
-}
-
-/// Font family provider
-final fontFamilyProvider =
-    NotifierProvider<FontFamilyNotifier, AppFontFamily>(FontFamilyNotifier.new);
 
 /// Blur effect notifier — whether the glass header and bottom nav bar use
 /// a backdrop blur (on) or a solid surface (off). Default on.

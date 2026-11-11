@@ -4,7 +4,6 @@
 // shiyi-0x7f/olib-mobile is preserved in LICENSE.
 
 // Dart imports:
-import 'package:zlibx/utils/diagnostics.dart';
 import 'dart:async';
 
 // Package imports:
@@ -15,7 +14,6 @@ import 'package:meta/meta.dart';
 // Project imports:
 import 'package:zlibx/services/annas_archieve.dart';
 import 'package:zlibx/services/external_logger.dart';
-import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/mirror_speed_test.dart';
 
 /// Library Genesis book-info + download service.
@@ -32,10 +30,9 @@ class LibgenService {
   };
 
   final Dio _dio;
-  final InstanceManager _instanceManager;
   final AppLogger _logger = AppLogger();
 
-  LibgenService({Dio? dio, InstanceManager? instanceManager})
+  LibgenService({Dio? dio})
       : _dio = dio ??
             createDioWithLogging(
                 options: BaseOptions(
@@ -44,8 +41,7 @@ class LibgenService {
               headers: _browserHeaders,
               followRedirects: true,
               maxRedirects: 5,
-            )),
-        _instanceManager = instanceManager ?? InstanceManager();
+            ));
 
   /// Fetches and parses a libgen `ads.php` page.
   ///
@@ -101,19 +97,6 @@ class LibgenService {
     return null;
   }
 
-  /// Every candidate for [url], best first.
-  ///
-  /// Only mirrors the catalogue reports UP and the user left enabled are
-  /// contacted. The stored URL's own host becomes a candidate only when
-  /// it is one of them, so a saved link whose host is down or switched
-  /// off is never probed - the Mirrors page promises exactly that. With
-  /// no enabled mirrors there is nothing known-good to ask, so no
-  /// candidate exists and no request is made at all (matching the
-  /// libgen search provider, which also stays silent without a mirror).
-  @visibleForTesting
-  List<String> candidateUrls(String url, List<String> mirrors) =>
-      _candidateUrls(url, mirrors);
-
   List<String> _candidateUrls(String url, List<String> mirrors) {
     if (mirrors.isEmpty) return const [];
 
@@ -150,37 +133,6 @@ class LibgenService {
     final src = img?.attributes['src'];
     if (src == null || src.isEmpty) return null;
     return src.startsWith('http') ? src : '$baseUrl$src';
-  }
-
-  /// Fetches only the cover URL for a libgen book (by md5), trying the
-  /// enabled mirrors. Null when no mirror answers or none carries a
-  /// cover. Used to lazily fill result-list thumbnails.
-  ///
-  /// 每个候选请求带 5s 接收超时：结果列表会逐本调这个方法，慢
-  /// 镜像吃满全局 30s receiveTimeout 会拖住整列缩略图（镜像回退
-  /// 顺序仍按优先级串行，见 [_candidateUrls]）。
-  Future<String?> fetchCover(String url) async {
-    final mirrors = await _instanceManager.enabledUrls(MirrorService.libgen);
-    for (final candidate in _candidateUrls(url, mirrors)) {
-      try {
-        final origin = Uri.parse(candidate).origin;
-        final response = await _dio.get(
-          candidate,
-          options: Options(
-            headers: {'Referer': '$origin/index.php'},
-            receiveTimeout: const Duration(seconds: 5),
-          ),
-        );
-        if (response.statusCode != 200) continue;
-        final cover =
-            parseAdsCover(response.data.toString(), origin);
-        if (cover != null) return cover;
-      } catch (error) {
-        logIgnored('libgen_service', error);
-        // Next mirror.
-      }
-    }
-    return null;
   }
 
   /// Parses a libgen `ads.php` page into [BookInfoData]. Public so tests

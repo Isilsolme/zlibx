@@ -754,9 +754,9 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
         if (books.isEmpty) {
           return Padding(
             padding: EdgeInsets.fromLTRB(40, topPadding + 40, 40, 40),
-            child: const EmptyState(
+            child: EmptyState(
               icon: Icons.book_outlined,
-              title: 'No books found',
+              title: AppLocalizations.of(context)!.noBooksFound,
             ),
           );
         }
@@ -817,10 +817,10 @@ class _HomeTabState extends ConsumerState<_HomeTab> {
       ),
       error: (error, stack) => Padding(
         padding: EdgeInsets.fromLTRB(20, topPadding + 20, 20, 20),
-        child: const EmptyState(
+        child: EmptyState(
           icon: Icons.error_outline,
-          title: 'Could not load books',
-          message: 'Please check your connection',
+          title: AppLocalizations.of(context)!.couldNotLoadBooks,
+          message: AppLocalizations.of(context)!.checkYourConnection,
         ),
       ),
     );

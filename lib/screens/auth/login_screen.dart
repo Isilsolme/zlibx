@@ -337,10 +337,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return AppLocalizations.of(context)!
+                                    .enterEmail;
                               }
                               if (!value.contains('@')) {
-                                return 'Please enter a valid email';
+                                return AppLocalizations.of(context)!
+                                    .validEmail;
                               }
                               return null;
                             },
@@ -371,10 +373,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return AppLocalizations.of(context)!
+                                    .enterPassword;
                               }
                               if (value.length < 6) {
-                                return 'Password must be at least 6 characters';
+                                return AppLocalizations.of(context)!
+                                    .passwordMinLength;
                               }
                               return null;
                             },

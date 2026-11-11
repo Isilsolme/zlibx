@@ -41,33 +41,4 @@ void main() {
     });
   });
 
-  group('buildSafeFileName', () {
-    test('100 Chinese chars stay within the byte cap', () {
-      final name = '汉' * 100;
-      final file = buildSafeFileName(name, extension: 'epub');
-      expect(utf8.encode(file).length, lessThanOrEqualTo(maxFileNameBytes));
-      expect(file, endsWith('.epub'));
-      // Still a readable prefix, not garbage.
-      expect(file.startsWith('汉'), isTrue);
-    });
-
-    test('illegal characters are stripped', () {
-      expect(
-        buildSafeFileName('a/b:c*d?e"f<g>h|i', extension: 'pdf'),
-        'abcdefghi.pdf',
-      );
-    });
-
-    test('empty name falls back to a timestamped name', () {
-      final file = buildSafeFileName('///', extension: 'epub');
-      expect(file, startsWith('file_'));
-      expect(file, endsWith('.epub'));
-    });
-
-    test('no extension returns just the truncated name', () {
-      final file = buildSafeFileName('x' * 300);
-      expect(utf8.encode(file).length, lessThanOrEqualTo(maxFileNameBytes));
-      expect(file, 'x' * 200);
-    });
-  });
 }

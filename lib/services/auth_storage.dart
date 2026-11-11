@@ -137,14 +137,6 @@ class AuthStorage {
     };
   }
 
-  /// Check if credentials are stored.
-  Future<bool> hasStoredCredentials() async {
-    await _migrateLegacyIfNeeded();
-    final userId = await SecureStorage.read(_keyUserId);
-    final userKey = await SecureStorage.read(_keyUserKey);
-    return userId != null && userKey != null;
-  }
-
   /// Clear all stored credentials, including the saved-accounts list:
   /// after logout nothing that can log back in may remain on disk.
   Future<void> clearCredentials() async {

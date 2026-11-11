@@ -224,12 +224,6 @@ class StorageService {
     return Map<String, dynamic>.from(jsonDecode(historyJson));
   }
 
-  /// Check if book was previously downloaded
-  Future<bool> isBookDownloaded(String bookId) async {
-    final history = await getDownloadHistory();
-    return history.containsKey(bookId);
-  }
-
   /// Get downloaded file path for a book
   Future<String?> getDownloadedFilePath(String bookId) async {
     final history = await getDownloadHistory();

@@ -11,9 +11,6 @@
 import 'package:html/dom.dart' as dom;
 import 'package:html/parser.dart' as html_parser;
 
-/// The one host the app and CLI are allowed to hardcode: the monitor itself.
-const String slumDefaultBaseUrl = 'https://open-slum.org';
-
 /// Which shadow-library family a mirror belongs to.
 enum MirrorService {
   annasArchive,

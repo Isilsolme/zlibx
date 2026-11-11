@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zlibx/services/instance_manager.dart';
 import 'package:zlibx/services/libgen_service.dart';
 
 /// Minimal `ads.php` page: the `get.php?md5=` link, the `table#main`
@@ -17,7 +16,6 @@ Title: 资本论（全三卷）<br>Author(s): 马克思<br>Publisher: 人民出�
 
 LibgenService _service() => LibgenService(
       dio: Dio(),
-      instanceManager: InstanceManager.forTest(),
     );
 
 void main() {

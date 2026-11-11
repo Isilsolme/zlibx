@@ -25,8 +25,6 @@
 //   Settings / bug reports dump.
 import 'package:flutter/foundation.dart';
 
-import 'diagnostics.dart';
-
 class AppLog {
   AppLog._();
 
@@ -79,11 +77,6 @@ class AppLog {
   static void report(String message, {String? tag}) {
     debugPrint(_format('REPORT', tag, message, null, null));
   }
-
-  /// Swallowed failure: records type + timestamp only (see
-  /// [Diagnostics]); the line itself is printed in debug builds only.
-  static void ignored(String tag, Object error) =>
-      Diagnostics.record(tag, error);
 
   static String _format(
     String level,

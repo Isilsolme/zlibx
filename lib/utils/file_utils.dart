@@ -77,17 +77,6 @@ Future<bool> openFile(String filePath) async {
   }
 }
 
-/// Get file size as human-readable string
-String formatFileSize(int bytes) {
-  if (bytes > 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(2)} MB';
-  } else if (bytes > 1024) {
-    return '${(bytes / 1024).toStringAsFixed(2)} KB';
-  } else {
-    return '$bytes B';
-  }
-}
-
 /// Android caps a single filename at 255 bytes (UTF-8). Keep our
 /// generated names comfortably below that so a long (e.g. Chinese)
 /// title can never fail the write. The cap counts the whole
@@ -114,21 +103,4 @@ String truncateUtf8ByBytes(String input, int maxBytes) {
     end += rune > 0xFFFF ? 2 : 1;
   }
   return input.substring(0, end);
-}
-
-/// Build a safe filename for saving files
-String buildSafeFileName(String name, {String? extension}) {
-  String safeName = name.replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '').trim();
-  if (safeName.isEmpty) {
-    safeName = 'file_${DateTime.now().millisecondsSinceEpoch}';
-  }
-  if (extension != null && extension.isNotEmpty) {
-    final suffix = '.$extension';
-    safeName = truncateUtf8ByBytes(
-      safeName,
-      maxFileNameBytes - utf8.encode(suffix).length,
-    );
-    return '$safeName$suffix';
-  }
-  return truncateUtf8ByBytes(safeName, maxFileNameBytes);
 }
