@@ -9,7 +9,7 @@ const _baseUrl = 'https://zh.z-library.sk';
 /// element is the create button (no topic) and must be skipped.
 const _myBooklistsHtml = '''
 <html><body>
-<z-booklist id="4088695" href="/booklist/4088695/62a0c2/001.html" topic="001" author="徕" authorprofile="/profile/35899435/5a9053" quantity="4" views="12">
+<z-booklist id="4088695" href="/booklist/4088695/62a0c2/001.html" topic="001" author="徕" authorprofile="/profile/35899435/5a9053" quantity="4" views="12" comments="3" color="4" private favorite>
 <a href="/book/abc123def456/slug-one.html"><z-cover id="5740686" author="霍格尔·丹贝克" title="你学的数学可能是假的"><img data-src="https://cdn.example.com/covers200/collections/userbooks/1.jpg"></z-cover></a>
 <a href="/book/9876543210abcdef/slug-two.html"><z-cover id="5288001" author="作者二" title="第二本书"><img data-src="https://cdn.example.com/covers200/collections/userbooks/2.jpg"></z-cover></a>
 </z-booklist>
@@ -29,9 +29,18 @@ void main() {
       final first = page.lists[0];
       expect(first.id, '4088695');
       expect(first.name, '001');
-      expect(first.author, '/profile/35899435/5a9053');
+      // `author` is the display name; the profile path lives in
+      // `authorProfile` (an older revision read the path into `author`,
+      // so cards showed "/profile/..." as the author).
+      expect(first.author, '徕');
+      expect(first.authorProfile, '/profile/35899435/5a9053');
+      expect(first.authorAvatar, '');
       expect(first.count, 4);
       expect(first.views, '12');
+      expect(first.comments, '3');
+      expect(first.color, 4);
+      expect(first.isPrivate, isTrue);
+      expect(first.isFavorite, isTrue);
       expect(
         first.url,
         '$_baseUrl/booklist/4088695/62a0c2/001.html',

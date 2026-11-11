@@ -7,9 +7,9 @@ import 'book.dart';
 /// shareable collection of books with an author and a book count).
 ///
 /// Browsing public booklists, the signed-in user's own booklists, and
-/// the books inside one booklist, plus creating a booklist
-/// (`ZLibraryApi.createBooklist`). Adding books to a list and deleting
-/// lists are NOT wired — those write endpoints have not been captured.
+/// the books inside one booklist, plus creating, editing, deleting and
+/// favoriting lists and adding/removing books
+/// (`ZLibraryApi.createBooklist` and friends).
 class Booklist {
   /// The numeric id from the list URL (`/booklists/{id}/...`).
   final String id;
@@ -18,14 +18,46 @@ class Booklist {
   final String name;
   final String description;
 
-  /// The creator's username (`authorprofile` attribute), or ''.
+  /// The creator's username (`author` attribute), or ''.
+  ///
+  /// NOTE: an older revision read `authorprofile` (the profile path)
+  /// into this field, so cards showed e.g. "/profile/35899435/5a9053"
+  /// as the author. The site carries both: `author` is the display
+  /// name, `authorprofile` is the profile path (see [authorProfile]).
+  /// The `author` attribute wins; `authorprofile` is only a fallback
+  /// for a page shape that carries no `author` attribute.
   final String author;
+
+  /// The creator's profile path (`authorprofile` attribute), or ''.
+  /// Empty when the page did not carry one.
+  final String authorProfile;
+
+  /// The creator's avatar URL (`authoravatar` attribute), or ''.
+  final String authorAvatar;
 
   /// Book count (`quantity` attribute), null when the page did not say.
   final int? count;
 
   /// View count (`views` attribute), or ''.
   final String views;
+
+  /// Comment count (`comments` attribute), or ''.
+  final String comments;
+
+  /// List color (`color` attribute, 0–5), null when the page did not
+  /// say. The site uses -1 for lists that carry no color (not the
+  /// signed-in user's own): callers treat a negative value as "no
+  /// color". See [booklistColors] for the six gradients.
+  final int? color;
+
+  /// True when the element carries the `private` attribute (a private
+  /// list shows a lock on the site).
+  final bool isPrivate;
+
+  /// True when the element carries the `favorite` attribute (the
+  /// signed-in user favorited this list; the site shows a filled
+  /// heart).
+  final bool isFavorite;
 
   /// Cover thumbnail (first carousel image's `data-src`), or ''.
   final String coverUrl;
@@ -46,8 +78,14 @@ class Booklist {
     required this.name,
     this.description = '',
     this.author = '',
+    this.authorProfile = '',
+    this.authorAvatar = '',
     this.count,
     this.views = '',
+    this.comments = '',
+    this.color,
+    this.isPrivate = false,
+    this.isFavorite = false,
     this.coverUrl = '',
     required this.url,
     this.previewBooks = const [],
@@ -133,13 +171,32 @@ class Booklist {
       id: id,
       name: name,
       description: el.attributes['description']?.trim() ?? '',
-      author: el.attributes['authorprofile']?.trim() ?? '',
+      author: _authorName(el),
+      authorProfile: el.attributes['authorprofile']?.trim() ?? '',
+      authorAvatar: _resolveUrl(
+        el.attributes['authoravatar']?.trim() ?? '',
+        baseUrl,
+      ),
       count: int.tryParse(el.attributes['quantity']?.trim() ?? ''),
       views: el.attributes['views']?.trim() ?? '',
+      comments: el.attributes['comments']?.trim() ?? '',
+      color: int.tryParse(el.attributes['color']?.trim() ?? ''),
+      isPrivate: el.attributes.containsKey('private'),
+      isFavorite: el.attributes.containsKey('favorite'),
       coverUrl: coverUrl,
       url: _resolveUrl(href, baseUrl),
       previewBooks: previewBooks,
     );
+  }
+
+  /// The creator's display name: the `author` attribute when present,
+  /// else the `authorprofile` attribute (an older page shape carried
+  /// only that one). The profile path is a path, not a name, so it is
+  /// only a fallback — never the first choice.
+  static String _authorName(dom.Element el) {
+    final name = el.attributes['author']?.trim() ?? '';
+    if (name.isNotEmpty) return name;
+    return el.attributes['authorprofile']?.trim() ?? '';
   }
 
   /// The list id is the path segment after `/booklists/` — or the live
@@ -162,6 +219,30 @@ class Booklist {
     if (raw.startsWith('/')) return '$baseUrl$raw';
     return raw;
   }
+}
+
+/// One entry of `GET /papi/booklist/current-user/{bookId}`: one of
+/// the signed-in user's booklists plus whether [bookId] is in it.
+/// [readlistBookId] is the per-(book, list) membership-row id (what
+/// remove-book takes), null when the book is not in the list.
+class BooklistMembership {
+  /// The list's numeric id.
+  final int booklistId;
+
+  /// The list's title, or '' when the response did not carry one.
+  final String title;
+
+  /// The membership-row id, or null when the book is not in the list.
+  final int? readlistBookId;
+
+  const BooklistMembership({
+    required this.booklistId,
+    this.title = '',
+    this.readlistBookId,
+  });
+
+  /// True when the book is in this list.
+  bool get isMember => readlistBookId != null;
 }
 
 /// One page of booklist search results.
@@ -225,6 +306,45 @@ List<Booklist> parseUserProfileBooklists(
       .toList();
 }
 
+/// Recommended booklists from `POST /papi/booklist/get-from-category`:
+/// the response's `html` array, one JSON object per list (`id`, `href`,
+/// `title`, `author`, `authorProfile`, `quantity`, `views`, …).
+/// Entries without a numeric id or a title are skipped. [baseUrl] is
+/// the mirror origin, used to resolve relative hrefs.
+List<Booklist> parseRecommendedBooklists(
+  Object? html, {
+  required String baseUrl,
+}) {
+  if (html is! List) return const [];
+  final lists = <Booklist>[];
+  for (final entry in html) {
+    if (entry is! Map<String, dynamic>) continue;
+    final id = entry['id']?.toString() ?? '';
+    if (!RegExp(r'^\d+$').hasMatch(id)) continue;
+    final name = entry['title']?.toString().trim() ?? '';
+    if (name.isEmpty) continue;
+    lists.add(
+      Booklist(
+        id: id,
+        name: name,
+        description: entry['description']?.toString() ?? '',
+        author: entry['author']?.toString().trim() ?? '',
+        authorProfile: entry['authorProfile']?.toString().trim() ?? '',
+        count: entry['quantity'] is int
+            ? entry['quantity'] as int
+            : int.tryParse(entry['quantity']?.toString() ?? ''),
+        views: entry['views']?.toString() ?? '',
+        comments: entry['comments']?.toString() ?? '',
+        color: entry['color'] is int
+            ? entry['color'] as int
+            : int.tryParse(entry['color']?.toString() ?? ''),
+        url: _resolveUrl(entry['href']?.toString() ?? '', baseUrl),
+      ),
+    );
+  }
+  return lists;
+}
+
 /// Books on the FIRST page of a booklist detail page, from the
 /// server-rendered `<z-bookcard>` elements (`.readlist-view`).
 ///
@@ -240,6 +360,14 @@ List<Booklist> parseUserProfileBooklists(
 /// JWT carrying the signed-in user's identity) is deliberately NOT
 /// read. Cards marked `deleted="1"` are skipped. An empty list means
 /// the page had no cards (or was not a detail page at all).
+///
+/// Detail-only fields: a card on the signed-in user's own list also
+/// carries its readlist membership-row id in `booklistsindex` and the
+/// per-book note in `<div slot="note">` (see `z-bookcard`); both are
+/// parsed into [Book.readlistBookId] / [Book.note] when present, so
+/// remove-book and save-description can use them without an extra
+/// `current-user` round trip. Cards on other users' lists carry
+/// neither.
 List<Book> parseBooklistDetailBooks(String html, {String? baseUrl}) {
   final doc = html_parser.parse(html);
   final books = <Book>[];
@@ -264,6 +392,8 @@ List<Book> parseBooklistDetailBooks(String html, {String? baseUrl}) {
         card.querySelector('div[slot="title"]')?.text.trim() ?? '';
     final author =
         card.querySelector('div[slot="author"]')?.text.trim() ?? '';
+    final note =
+        card.querySelector('div[slot="note"]')?.text.trim() ?? '';
     books.add(
       Book(
         id: id,
@@ -280,6 +410,9 @@ List<Book> parseBooklistDetailBooks(String html, {String? baseUrl}) {
         filesizeString: _cardAttr(card, 'filesize'),
         interestScore: _cardAttr(card, 'rating'),
         readOnlineUrl: _cardAttr(card, 'read'),
+        readlistBookId:
+            int.tryParse(card.attributes['booklistsindex']?.trim() ?? ''),
+        note: note.isEmpty ? null : note,
       ),
     );
   }

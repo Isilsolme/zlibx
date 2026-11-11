@@ -51,6 +51,15 @@ class Book {
   final String? ipfsCid;
   final String? ipfsCidBlake2b;
 
+  /// Booklist-detail-only fields (NOT in the eapi book object): the
+  /// readlist membership-row id (`booklistsindex` attribute) and the
+  /// per-book note (`div[slot="note"]`) of a `<z-bookcard>` on a
+  /// booklist detail page — see `parseBooklistDetailBooks`. Null when
+  /// the book did not come from a booklist detail page. The entry id
+  /// is what remove-book and save-description take, never the book id.
+  final int? readlistBookId;
+  final String? note;
+
   const Book({
     required this.id,
     required this.title,
@@ -75,6 +84,8 @@ class Book {
     this.isbn13,
     this.ipfsCid,
     this.ipfsCidBlake2b,
+    this.readlistBookId,
+    this.note,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -121,6 +132,10 @@ class Book {
       ipfsCidBlake2b: _nonEmptyString(
         json['ipfsCidBlake2b'] ?? json['ipfs_cid_blake2b'],
       ),
+      readlistBookId: _asInt(
+        json['readlistBookId'] ?? json['readlist_book_id'],
+      ),
+      note: _nonEmptyString(json['note']),
     );
   }
 
@@ -160,6 +175,8 @@ class Book {
     if (isbn13 != null) 'isbn13': isbn13,
     if (ipfsCid != null) 'ipfsCid': ipfsCid,
     if (ipfsCidBlake2b != null) 'ipfsCidBlake2b': ipfsCidBlake2b,
+    if (readlistBookId != null) 'readlistBookId': readlistBookId,
+    if (note != null) 'note': note,
   };
 
   /// Copy with overrides. A null argument keeps the current value
@@ -190,6 +207,8 @@ class Book {
     String? isbn13,
     String? ipfsCid,
     String? ipfsCidBlake2b,
+    int? readlistBookId,
+    String? note,
   }) {
     return Book(
       id: id ?? this.id,
@@ -215,6 +234,8 @@ class Book {
       isbn13: isbn13 ?? this.isbn13,
       ipfsCid: ipfsCid ?? this.ipfsCid,
       ipfsCidBlake2b: ipfsCidBlake2b ?? this.ipfsCidBlake2b,
+      readlistBookId: readlistBookId ?? this.readlistBookId,
+      note: note ?? this.note,
     );
   }
 

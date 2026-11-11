@@ -21,6 +21,7 @@ class BooklistRow extends StatelessWidget {
       if (list.count != null)
         l10n.booklistBookCount(list.count!),
       if (list.views.isNotEmpty) list.views,
+      if (list.comments.isNotEmpty && list.comments != '0') list.comments,
     ].join(' · ');
     return ListTile(
       leading: ClipRRect(
@@ -49,13 +50,35 @@ class BooklistRow extends StatelessWidget {
                 ),
         ),
       ),
-      title: Text(
-        list.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              list.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
+          if (list.isPrivate) ...[
+            const SizedBox(width: 6),
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 15,
+              color: cs.onSurfaceVariant,
+            ),
+          ],
+          if (list.isFavorite) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.favorite_rounded,
+              size: 15,
+              color: cs.primary,
+            ),
+          ],
+        ],
       ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

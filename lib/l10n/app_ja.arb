@@ -30,6 +30,7 @@
   "badgeOpenSource": "オープンソース",
   "batchRemove": "選択した本を削除",
   "blurEffect": "ぼかし効果",
+  "booklistAddNote": "メモを追加",
   "booklistBookCount": "{count} 冊",
   "@booklistBookCount": {
     "placeholders": {
@@ -39,6 +40,23 @@
     }
   },
   "booklistBookRemoved": "ブックリストから削除しました",
+  "booklistChangeColor": "色を変更",
+  "booklistColor": "色",
+  "booklistColorChanged": "色を変更しました",
+  "booklistColorFailed": "色の変更に失敗しました：{error}",
+  "@booklistColorFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistColorGreen": "緑",
+  "booklistColorMarine": "マリン",
+  "booklistColorNightBlue": "ナイトブルー",
+  "booklistColorRed": "赤",
+  "booklistColorVelvet": "ベルベット",
+  "booklistColorYellow": "黄色",
   "booklistCreateFailed": "作成に失敗しました：{error}",
   "@booklistCreateFailed": {
     "placeholders": {
@@ -60,6 +78,42 @@
   },
   "booklistDeleted": "ブックリストを削除しました",
   "booklistDescriptionOptional": "説明（任意）",
+  "booklistEdit": "ブックリストを編集",
+  "booklistEditFailed": "ブックリストの編集に失敗しました：{error}",
+  "@booklistEditFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistEditNote": "メモを編集",
+  "booklistEdited": "ブックリストを更新しました",
+  "booklistFavoriteFailed": "お気に入りの更新に失敗しました：{error}",
+  "@booklistFavoriteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistFavorited": "ブックリストをお気に入りに追加しました",
+  "booklistMadePrivate": "ブックリストをプライベートにしました",
+  "booklistMadePublic": "ブックリストを公開しました",
+  "booklistMakePrivate": "プライベートにする",
+  "booklistMakePublic": "公開にする",
+  "booklistNote": "メモ",
+  "booklistNoteFailed": "メモの保存に失敗しました：{error}",
+  "@booklistNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistNoteSaved": "メモを保存しました",
+  "booklistPrivate": "プライベートなブックリスト",
+  "booklistRemoveBook": "ブックリストから外す",
   "booklistRemoveBookConfirm": "この本をブックリストから削除しますか？",
   "booklistRemoveBookFailed": "ブックリストからの削除に失敗しました：{error}",
   "@booklistRemoveBookFailed": {
@@ -69,7 +123,20 @@
       }
     }
   },
+  "booklistSort": "並び替え",
+  "booklistSortNewest": "新着順",
+  "booklistSortPopular": "人気順",
+  "booklistSortUpdated": "最近更新順",
   "booklistTitle": "ブックリスト名",
+  "booklistUnfavorited": "ブックリストをお気に入りから外しました",
+  "booklistVisibilityFailed": "公開設定の変更に失敗しました：{error}",
+  "@booklistVisibilityFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "booklists": "ブックリスト",
   "booklistsSubtitle": "自分のブックリストと公開リスト",
   "booksDownloadedAnyDevice": "どのデバイスでもダウンロードした本",
@@ -166,6 +233,7 @@
   "enterSearchHint": "タイトル、著者、キーワードを入力",
   "error": "エラー",
   "exampleDomainHint": "例：example.com",
+  "favoriteBooklist": "お気に入りに追加",
   "favoriteFailed": "お気に入りを更新できませんでした。もう一度お試しください。",
   "favoriteRemoved": "お気に入りから削除しました",
   "favorites": "お気に入り",
@@ -369,6 +437,7 @@
   "readerSessionWriteFailed": "リーダーセッションの書き込みに失敗しました。再度ログインしてお試しください。",
   "recentAccount": "最近使用したアカウント",
   "recommended": "おすすめ",
+  "recommendedBooklists": "おすすめのブックリスト",
   "refreshFailed": "更新に失敗しました",
   "remove": "削除する",
   "removeAccount": "アカウントを削除",
@@ -421,6 +490,7 @@
   "sendComment": "コメントを送信",
   "settings": "設定",
   "share": "共有",
+  "shareBooklist": "ブックリストを共有",
   "shareFailed": "ファイルを共有できませんでした",
   "shelfAddToCategory": "カテゴリに追加",
   "shelfAllCategories": "すべてのカテゴリ",
@@ -491,6 +561,7 @@
   "systemDownloadsFolder": "システムのダウンロードフォルダ",
   "systemDownloadsMediastore": "システムのダウンロードフォルダ (MediaStore)",
   "trendingOnOpenLibrary": "Open Library のトレンド",
+  "unfavoriteBooklist": "お気に入りから外す",
   "unknown": "不明",
   "unknownAuthor": "著者不明",
   "upToDateDesc": "現在のバージョンは最新です",

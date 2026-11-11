@@ -7,7 +7,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 /// the signed-in user, which must never be stored in a fixture.
 const _detailHtml = '''
 <div class="readlist-view">
-<z-bookcard library id="5288001" isbn="978-7-01-000000-0" termshash="abc" href="/book/a1b2c3d4e5f6a7b8/slug-one.html" download="/dl/5288001/xyz" deleted="0" publisher="出版社A" language="Chinese" year="2020" extension="epub" filesize="13.38 MB" rating="5.0" quality="1" user_token="FAKE.JWT.TOKEN-DO-NOT-USE" read="https://reader.example.com/read/abc" contentTypeParam="" booklisted="true">
+<z-bookcard library id="5288001" isbn="978-7-01-000000-0" termshash="abc" href="/book/a1b2c3d4e5f6a7b8/slug-one.html" download="/dl/5288001/xyz" deleted="0" publisher="出版社A" language="Chinese" year="2020" extension="epub" filesize="13.38 MB" rating="5.0" quality="1" user_token="FAKE.JWT.TOKEN-DO-NOT-USE" read="https://reader.example.com/read/abc" contentTypeParam="" booklisted="true" booklistsindex="555001">
 <img data-src="https://cdn.example.com/covers100/collections/userbooks/1.jpg">
 <div slot="title">第一本书</div>
 <div slot="author">作者甲; 作者乙</div>
@@ -46,6 +46,10 @@ void main() {
       expect(first.filesizeString, '13.38 MB');
       expect(first.interestScore, '5.0');
       expect(first.readOnlineUrl, 'https://reader.example.com/read/abc');
+      // Detail-only fields: the membership-row id and the per-book
+      // note from this own-list card.
+      expect(first.readlistBookId, 555001);
+      expect(first.note, '笔记');
 
       final second = books[1];
       expect(second.id, 5722200);
@@ -54,6 +58,9 @@ void main() {
       // Cover falls back to plain src when data-src is absent.
       expect(second.cover, 'https://cdn.example.com/covers100/2.jpg');
       expect(second.extension, 'pdf');
+      // A card without booklistsindex / note carries neither.
+      expect(second.readlistBookId, isNull);
+      expect(second.note, isNull);
     });
 
     test('never reads the user_token attribute', () {

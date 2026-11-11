@@ -91,6 +91,67 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     }
   }
 
+  /// Add or edit the per-book note on one of this (own) list's books.
+  Future<void> _editNote(Book book) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: book.note ?? '');
+    final note = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          book.note == null || book.note!.isEmpty
+              ? l10n.booklistAddNote
+              : l10n.booklistEditNote,
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: 4,
+          minLines: 1,
+          decoration: InputDecoration(
+            labelText: l10n.booklistNote,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (note == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final response =
+        await ref.read(_provider.notifier).saveNote(book, note);
+    if (!mounted) return;
+    showAppSnackOn(
+      messenger,
+      response.success
+          ? l10n.booklistNoteSaved
+          : l10n.booklistNoteFailed(response.error ?? ''),
+    );
+  }
+
+  /// One menu action from a book row's "…" menu (own lists only).
+  Future<void> _onBookMenuSelected(
+    Book book,
+    _DetailBookMenuAction action,
+  ) async {
+    switch (action) {
+      case _DetailBookMenuAction.editNote:
+        await _editNote(book);
+      case _DetailBookMenuAction.remove:
+        await _confirmRemove(book);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -167,13 +228,53 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
           itemCount: state.books.length,
           itemBuilder: (context, index) {
             final book = state.books[index];
-            return BookListTile(
-              book: book.toDisplay(),
-              showCover: true,
-              onTap: () => AppRoutes.openBookDetailForBook(context, book),
-              onLongPress: widget.args.canEdit
-                  ? () => _confirmRemove(book)
-                  : null,
+            final note = book.note?.trim() ?? '';
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BookListTile(
+                  book: book.toDisplay(),
+                  showCover: true,
+                  onTap: () => AppRoutes.openBookDetailForBook(context, book),
+                  onLongPress: widget.args.canEdit
+                      ? () => _confirmRemove(book)
+                      : null,
+                  trailing: widget.args.canEdit
+                      ? PopupMenuButton<_DetailBookMenuAction>(
+                          icon: const Icon(Icons.more_vert_rounded),
+                          padding: EdgeInsets.zero,
+                          onSelected: (action) =>
+                              _onBookMenuSelected(book, action),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              value: _DetailBookMenuAction.editNote,
+                              child: Text(
+                                note.isEmpty
+                                    ? l10n.booklistAddNote
+                                    : l10n.booklistEditNote,
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: _DetailBookMenuAction.remove,
+                              child: Text(l10n.booklistRemoveBook),
+                            ),
+                          ],
+                        )
+                      : null,
+                ),
+                if (note.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      note,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontStyle: FontStyle.italic,
+                            height: 1.35,
+                          ),
+                    ),
+                  ),
+              ],
             );
           },
         ),
@@ -183,6 +284,9 @@ class _BooklistDetailScreenState extends ConsumerState<BooklistDetailScreen> {
     ];
   }
 }
+
+/// Actions on one book row's "…" menu (own lists only).
+enum _DetailBookMenuAction { editNote, remove }
 
 /// Large cover + title block, then the description (collapsed to three
 /// lines, tap to expand when it is longer).
@@ -209,14 +313,36 @@ class _BooklistHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      booklist.name,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        height: 1.2,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            booklist.name,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        if (booklist.isPrivate) ...[
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.lock_outline_rounded,
+                            size: 18,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ],
+                        if (booklist.isFavorite) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.favorite_rounded,
+                            size: 18,
+                            color: cs.primary,
+                          ),
+                        ],
+                      ],
                     ),
                     if (booklist.author.isNotEmpty) ...[
                       const SizedBox(height: 6),

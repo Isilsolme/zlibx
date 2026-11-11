@@ -30,6 +30,7 @@
   "badgeOpenSource": "오픈소스",
   "batchRemove": "선택한 항목 삭제",
   "blurEffect": "블러 효과",
+  "booklistAddNote": "메모 추가",
   "booklistBookCount": "{count}권",
   "@booklistBookCount": {
     "placeholders": {
@@ -39,6 +40,23 @@
     }
   },
   "booklistBookRemoved": "북리스트에서 제거했습니다",
+  "booklistChangeColor": "색상 변경",
+  "booklistColor": "색상",
+  "booklistColorChanged": "색상을 변경했습니다",
+  "booklistColorFailed": "색상을 변경하지 못했습니다: {error}",
+  "@booklistColorFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistColorGreen": "녹색",
+  "booklistColorMarine": "마린",
+  "booklistColorNightBlue": "나이트 블루",
+  "booklistColorRed": "빨간색",
+  "booklistColorVelvet": "벨벳",
+  "booklistColorYellow": "노란색",
   "booklistCreateFailed": "만들지 못했습니다: {error}",
   "@booklistCreateFailed": {
     "placeholders": {
@@ -60,6 +78,42 @@
   },
   "booklistDeleted": "북리스트를 삭제했습니다",
   "booklistDescriptionOptional": "설명 (선택)",
+  "booklistEdit": "북리스트 편집",
+  "booklistEditFailed": "북리스트를 편집하지 못했습니다: {error}",
+  "@booklistEditFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistEditNote": "메모 편집",
+  "booklistEdited": "북리스트를 업데이트했습니다",
+  "booklistFavoriteFailed": "즐겨찾기를 업데이트하지 못했습니다: {error}",
+  "@booklistFavoriteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistFavorited": "북리스트를 즐겨찾기에 추가했습니다",
+  "booklistMadePrivate": "북리스트를 비공개로 변경했습니다",
+  "booklistMadePublic": "북리스트를 공개했습니다",
+  "booklistMakePrivate": "비공개로 변경",
+  "booklistMakePublic": "공개로 변경",
+  "booklistNote": "메모",
+  "booklistNoteFailed": "메모를 저장하지 못했습니다: {error}",
+  "@booklistNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistNoteSaved": "메모를 저장했습니다",
+  "booklistPrivate": "비공개 북리스트",
+  "booklistRemoveBook": "북리스트에서 제거",
   "booklistRemoveBookConfirm": "이 책을 북리스트에서 제거하시겠습니까?",
   "booklistRemoveBookFailed": "북리스트에서 제거하지 못했습니다: {error}",
   "@booklistRemoveBookFailed": {
@@ -69,7 +123,20 @@
       }
     }
   },
+  "booklistSort": "정렬",
+  "booklistSortNewest": "최신순",
+  "booklistSortPopular": "인기순",
+  "booklistSortUpdated": "최근 업데이트순",
   "booklistTitle": "북리스트 이름",
+  "booklistUnfavorited": "북리스트를 즐겨찾기에서 해제했습니다",
+  "booklistVisibilityFailed": "공개 설정을 변경하지 못했습니다: {error}",
+  "@booklistVisibilityFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "booklists": "책 목록",
   "booklistsSubtitle": "내 책 목록과 공개 목록",
   "booksDownloadedAnyDevice": "모든 기기에서 다운로드한 책",
@@ -166,6 +233,7 @@
   "enterSearchHint": "제목, 저자 또는 키워드 입력",
   "error": "오류",
   "exampleDomainHint": "예: example.com",
+  "favoriteBooklist": "즐겨찾기 추가",
   "favoriteFailed": "즐겨찾기를 업데이트할 수 없습니다. 다시 시도해 주세요.",
   "favoriteRemoved": "즐겨찾기에서 삭제했습니다",
   "favorites": "즐겨찾기",
@@ -369,6 +437,7 @@
   "readerSessionWriteFailed": "리더 세션을 기록하지 못했습니다. 다시 로그인한 후 시도하세요.",
   "recentAccount": "최근 사용한 계정",
   "recommended": "추천",
+  "recommendedBooklists": "추천 북리스트",
   "refreshFailed": "새로고침에 실패했습니다",
   "remove": "제거",
   "removeAccount": "계정 삭제",
@@ -421,6 +490,7 @@
   "sendComment": "댓글 보내기",
   "settings": "설정",
   "share": "공유",
+  "shareBooklist": "북리스트 공유",
   "shareFailed": "파일을 공유할 수 없습니다",
   "shelfAddToCategory": "카테고리에 추가",
   "shelfAllCategories": "모든 카테고리",
@@ -491,6 +561,7 @@
   "systemDownloadsFolder": "시스템 다운로드 폴더",
   "systemDownloadsMediastore": "시스템 다운로드 폴더 (MediaStore)",
   "trendingOnOpenLibrary": "Open Library 인기",
+  "unfavoriteBooklist": "즐겨찾기 해제",
   "unknown": "알 수 없음",
   "unknownAuthor": "저자 미상",
   "upToDateDesc": "현재 최신 버전을 사용 중입니다",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/booklist_detail_provider.dart';
@@ -10,18 +11,24 @@ import '../../routes/app_routes.dart';
 import '../../widgets/booklist_card.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/loading_widget.dart';
+import 'widgets/booklist_color_dialog.dart';
 import 'widgets/create_booklist_dialog.dart';
 
 import '../../utils/app_snack.dart';
+
 /// Booklists: the signed-in user's own booklists and public booklists to
-/// discover, with search on both. Tapping a list opens its books. The
-/// "my booklists" tab can create a new list (`createBooklist`) and
-/// delete one (`deleteBooklist`); adding a book to a list lives on the
-/// book detail page (`addBookToBooklist`). Removing a book from a list
-/// is not wired — its response shape has not been captured.
+/// discover, with search, sort and list/grid view on both. Tapping a
+/// list opens its books. The "my booklists" tab can create a new list
+/// (`createBooklist`), edit one, change its color, flip it
+/// public/private, favorite it and delete one; adding a book to a list
+/// lives on the book detail page (`addBookToBooklist`) and removing a
+/// book from a list lives on the detail screen
+/// (`BooklistDetailController.removeBook`).
 ///
 /// Loading, paging, cache and the WebView fallback live in
-/// [BooklistsController]; this widget only renders its state.
+/// [BooklistsController]; this widget only renders its state. The
+/// list/grid choice is per-screen state (like the search screen's view
+/// toggle), not persisted.
 class BooklistsScreen extends ConsumerStatefulWidget {
   const BooklistsScreen({super.key});
 
@@ -32,6 +39,7 @@ class BooklistsScreen extends ConsumerStatefulWidget {
 class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  bool _isGridView = false;
 
   @override
   void initState() {
@@ -57,11 +65,18 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     ref.read(booklistsControllerProvider.notifier).search('');
   }
 
-  /// Ask for a name (and optional description), create the list on the
-  /// account, then reload "my booklists" so the new list shows up.
+  /// Ask for a name (and optional description, color, private flag),
+  /// create the list on the account, then reload "my booklists" so
+  /// the new list shows up.
   Future<void> _createBooklist() async {
     final l10n = AppLocalizations.of(context)!;
-    final result = await showDialog<({String title, String description})>(
+    final result = await showDialog<
+        ({
+          String title,
+          String description,
+          int color,
+          bool isPrivate,
+        })>(
       context: context,
       builder: (context) => const CreateBooklistDialog(),
     );
@@ -69,9 +84,12 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
 
     final messenger = ScaffoldMessenger.of(context);
     final controller = ref.read(booklistsControllerProvider.notifier);
-    final response = await ref
-        .read(zlibraryApiProvider)
-        .createBooklist(title: result.title, description: result.description);
+    final response = await ref.read(zlibraryApiProvider).createBooklist(
+          title: result.title,
+          description: result.description,
+          color: result.color,
+          isPrivate: result.isPrivate,
+        );
     if (!mounted) return;
     if (response.success) {
       showAppSnackOn(messenger, l10n.booklistCreated);
@@ -79,9 +97,144 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
         await controller.loadFirst();
       }
     } else {
-      showAppSnackOn(messenger,
-            l10n.booklistCreateFailed(response.error ?? ''),
-          );
+      showAppSnackOn(
+        messenger,
+        l10n.booklistCreateFailed(response.error ?? ''),
+      );
+    }
+  }
+
+  /// Edit one of the user's own lists: prefill the create dialog,
+  /// then update the entry in place (or reload when the answer
+  /// carried no updated list).
+  Future<void> _editBooklist(Booklist list) async {
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<
+        ({
+          String title,
+          String description,
+          int color,
+          bool isPrivate,
+        })>(
+      context: context,
+      builder: (context) => CreateBooklistDialog(
+        isEdit: true,
+        initialTitle: list.name,
+        initialDescription: list.description,
+        initialColor: list.color,
+        initialPrivate: list.isPrivate,
+      ),
+    );
+    if (result == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(booklistsControllerProvider.notifier);
+    final response = await controller.editBooklist(
+      list,
+      title: result.title,
+      description: result.description,
+      isPrivate: result.isPrivate,
+      color: result.color,
+    );
+    if (!mounted) return;
+    if (response.success) {
+      showAppSnackOn(messenger, l10n.booklistEdited);
+      if (response.data == null) {
+        await controller.loadFirst();
+      }
+    } else {
+      showAppSnackOn(
+        messenger,
+        l10n.booklistEditFailed(response.error ?? ''),
+      );
+    }
+  }
+
+  /// Change one of the user's own lists' color via the color dialog.
+  Future<void> _changeBooklistColor(Booklist list) async {
+    final l10n = AppLocalizations.of(context)!;
+    final color = await showDialog<int>(
+      context: context,
+      builder: (context) =>
+          BooklistColorDialog(currentColor: list.color ?? 0),
+    );
+    if (color == null || color == list.color || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(booklistsControllerProvider.notifier);
+    final response = await controller.setBooklistColor(list, color);
+    if (!mounted) return;
+    showAppSnackOn(
+      messenger,
+      response.success
+          ? l10n.booklistColorChanged
+          : l10n.booklistColorFailed(response.error ?? ''),
+    );
+  }
+
+  /// Flip one of the user's own lists between public and private.
+  Future<void> _toggleBooklistPublic(Booklist list) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(booklistsControllerProvider.notifier);
+    final response = await controller.toggleBooklistPublic(list);
+    if (!mounted) return;
+    showAppSnackOn(
+      messenger,
+      response.success
+          ? (list.isPrivate
+              ? l10n.booklistMadePublic
+              : l10n.booklistMadePrivate)
+          : l10n.booklistVisibilityFailed(response.error ?? ''),
+    );
+  }
+
+  /// Favorite or unfavorite a booklist (either tab).
+  Future<void> _toggleBooklistFavorite(Booklist list) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = ref.read(booklistsControllerProvider.notifier);
+    final favorite = !list.isFavorite;
+    final response =
+        await controller.setBooklistFavorite(list, favorite);
+    if (!mounted) return;
+    showAppSnackOn(
+      messenger,
+      response.success
+          ? (favorite ? l10n.booklistFavorited : l10n.booklistUnfavorited)
+          : l10n.booklistFavoriteFailed(response.error ?? ''),
+    );
+  }
+
+  /// Share a booklist's name + URL through the system share sheet.
+  Future<void> _shareBooklist(Booklist list) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await SharePlus.instance.share(
+        ShareParams(text: '${list.name}\n${list.url}'),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showAppSnack(context, l10n.shareFailed);
+    }
+  }
+
+  /// One menu action from a card's "…" menu.
+  Future<void> _onMenuSelected(
+    Booklist list,
+    BooklistMenuAction action,
+  ) async {
+    switch (action) {
+      case BooklistMenuAction.edit:
+        await _editBooklist(list);
+      case BooklistMenuAction.changeColor:
+        await _changeBooklistColor(list);
+      case BooklistMenuAction.togglePublic:
+        await _toggleBooklistPublic(list);
+      case BooklistMenuAction.toggleFavorite:
+        await _toggleBooklistFavorite(list);
+      case BooklistMenuAction.share:
+        await _shareBooklist(list);
+      case BooklistMenuAction.delete:
+        await _confirmDelete(list);
     }
   }
 
@@ -123,10 +276,23 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     }
   }
 
+  /// Pick a sort order via the single-choice dialog (same idiom as the
+  /// domain selector: selected row = filled check in primary + bold
+  /// primary title, tap applies + closes).
+  Future<void> _pickSortOrder(String currentOrder) async {
+    final order = await showDialog<String>(
+      context: context,
+      builder: (context) => _BooklistSortDialog(currentOrder: currentOrder),
+    );
+    if (order == null || order == currentOrder) return;
+    ref.read(booklistsControllerProvider.notifier).setOrder(order);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(booklistsControllerProvider);
+    final recommended = ref.watch(recommendedBooklistsProvider);
     final controller = ref.read(booklistsControllerProvider.notifier);
     final showFab =
         state.tab == BooklistTab.mine && state.phase != BooklistsPhase.loggedOut;
@@ -147,7 +313,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           slivers: [
             SliverAppBar.large(title: Text(l10n.booklists)),
             SliverToBoxAdapter(child: _header(l10n, state, controller)),
-            ..._body(l10n, state, controller),
+            ..._body(l10n, state, controller, recommended),
           ],
         ),
       ),
@@ -186,9 +352,38 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
                   controller.setTab(selected.first),
             ),
           ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () => _pickSortOrder(state.order),
+                icon: const Icon(Icons.swap_vert_rounded, size: 18),
+                label: Text(_sortLabel(l10n, state.order)),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: _isGridView ? l10n.listView : l10n.gridView,
+                icon: Icon(
+                  _isGridView
+                      ? Icons.view_list_rounded
+                      : Icons.grid_view_rounded,
+                ),
+                onPressed: () => setState(() => _isGridView = !_isGridView),
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  /// The current sort order's label for the sort button.
+  String _sortLabel(AppLocalizations l10n, String order) {
+    return switch (order) {
+      'date_created' => l10n.booklistSortNewest,
+      'date_updated' => l10n.booklistSortUpdated,
+      _ => l10n.booklistSortPopular,
+    };
   }
 
   // Capsule search field + soft shadow, matching the library page.
@@ -235,6 +430,7 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
     AppLocalizations l10n,
     BooklistsState state,
     BooklistsController controller,
+    RecommendedBooklistsState recommended,
   ) {
     switch (state.phase) {
       case BooklistsPhase.loading:
@@ -281,30 +477,187 @@ class _BooklistsScreenState extends ConsumerState<BooklistsScreen> {
           ];
         }
         return [
-          SliverList.builder(
-            itemCount: state.lists.length,
-            itemBuilder: (context, index) {
-              final list = state.lists[index];
-              return BooklistCard(
-                list: list,
-                onTap: () => AppRoutes.openBooklistDetail(
-                  context,
-                  BooklistDetailArgs(
-                    booklist: list,
-                    canEdit: state.tab == BooklistTab.mine,
-                  ),
+          if (state.tab == BooklistTab.discover &&
+              recommended.lists.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _RecommendedSection(
+                l10n: l10n,
+                lists: recommended.lists,
+              ),
+            ),
+          if (_isGridView)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              sliver: SliverGrid.builder(
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.82,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
                 ),
-                onLongPress: state.tab == BooklistTab.mine
-                    ? () => _confirmDelete(list)
-                    : null,
-              );
-            },
-          ),
+                itemCount: state.lists.length,
+                itemBuilder: (context, index) {
+                  final list = state.lists[index];
+                  return BooklistGridCard(
+                    list: list,
+                    isMine: state.tab == BooklistTab.mine,
+                    onTap: () => AppRoutes.openBooklistDetail(
+                      context,
+                      BooklistDetailArgs(
+                        booklist: list,
+                        canEdit: state.tab == BooklistTab.mine,
+                      ),
+                    ),
+                    onLongPress: state.tab == BooklistTab.mine
+                        ? () => _confirmDelete(list)
+                        : null,
+                    onMenuSelected: (action) =>
+                        _onMenuSelected(list, action),
+                  );
+                },
+              ),
+            )
+          else
+            SliverList.builder(
+              itemCount: state.lists.length,
+              itemBuilder: (context, index) {
+                final list = state.lists[index];
+                return BooklistCard(
+                  list: list,
+                  isMine: state.tab == BooklistTab.mine,
+                  onTap: () => AppRoutes.openBooklistDetail(
+                    context,
+                    BooklistDetailArgs(
+                      booklist: list,
+                      canEdit: state.tab == BooklistTab.mine,
+                    ),
+                  ),
+                  onLongPress: state.tab == BooklistTab.mine
+                      ? () => _confirmDelete(list)
+                      : null,
+                  onMenuSelected: (action) => _onMenuSelected(list, action),
+                );
+              },
+            ),
           if (state.isLoadingMore)
             const SliverToBoxAdapter(child: LoadingWidget.more()),
           // Room for the floating action button.
           const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ];
     }
+  }
+}
+
+/// Recommended booklists above the discover list: a section header and
+/// a horizontal row of grid tiles.
+class _RecommendedSection extends StatelessWidget {
+  final AppLocalizations l10n;
+  final List<Booklist> lists;
+
+  const _RecommendedSection({required this.l10n, required this.lists});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Text(
+            l10n.recommendedBooklists,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 236,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemCount: lists.length,
+            itemBuilder: (context, index) {
+              final list = lists[index];
+              return SizedBox(
+                width: 168,
+                child: BooklistGridCard(
+                  list: list,
+                  onTap: () => AppRoutes.openBooklistDetail(
+                    context,
+                    BooklistDetailArgs(booklist: list),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+/// Single-choice sort dialog, same idiom as the domain selector:
+/// selected row = filled check in primary + bold primary title, tap
+/// applies + closes. Pops the picked `order` value, or null when
+/// cancelled.
+class _BooklistSortDialog extends StatelessWidget {
+  final String currentOrder;
+
+  const _BooklistSortDialog({required this.currentOrder});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final options = <(String, String)>[
+      ('popular', l10n.booklistSortPopular),
+      ('date_created', l10n.booklistSortNewest),
+      ('date_updated', l10n.booklistSortUpdated),
+    ];
+    return AlertDialog(
+      titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      contentPadding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      title: Text(
+        l10n.booklistSort,
+        style: const TextStyle(fontSize: 18),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: options.length,
+          itemBuilder: (context, index) {
+            final (value, label) = options[index];
+            final selected = value == currentOrder;
+            return ListTile(
+              dense: true,
+              title: Text(
+                label,
+                style: selected
+                    ? TextStyle(
+                        color: cs.primary,
+                        fontWeight: FontWeight.w700,
+                      )
+                    : null,
+              ),
+              trailing: Icon(
+                selected ? Icons.check_circle : Icons.circle_outlined,
+                color: selected ? cs.primary : cs.onSurfaceVariant,
+              ),
+              onTap: () => Navigator.of(context).pop(value),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+      ],
+    );
   }
 }

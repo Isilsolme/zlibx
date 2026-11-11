@@ -433,12 +433,13 @@ class BooklistDetailController
   /// page's cache on the next open.
   ///
   /// remove-book takes the readlist ENTRY id (the per-(book, list)
-  /// membership-row id from `current-user`), NOT the book id — the
-  /// entry id is resolved first and the remove call is only made
-  /// with it. A null entry id (book not in this list) or a failed
-  /// resolve fails here without calling remove-book at all: falling
-  /// back to the book id is the bug that made the server 500 every
-  /// app remove.
+  /// membership-row id), NOT the book id. The detail page's own cards
+  /// carry it (`booklistsindex`, parsed into [Book.readlistBookId]),
+  /// so it is used directly when present; otherwise it is resolved
+  /// first via `current-user` and the remove call is only made with
+  /// it. A null entry id (book not in this list) or a failed resolve
+  /// fails here without calling remove-book at all: falling back to
+  /// the book id is the bug that made the server 500 every app remove.
   ///
   /// Two removes of the same book cannot overlap (a
   /// [_removingBookIds] guard); removes of different books re-locate
@@ -458,18 +459,12 @@ class BooklistDetailController
       return ApiResponse.fail('book is already being removed');
     }
     try {
-      final entry = await _repository.resolveBookEntry(
-        booklistId: listId,
-        bookId: book.id,
-      );
+      final entryId = book.readlistBookId ?? await _resolveEntryId(book);
       if (!_alive) {
-        return ApiResponse.fail(entry.error ?? 'remove book failed');
+        return ApiResponse.fail('remove book failed');
       }
-      final entryId = entry.data;
-      if (!entry.success || entryId == null) {
-        return ApiResponse.fail(
-          entry.error ?? 'book is not in this booklist',
-        );
+      if (entryId == null) {
+        return ApiResponse.fail('book is not in this booklist');
       }
       // Re-locate by id: another remove may have shifted the list
       // while the entry id was being resolved.
@@ -525,6 +520,68 @@ class BooklistDetailController
       return response;
     } finally {
       _removingBookIds.remove(book.id);
+    }
+  }
+
+  /// Resolve one book's readlist ENTRY id via `current-user` (the
+  /// fallback when the detail page's own card did not carry
+  /// `booklistsindex`). Returns null when the book is not in this
+  /// list or the lookup failed — the caller reports the failure.
+  Future<int?> _resolveEntryId(Book book) async {
+    final listId = int.tryParse(_list.id);
+    if (listId == null) return null;
+    try {
+      final entry = await _repository.resolveBookEntry(
+        booklistId: listId,
+        bookId: book.id,
+      );
+      if (!entry.success) return null;
+      return entry.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Save the per-book note on one of this (own) list's books: the
+  /// entry id comes from the detail page's own card when present,
+  /// else from the `current-user` lookup. On success the visible row
+  /// is updated in place (an empty note clears the row's note) and
+  /// the list's cached pages are invalidated so the note does not
+  /// reappear from cache on the next open.
+  Future<ApiResponse<bool>> saveNote(Book book, String note) async {
+    if (!_alive) return ApiResponse.fail('save book note failed');
+    final listId = int.tryParse(_list.id);
+    if (listId == null) {
+      return ApiResponse.fail('save book note not available');
+    }
+    final index = _books.indexWhere((b) => b.id == book.id);
+    if (index < 0) {
+      return ApiResponse.fail('book not in list');
+    }
+    try {
+      final entryId =
+          book.readlistBookId ?? await _resolveEntryId(book);
+      if (!_alive) {
+        return ApiResponse.fail('save book note failed');
+      }
+      if (entryId == null) {
+        return ApiResponse.fail('book is not in this booklist');
+      }
+      final response = await _repository.saveBookDescription(
+        listId: listId,
+        entryId: entryId,
+        description: note,
+      );
+      if (!response.success) return response;
+      final trimmed = note.trim();
+      _books[index] = _books[index].copyWith(
+        note: trimmed.isEmpty ? '' : trimmed,
+      );
+      state = state.copyWith(books: List.of(_books));
+      _repository.invalidateBooklist(_list.url, accountId: _accountId);
+      return response;
+    } catch (_) {
+      return ApiResponse.fail('save book note failed');
     }
   }
 

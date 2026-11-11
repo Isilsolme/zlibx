@@ -37,9 +37,17 @@ void main() {
       final first = lists[0];
       expect(first.id, '2690671');
       expect(first.name, '数学书单');
-      expect(first.author, '/booklists/user/21490583');
+      // `author` is the display name; the profile path lives in
+      // `authorProfile` (an older revision read the path into `author`).
+      expect(first.author, 'someone');
+      expect(first.authorProfile, '/booklists/user/21490583');
+      expect(first.authorAvatar, '');
       expect(first.count, 15);
       expect(first.views, '29');
+      expect(first.comments, '0');
+      expect(first.color, 0);
+      expect(first.isPrivate, isFalse);
+      expect(first.isFavorite, isFalse);
       expect(
         first.url,
         '$_baseUrl/booklist/2690671/2ac488/math-list.html',

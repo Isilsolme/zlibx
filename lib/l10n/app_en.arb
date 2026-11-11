@@ -30,6 +30,7 @@
   "badgeOpenSource": "Open Source",
   "batchRemove": "Remove Selected",
   "blurEffect": "Blur effect",
+  "booklistAddNote": "Add note",
   "booklistBookCount": "{count} books",
   "@booklistBookCount": {
     "placeholders": {
@@ -39,6 +40,23 @@
     }
   },
   "booklistBookRemoved": "Book removed from booklist",
+  "booklistChangeColor": "Change color",
+  "booklistColor": "Color",
+  "booklistColorChanged": "Color changed",
+  "booklistColorFailed": "Could not change color: {error}",
+  "@booklistColorFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistColorGreen": "Green",
+  "booklistColorMarine": "Marine",
+  "booklistColorNightBlue": "Night blue",
+  "booklistColorRed": "Red",
+  "booklistColorVelvet": "Velvet",
+  "booklistColorYellow": "Yellow",
   "booklistCreateFailed": "Could not create: {error}",
   "@booklistCreateFailed": {
     "placeholders": {
@@ -60,6 +78,42 @@
   },
   "booklistDeleted": "Booklist deleted",
   "booklistDescriptionOptional": "Description (optional)",
+  "booklistEdit": "Edit booklist",
+  "booklistEditFailed": "Could not edit booklist: {error}",
+  "@booklistEditFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistEditNote": "Edit note",
+  "booklistEdited": "Booklist updated",
+  "booklistFavoriteFailed": "Could not update favorite: {error}",
+  "@booklistFavoriteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistFavorited": "Booklist favorited",
+  "booklistMadePrivate": "Booklist is now private",
+  "booklistMadePublic": "Booklist is now public",
+  "booklistMakePrivate": "Make private",
+  "booklistMakePublic": "Make public",
+  "booklistNote": "Note",
+  "booklistNoteFailed": "Could not save note: {error}",
+  "@booklistNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistNoteSaved": "Note saved",
+  "booklistPrivate": "Private booklist",
+  "booklistRemoveBook": "Remove from booklist",
   "booklistRemoveBookConfirm": "Remove this book from the booklist?",
   "booklistRemoveBookFailed": "Could not remove book from booklist: {error}",
   "@booklistRemoveBookFailed": {
@@ -69,7 +123,20 @@
       }
     }
   },
+  "booklistSort": "Sort",
+  "booklistSortNewest": "Newest created",
+  "booklistSortPopular": "Most popular",
+  "booklistSortUpdated": "Recently updated",
   "booklistTitle": "Booklist name",
+  "booklistUnfavorited": "Booklist unfavorited",
+  "booklistVisibilityFailed": "Could not change visibility: {error}",
+  "@booklistVisibilityFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "booklists": "Booklists",
   "booklistsSubtitle": "Your booklists and public ones",
   "booksDownloadedAnyDevice": "Books downloaded on any device",
@@ -166,6 +233,7 @@
   "enterSearchHint": "Enter title, author or keyword",
   "error": "Error",
   "exampleDomainHint": "e.g., example.com",
+  "favoriteBooklist": "Favorite",
   "favoriteFailed": "Could not update favorites. Please try again.",
   "favoriteRemoved": "Removed from Favorites",
   "favorites": "Favorites",
@@ -369,6 +437,7 @@
   "readerSessionWriteFailed": "Failed to write reader session. Please log in again and retry.",
   "recentAccount": "Recent account",
   "recommended": "Recommended",
+  "recommendedBooklists": "Recommended booklists",
   "refreshFailed": "Failed to refresh",
   "remove": "Remove",
   "removeAccount": "Remove account",
@@ -421,6 +490,7 @@
   "sendComment": "Send comment",
   "settings": "Settings",
   "share": "Share",
+  "shareBooklist": "Share booklist",
   "shareFailed": "Could not share file",
   "shelfAddToCategory": "Add to category",
   "shelfAllCategories": "All categories",
@@ -491,6 +561,7 @@
   "systemDownloadsFolder": "System Downloads Folder",
   "systemDownloadsMediastore": "System Downloads (MediaStore)",
   "trendingOnOpenLibrary": "Trending on Open Library",
+  "unfavoriteBooklist": "Unfavorite",
   "unknown": "Unknown",
   "unknownAuthor": "Unknown Author",
   "upToDateDesc": "You are using the latest version.",

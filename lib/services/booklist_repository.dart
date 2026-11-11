@@ -158,9 +158,10 @@ class BooklistRepository {
   /// One page of the signed-in user's own booklists.
   Future<ApiResponse<BooklistsPage>> searchMyBooklists({
     String query = '',
+    String? order,
     int page = 1,
   }) =>
-      _api.searchMyBooklists(query: query, page: page);
+      _api.searchMyBooklists(query: query, order: order, page: page);
 
   /// One page of the public booklists to discover.
   Future<ApiResponse<BooklistsPage>> searchPublicBooklists({
@@ -169,6 +170,100 @@ class BooklistRepository {
     int page = 1,
   }) =>
       _api.searchPublicBooklists(query: query, order: order, page: page);
+
+  /// Creates a booklist owned by the signed-in user. [color] (0–5),
+  /// [isPrivate] and [bookId] ("create and add this book in one call")
+  /// are sent only when given.
+  Future<ApiResponse<Booklist?>> createBooklist({
+    required String title,
+    String description = '',
+    int? color,
+    bool? isPrivate,
+    int? bookId,
+  }) =>
+      _api.createBooklist(
+        title: title,
+        description: description,
+        color: color,
+        isPrivate: isPrivate,
+        bookId: bookId,
+      );
+
+  /// Edits one of the signed-in user's booklists (title, description,
+  /// private flag, color). Returns the updated list when the answer
+  /// carried it, else null (the caller then reloads).
+  Future<ApiResponse<Booklist?>> editBooklist({
+    required int id,
+    required String title,
+    String description = '',
+    bool isPrivate = false,
+    int? color,
+  }) =>
+      _api.editBooklist(
+        id: id,
+        title: title,
+        description: description,
+        isPrivate: isPrivate,
+        color: color,
+      );
+
+  /// Changes one of the signed-in user's booklists' color (0–5).
+  Future<ApiResponse<bool>> setBooklistColor({
+    required int id,
+    required int color,
+  }) =>
+      _api.setBooklistColor(id: id, color: color);
+
+  /// Flips one of the signed-in user's booklists between public and
+  /// private. The new state is not in the response; the caller flips
+  /// its local flag on success.
+  Future<ApiResponse<bool>> toggleBooklistPublic(int id) =>
+      _api.toggleBooklistPublic(id);
+
+  /// Favorites a booklist (anyone's).
+  Future<ApiResponse<bool>> favoriteBooklist(int id) =>
+      _api.favoriteBooklist(id);
+
+  /// Unfavorites a booklist.
+  Future<ApiResponse<bool>> unfavoriteBooklist(int id) =>
+      _api.unfavoriteBooklist(id);
+
+  /// Saves the per-book note inside one of the signed-in user's
+  /// booklists. [entryId] is the readlist membership-row id, NOT the
+  /// book id. An empty note is sent as a single space (the site's
+  /// convention).
+  Future<ApiResponse<bool>> saveBookDescription({
+    required int listId,
+    required int entryId,
+    required String description,
+  }) =>
+      _api.saveBookDescription(
+        listId: listId,
+        entryId: entryId,
+        description: description,
+      );
+
+  /// All of the signed-in user's booklists plus whether [bookId] is in
+  /// each one (the add-to-booklist picker's data source).
+  Future<ApiResponse<List<BooklistMembership>>> getBooklistsForBook(
+    int bookId,
+  ) =>
+      _api.getBooklistsForBook(bookId);
+
+  /// Adds a book to one of the signed-in user's booklists and returns
+  /// the new membership-row id (or null when the response did not
+  /// carry it — see [ZLibraryApi.addBookToBooklistEntry]).
+  Future<ApiResponse<int?>> addBookToBooklistEntry({
+    required int booklistId,
+    required int bookId,
+  }) =>
+      _api.addBookToBooklistEntry(booklistId: booklistId, bookId: bookId);
+
+  /// Recommended booklists for the discover tab's recommendation slots.
+  Future<ApiResponse<List<Booklist>>> getRecommendedBooklists({
+    int booklistsCount = 10,
+  }) =>
+      _api.getRecommendedBooklists(booklistsCount: booklistsCount);
 
   /// The full URL of one own/discover list page — also the cache key
   /// the list pages are stored under.

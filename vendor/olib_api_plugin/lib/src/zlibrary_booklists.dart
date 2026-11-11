@@ -52,14 +52,21 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
   }
 
   /// The signed-in user's own booklists, read-only
-  /// (`GET /booklists/my?searchQuery={q}&page={n}`, same HTML shape as
-  /// the public list). Same verification status as
-  /// [searchPublicBooklists].
+  /// (`GET /booklists/my?searchQuery={q}&order={order}&page={n}`, same
+  /// HTML shape as the public list). Same verification status as
+  /// [searchPublicBooklists]. [order] is omitted when null (the
+  /// site's default order).
   Future<ApiResponse<BooklistsPage>> searchMyBooklists({
     String query = '',
+    String? order,
     int page = 1,
   }) async {
-    return _searchBooklists('/booklists/my', query: query, page: page);
+    return _searchBooklists(
+      '/booklists/my',
+      query: query,
+      order: order,
+      page: page,
+    );
   }
 
   /// Absolute URL of a booklist list page, for callers that fetch the
@@ -344,21 +351,39 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
   /// A JSON answer is still handled leniently in case the site starts
   /// returning one: an explicit failure flag or an `error`/`message`
   /// field fails the call, otherwise it counts as created.
-  /// [ApiResponse.data] is the new list only when a JSON response
-  /// carries one in a recognizable shape, and null otherwise (always
-  /// null today) — callers must not depend on it and should reload the
-  /// "my booklists" page after a successful create.
+  /// [ApiResponse.data] is the new list when the JSON answer carries
+  /// it (the site's form reads `response.readlist`), and null when the
+  /// answer is an empty body — callers must not depend on it and
+  /// should reload the "my booklists" page after a successful create
+  /// when it is null.
+  ///
+  /// The site's form also sends the optional [color] (0–5), [isPrivate]
+  /// and [bookId] ("create and add this book in one call", used by the
+  /// add-to-booklist picker's inline create): they are included in the
+  /// body only when given. The create answer is `{readlist: {id,
+  /// title, hash, …}}` per the site's own form handler — see
+  /// [_booklistFromCreateResponse].
   Future<ApiResponse<Booklist?>> createBooklist({
     required String title,
     String description = '',
+    int? color,
+    bool? isPrivate,
+    int? bookId,
   }) async {
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {
       return ApiResponse.fail('booklist title is empty');
     }
+    final body = <String, dynamic>{
+      'title': cleanTitle,
+      'description': description.trim(),
+      if (color != null) 'color': color,
+      if (isPrivate != null) 'private': isPrivate,
+      if (bookId != null) 'bookId': bookId,
+    };
     final raw = await _postText(
       '/papi/booklist/create',
-      jsonEncode({'title': cleanTitle, 'description': description.trim()}),
+      jsonEncode(body),
     );
     final status = raw.status;
     final json = raw.json;
@@ -396,12 +421,36 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
   /// `GET /papi/booklist/{booklistId}/add-book/{bookId}`, confirmed
   /// by a packet capture on 2026-11-09 (Firefox, zh.z-library.sk):
   /// HTTP 200 with `{"success": 1, "book": {"readlist_id": 4090055, "book_id": "18337950", "date": "2026-11-09T08:04:24.000000Z"}}`.
-  /// No request body (GET). The site's submenu shows a filled bookmark
-  /// when the book is already in a list, so this endpoint may be
-  /// a toggle (clicking again removes the book). Removal is also
-  /// available as a separate endpoint; see [removeBookFromBooklist],
-  /// which takes the readlist entry id from [getReadlistBookId].
+  /// No request body (GET). This endpoint only adds: the site calls
+  /// [removeBookFromBooklist] when the filled bookmark in a list's
+  /// submenu is clicked again — it is NOT a toggle.
   Future<ApiResponse<bool>> addBookToBooklist({
+    required int booklistId,
+    required int bookId,
+  }) async {
+    final response = await addBookToBooklistEntry(
+      booklistId: booklistId,
+      bookId: bookId,
+    );
+    if (!response.success) {
+      return ApiResponse.fail(
+        response.error ?? 'add to booklist failed',
+        statusCode: response.statusCode,
+      );
+    }
+    return ApiResponse.ok(true);
+  }
+
+  /// Same call as [addBookToBooklist], but returns the readlist ENTRY
+  /// id of the new membership row (what [removeBookFromBooklist]
+  /// takes) instead of a bare success flag. The entry id is read from
+  /// the response's `book` map as `readlist_id` first, else `id`:
+  /// which field carries it is UNCONFIRMED — the 2026-11-09 capture
+  /// showed `readlist_id`, the site's own picker reads `book.id`, so
+  /// both are accepted. Null when the response carries neither (the
+  /// add still succeeded; the caller can resolve the id later via
+  /// [getReadlistBookId]).
+  Future<ApiResponse<int?>> addBookToBooklistEntry({
     required int booklistId,
     required int bookId,
   }) async {
@@ -424,7 +473,61 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
         statusCode: raw.status,
       );
     }
-    return ApiResponse.ok(true);
+    final book = json['book'];
+    final entryId = book is Map<String, dynamic>
+        ? _asInt(book['readlist_id'] ?? book['id'])
+        : null;
+    return ApiResponse.ok(entryId);
+  }
+
+  /// All of the signed-in user's booklists plus whether [bookId] is in
+  /// each: `GET /papi/booklist/current-user/{bookId}`, the same call
+  /// [getReadlistBookId] uses for one list. The site's add-to-booklist
+  /// picker renders this whole table (member flags, local search,
+  /// inline create). Returns the entries in the server's order.
+  Future<ApiResponse<List<BooklistMembership>>> getBooklistsForBook(
+    int bookId,
+  ) async {
+    final raw = await _getWithRedirects(
+      '/papi/booklist/current-user/$bookId',
+    );
+    final json = raw.json;
+    if (json == null) {
+      return ApiResponse.fail(
+        raw.error ?? 'get booklists failed',
+        statusCode: raw.status,
+      );
+    }
+    if (!ZLibraryApiBase._isSuccess(json)) {
+      return ApiResponse.fail(
+        ZLibraryApiBase._plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'get booklists failed',
+        ),
+        statusCode: raw.status,
+      );
+    }
+    final list = json['list'];
+    if (list is! List) {
+      return ApiResponse.fail(
+        'get booklists failed',
+        statusCode: raw.status,
+      );
+    }
+    final memberships = <BooklistMembership>[];
+    for (final entry in list) {
+      if (entry is! Map<String, dynamic>) continue;
+      final id = _asInt(entry['id']);
+      if (id == null) continue;
+      memberships.add(
+        BooklistMembership(
+          booklistId: id,
+          title: entry['title']?.toString() ?? '',
+          readlistBookId: _asInt(entry['readlistBookId']),
+        ),
+      );
+    }
+    return ApiResponse.ok(memberships);
   }
 
   /// Coerce an int-or-numeric-string JSON value, null otherwise.
@@ -576,15 +679,200 @@ mixin ZLibraryBooklists on ZLibraryApiBase {
     return ApiResponse.ok(true);
   }
 
-  /// Best-effort read of the list a create call returned. The response
-  /// shape is unconfirmed, so this tries the plausible wrappers
-  /// (`booklist`, `list`, `data`, or the top level) and needs a numeric
-  /// `id` to count as a list. Returns null when nothing matches.
+  /// Edit one of the signed-in user's booklists: `POST
+  /// /papi/booklist/{id}/edit` with `{title, description, private,
+  /// color}` (the site's `#readlistForm` in edit mode). The answer
+  /// carries the updated list as `{readlist: {...}}` — parsed the same
+  /// way as a create answer. [ApiResponse.data] is the updated list,
+  /// or null when the answer was an empty body (same lenient read as
+  /// [createBooklist]).
+  Future<ApiResponse<Booklist?>> editBooklist({
+    required int id,
+    required String title,
+    String description = '',
+    bool isPrivate = false,
+    int? color,
+  }) async {
+    final cleanTitle = title.trim();
+    if (cleanTitle.isEmpty) {
+      return ApiResponse.fail('booklist title is empty');
+    }
+    final body = <String, dynamic>{
+      'title': cleanTitle,
+      'description': description.trim(),
+      'private': isPrivate,
+      if (color != null) 'color': color,
+    };
+    final raw = await _postText(
+      '/papi/booklist/$id/edit',
+      jsonEncode(body),
+    );
+    final status = raw.status;
+    final json = raw.json;
+    if (json == null) {
+      final is2xx = status != null && status >= 200 && status < 300;
+      final emptyBody = raw.body == null &&
+          (raw.error?.startsWith('empty response') ?? false);
+      if (is2xx && emptyBody) {
+        return ApiResponse.ok(null);
+      }
+      return ApiResponse.fail(
+        raw.error ?? 'edit booklist failed',
+        statusCode: status,
+      );
+    }
+    if (!ZLibraryApiBase._isSuccess(json)) {
+      return ApiResponse.fail(
+        ZLibraryApiBase._plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'edit booklist failed',
+        ),
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(_booklistFromCreateResponse(json, cleanTitle));
+  }
+
+  /// Change one of the signed-in user's booklists' color: `GET
+  /// /papi/booklist/{id}/color/{0..5}` (the site's "…" menu, color
+  /// submenu). No request body; a 2xx (JSON success or empty body)
+  /// counts as changed.
+  Future<ApiResponse<bool>> setBooklistColor({
+    required int id,
+    required int color,
+  }) async {
+    final raw = await _getWithRedirects('/papi/booklist/$id/color/$color');
+    return _boolFromWriteRaw(raw, 'change booklist color failed');
+  }
+
+  /// Flip one of the signed-in user's booklists between public and
+  /// private: `GET /papi/booklist/{id}/public` (the site's "…" menu).
+  /// No parameters — the server flips the current state. No request
+  /// body; a 2xx (JSON success or empty body) counts as flipped. The
+  /// new state is NOT in the response; callers reload or flip their
+  /// local flag on success.
+  Future<ApiResponse<bool>> toggleBooklistPublic(int id) async {
+    final raw = await _getWithRedirects('/papi/booklist/$id/public');
+    return _boolFromWriteRaw(raw, 'change booklist visibility failed');
+  }
+
+  /// Favorite a booklist (anyone's): `POST
+  /// /papi/booklist/{id}/favorite/add` (the heart on the site's list
+  /// card). The site sends no body; `'{}'` is posted to keep the
+  /// JSON-string transport. A 2xx (JSON success or empty body) counts
+  /// as favorited.
+  Future<ApiResponse<bool>> favoriteBooklist(int id) async {
+    final raw = await _postText('/papi/booklist/$id/favorite/add', '{}');
+    return _boolFromWriteRaw(raw, 'favorite booklist failed');
+  }
+
+  /// Unfavorite a booklist: `DELETE
+  /// /papi/booklist/{id}/favorite/remove` (the filled heart on the
+  /// site's list card). No request body; a 2xx (JSON success or empty
+  /// body) counts as unfavorited.
+  Future<ApiResponse<bool>> unfavoriteBooklist(int id) async {
+    final raw = await _delete('/papi/booklist/$id/favorite/remove');
+    return _boolFromWriteRaw(raw, 'unfavorite booklist failed');
+  }
+
+  /// Save the per-book note inside one of the signed-in user's
+  /// booklists: `POST /papi/booklist/{id}/save-description/{entryId}`
+  /// with `{bookDescription}`. The site sends a single space for an
+  /// empty note, so an empty [description] is sent as `' '` here too.
+  /// [entryId] is the readlist membership-row id (the card's
+  /// `booklistsindex`, see [Book.readlistBookId]), NOT the book id.
+  Future<ApiResponse<bool>> saveBookDescription({
+    required int listId,
+    required int entryId,
+    required String description,
+  }) async {
+    final raw = await _postText(
+      '/papi/booklist/$listId/save-description/$entryId',
+      jsonEncode({
+        'bookDescription': description.isEmpty ? ' ' : description,
+      }),
+    );
+    return _boolFromWriteRaw(raw, 'save book note failed');
+  }
+
+  /// Recommended booklists for a category slot: `POST
+  /// /papi/booklist/get-from-category` with `{categoryId, languages,
+  /// booklistsCount}`. The site calls it with an empty category id and
+  /// the string `'false'` for languages to fill its
+  /// `.booklist-recommendations-content` slots; the answer's `html`
+  /// array carries one JSON object per list. [booklistsCount] is how
+  /// many slots the caller has to fill.
+  Future<ApiResponse<List<Booklist>>> getRecommendedBooklists({
+    int booklistsCount = 10,
+  }) async {
+    final raw = await _postText(
+      '/papi/booklist/get-from-category',
+      jsonEncode({
+        'categoryId': '',
+        'languages': 'false',
+        'booklistsCount': booklistsCount,
+      }),
+    );
+    final json = raw.json;
+    if (json == null) {
+      return ApiResponse.fail(
+        raw.error ?? 'recommended booklists failed',
+        statusCode: raw.status,
+      );
+    }
+    if (!ZLibraryApiBase._isSuccess(json)) {
+      return ApiResponse.fail(
+        ZLibraryApiBase._plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          'recommended booklists failed',
+        ),
+        statusCode: raw.status,
+      );
+    }
+    return ApiResponse.ok(
+      parseRecommendedBooklists(json['html'], baseUrl: _base),
+    );
+  }
+
+  /// Shared success read for the small write endpoints (color, public,
+  /// favorite, save-description): a JSON `success: 1` wins; a final
+  /// 2xx with an empty body counts as success (same precedent as
+  /// [deleteBooklist]); anything else fails with its real cause.
+  ApiResponse<bool> _boolFromWriteRaw(_Raw raw, String fallbackError) {
+    final status = raw.status;
+    final json = raw.json;
+    if (json == null) {
+      final is2xx = status != null && status >= 200 && status < 300;
+      final emptyBody = raw.body == null &&
+          (raw.error?.startsWith('empty response') ?? false);
+      if (is2xx && emptyBody) {
+        return ApiResponse.ok(true);
+      }
+      return ApiResponse.fail(raw.error ?? fallbackError, statusCode: status);
+    }
+    if (!ZLibraryApiBase._isSuccess(json)) {
+      return ApiResponse.fail(
+        ZLibraryApiBase._plainError(
+          (json['error'] ?? json['message'])?.toString(),
+          fallbackError,
+        ),
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(true);
+  }
+
+  /// Best-effort read of the list a create call returned. The site's
+  /// form reads `response.readlist`, so that wrapper is tried first;
+  /// the other wrappers are kept for a response shape that has not
+  /// been seen yet. Needs a numeric `id` to count as a list. Returns
+  /// null when nothing matches.
   Booklist? _booklistFromCreateResponse(
     Map<String, dynamic> json,
     String title,
   ) {
     for (final candidate in [
+      json['readlist'],
       json['booklist'],
       json['list'],
       json['data'],

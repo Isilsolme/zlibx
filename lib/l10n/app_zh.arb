@@ -30,6 +30,7 @@
   "badgeOpenSource": "开源",
   "batchRemove": "批量移除",
   "blurEffect": "模糊效果",
+  "booklistAddNote": "添加备注",
   "booklistBookCount": "{count} 本书",
   "@booklistBookCount": {
     "placeholders": {
@@ -39,6 +40,23 @@
     }
   },
   "booklistBookRemoved": "已从书单移除",
+  "booklistChangeColor": "更改颜色",
+  "booklistColor": "颜色",
+  "booklistColorChanged": "颜色已更改",
+  "booklistColorFailed": "更改颜色失败：{error}",
+  "@booklistColorFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistColorGreen": "绿色",
+  "booklistColorMarine": "海蓝",
+  "booklistColorNightBlue": "深夜蓝",
+  "booklistColorRed": "红色",
+  "booklistColorVelvet": "丝绒紫",
+  "booklistColorYellow": "黄色",
   "booklistCreateFailed": "创建失败：{error}",
   "@booklistCreateFailed": {
     "placeholders": {
@@ -60,6 +78,42 @@
   },
   "booklistDeleted": "书单已删除",
   "booklistDescriptionOptional": "描述（可选）",
+  "booklistEdit": "编辑书单",
+  "booklistEditFailed": "编辑书单失败：{error}",
+  "@booklistEditFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistEditNote": "编辑备注",
+  "booklistEdited": "书单已更新",
+  "booklistFavoriteFailed": "收藏失败：{error}",
+  "@booklistFavoriteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistFavorited": "已收藏书单",
+  "booklistMadePrivate": "书单已设为私人",
+  "booklistMadePublic": "书单已设为公开",
+  "booklistMakePrivate": "设为私人",
+  "booklistMakePublic": "设为公开",
+  "booklistNote": "备注",
+  "booklistNoteFailed": "保存备注失败：{error}",
+  "@booklistNoteFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "booklistNoteSaved": "备注已保存",
+  "booklistPrivate": "私人书单",
+  "booklistRemoveBook": "从书单中移除",
   "booklistRemoveBookConfirm": "从书单中移除这本书？",
   "booklistRemoveBookFailed": "从书单移除失败：{error}",
   "@booklistRemoveBookFailed": {
@@ -69,7 +123,20 @@
       }
     }
   },
+  "booklistSort": "排序",
+  "booklistSortNewest": "最新创建",
+  "booklistSortPopular": "最受欢迎",
+  "booklistSortUpdated": "最近更新",
   "booklistTitle": "书单名称",
+  "booklistUnfavorited": "已取消收藏",
+  "booklistVisibilityFailed": "更改可见性失败：{error}",
+  "@booklistVisibilityFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "booklists": "书单",
   "booklistsSubtitle": "你的书单和大家的书单",
   "booksDownloadedAnyDevice": "在任何设备上下载的书籍",
@@ -166,6 +233,7 @@
   "enterSearchHint": "输入书名、作者或关键词",
   "error": "错误",
   "exampleDomainHint": "例如 example.com",
+  "favoriteBooklist": "收藏",
   "favoriteFailed": "收藏更新失败，请稍后重试。",
   "favoriteRemoved": "已取消收藏",
   "favorites": "收藏",
@@ -369,6 +437,7 @@
   "readerSessionWriteFailed": "阅读器会话写入失败，请重新登录再试",
   "recentAccount": "最近使用",
   "recommended": "推荐",
+  "recommendedBooklists": "推荐书单",
   "refreshFailed": "刷新失败",
   "remove": "移除",
   "removeAccount": "移除账号",
@@ -421,6 +490,7 @@
   "sendComment": "发送评论",
   "settings": "设置",
   "share": "分享",
+  "shareBooklist": "分享书单",
   "shareFailed": "无法分享文件",
   "shelfAddToCategory": "加入分类",
   "shelfAllCategories": "所有分类",
@@ -491,6 +561,7 @@
   "systemDownloadsFolder": "系统下载文件夹",
   "systemDownloadsMediastore": "系统下载文件夹 (MediaStore)",
   "trendingOnOpenLibrary": "Open Library 热门",
+  "unfavoriteBooklist": "取消收藏",
   "unknown": "未知",
   "unknownAuthor": "未知作者",
   "upToDateDesc": "当前版本已是最新版本",
