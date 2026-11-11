@@ -51,15 +51,13 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// path, anything else returns null.
   ///
   /// The eapi book object does not carry volume / ISBN / IPFS, so the
-  /// detail page HTML is the only source. This fetch is best-effort:
-  /// a non-2xx status, an empty body, an unresolvable redirect, or a
-  /// challenge page all return null — no solver fallback, no error,
-  /// and the caller keeps the eapi book unchanged. It never throws.
-  ///
-  /// Thin delegate over [fetchBookDetailExtras] — same single fetch,
-  /// only the metadata half of the result.
+  /// detail page HTML is the only source. Thin delegate over
+  /// [fetchBookDetailExtras] — same single fetch, only the metadata
+  /// half of the result; null when the fetch failed or the page
+  /// carried no property rows.
   Future<BookDetailMetadata?> fetchBookDetailMetadata(String href) async {
-    final metadata = (await fetchBookDetailExtras(href))?.metadata;
+    final response = await fetchBookDetailExtras(href);
+    final metadata = response.success ? response.data?.metadata : null;
     return metadata == null || metadata.isEmpty ? null : metadata;
   }
 
@@ -68,22 +66,36 @@ mixin ZLibrarySearch on ZLibraryApiBase {
   /// rows ([BookDetailMetadata]) and the related-booklists block
   /// ([BookDetailExtras.relatedBooklists]) — one request instead of
   /// the two a separate related-booklists fetch would cost (both live
-  /// in the same document).
+  /// in the same document, server-rendered — verified 2026-11-12 by
+  /// fetching the raw document in a logged-out browser session: the
+  /// `z-booklist` cards are in the server response, no lazy XHR).
   ///
-  /// Same best-effort contract as [fetchBookDetailMetadata]: a
-  /// non-2xx status, an empty body, an unresolvable redirect, or a
-  /// challenge page return null; a page that loads but carries
-  /// neither section returns an extras object with an all-null
-  /// metadata and no booklists. It never throws.
-  Future<BookDetailExtras?> fetchBookDetailExtras(String href) async {
+  /// Returns [ApiResponse] rather than a nullable so the caller can
+  /// tell a WALL from any other failure: the `/book/…` page sits
+  /// behind the DiamWall, which answers a fresh client with 307 +
+  /// `set-cookie: __diamwall=…` and — when the cookie hop is still
+  /// untrusted — a `513` "Verifying your browser" JS challenge page
+  /// (live-verified 2026-11-12 with a bare Dio client: hop 0 → 307,
+  /// hop 1 with the cookie → 513). A challenge answer fails with the
+  /// `'… browser check page'` error string the app's
+  /// `BooklistSolver.isChallengeError` matches, so the caller can
+  /// escalate to the WebView solver exactly like the booklists /
+  /// full-text / category HTML routes do. `Booklist.fromElement`
+  /// cards come back empty when the page (or the wall answer) carries
+  /// no block — the caller decides whether that is worth a solver.
+  Future<ApiResponse<BookDetailExtras>> fetchBookDetailExtras(
+    String href,
+  ) async {
     final path = Uri.tryParse(href)?.path ?? '';
-    if (!path.startsWith('/book/')) return null;
+    if (!path.startsWith('/book/')) {
+      return ApiResponse.fail('book detail page failed: bad href');
+    }
     // `_getWithRedirects`, not `_get`: the detail page may hop (e.g.
     // a canonical-URL redirect), and a non-redirect-following `_get`
     // would answer the 30x itself and drop the rating + related
     // booklists. Same helper the article search and category pages
-    // use; it follows up to 5 hops and returns an error _Raw instead
-    // of throwing.
+    // use; it follows up to 5 hops, harvests the wall cookies a hop
+    // re-issues, and returns an error _Raw instead of throwing.
     //
     // 300s receive timeout, not the Dio default (60s): a detail page
     // is a large HTML document (hundreds of KB), and on a slow link
@@ -97,13 +109,37 @@ mixin ZLibrarySearch on ZLibraryApiBase {
       receiveTimeout: const Duration(seconds: 300),
     );
     final status = raw.status;
-    if (status == null || status < 200 || status >= 300) return null;
+    if (status == null || status < 200 || status >= 300) {
+      final challengeish = status == 503 ||
+          status == 513 ||
+          (raw.body != null &&
+              ZLibraryApiBase._looksLikeChallengePage(raw.body!));
+      if (challengeish) {
+        return ApiResponse.fail(
+          'HTTP $status: browser check page',
+          statusCode: status,
+        );
+      }
+      return ApiResponse.fail(
+        raw.error ?? 'book detail page failed (HTTP $status)',
+        statusCode: status,
+      );
+    }
     final html = raw.body;
-    if (html == null || html.isEmpty) return null;
-    if (ZLibraryApiBase._looksLikeChallengePage(html)) return null;
-    return BookDetailExtras(
-      metadata: parseBookDetailProperties(html),
-      relatedBooklists: parseRelatedBooklists(html, baseUrl: _base),
+    if (html == null || html.isEmpty) {
+      return ApiResponse.fail('book detail page failed: empty body');
+    }
+    if (ZLibraryApiBase._looksLikeChallengePage(html)) {
+      return ApiResponse.fail(
+        'HTTP $status: browser check page',
+        statusCode: status,
+      );
+    }
+    return ApiResponse.ok(
+      BookDetailExtras(
+        metadata: parseBookDetailProperties(html),
+        relatedBooklists: parseRelatedBooklists(html, baseUrl: _base),
+      ),
     );
   }
 

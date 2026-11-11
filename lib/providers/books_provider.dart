@@ -5,10 +5,12 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import 'package:zlibx/utils/diagnostics.dart';
 import '../models/display_book.dart';
 import '../services/annas_archieve.dart';
+import '../services/book_detail_page_repository.dart';
 import '../services/external_search.dart';
 import '../services/libgen_service.dart';
 import '../services/network_error.dart';
 import '../services/storage_service.dart';
+import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
 
 // ── Search ──────────────────────────────────────────────────────────
@@ -195,18 +197,31 @@ final bookDetailsProvider = FutureProvider.autoDispose
   // the related-booklists block): the eapi book does not carry them.
   // The HTML fetch runs AFTER the eapi detail loaded, so a slow or
   // walled page only delays the extra rows — the screen keeps showing
-  // the eapi book meanwhile. Any failure returns the eapi book
-  // unchanged with no booklists.
+  // the eapi book meanwhile. The page sits behind the DiamWall: when
+  // Dio answers the browser-check challenge, the repository
+  // escalates to the WebView solver (same escalation as the
+  // booklists / full-text / category HTML routes). Any failure
+  // returns the eapi book unchanged with no booklists.
   final href = identifier.href ?? book.href;
   if (href == null || href.isEmpty) {
     return (book: book, relatedBooklists: const <Booklist>[]);
   }
   try {
-    final extras = await api.fetchBookDetailExtras(href);
-    if (extras == null) {
+    final user = ref.read(authProvider).user;
+    final pageRepo = BookDetailPageRepository(api);
+    final result = await pageRepo.fetch(
+      href: href,
+      userId: user?.id,
+      userKey: user?.remixUserkey,
+    );
+    if (!result.success || result.data == null) {
+      logIgnored(
+        'book_details_metadata',
+        StateError(result.error ?? 'book detail page failed'),
+      );
       return (book: book, relatedBooklists: const <Booklist>[]);
     }
-    final metadata = extras.metadata;
+    final metadata = result.data!.metadata;
     final merged = book.copyWith(
       href: href,
       volume: metadata.volume,
@@ -219,7 +234,7 @@ final bookDetailsProvider = FutureProvider.autoDispose
     );
     return (
       book: merged,
-      relatedBooklists: extras.relatedBooklists,
+      relatedBooklists: result.data!.relatedBooklists,
     );
   } catch (error) {
     logIgnored('book_details_metadata', error);
