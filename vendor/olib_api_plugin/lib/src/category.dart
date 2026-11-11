@@ -47,7 +47,7 @@ class CategoryPage {
 ///
 /// Shape confirmed from the live captures 2026-11-11 (Firefox,
 /// zh.z-library.sk): results live in `#searchResultBox` as `<div
-/// class="book-item">` wrappers around `<z-bookcard>` elements — the
+/// class="book-item">` wrappers around `&lt;z-bookcard&gt;` elements — the
 /// same shape as the full-text results page, so the scoping rules
 /// are the same as [parseFullTextSearchPage]'s. Each card carries the
 /// book in its attributes (`id`, `href`, `publisher`, `language`,
