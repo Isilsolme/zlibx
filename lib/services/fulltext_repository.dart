@@ -87,7 +87,7 @@ class FulltextRepository {
   /// building, no network).
   String tokenPageUrl() {
     final url = searchPageUrl(query: '');
-    return Uri.parse(url).origin + '/fulltext';
+    return '${Uri.parse(url).origin}/fulltext';
   }
 
   /// The plugin's short error for a browser-check wall (plus the older
