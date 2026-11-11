@@ -7,41 +7,106 @@ import 'webview_challenge_solver.dart';
 /// Data layer for the category browsing screens: fetching (fast Dio
 /// first, the WebView solver on the browser-check wall) and parsing.
 ///
-/// A category page (`/category/{id}`, 10 books per page, `?page=N`)
-/// is plain HTML; the plugin's [ZLibraryApi.getCategoryBooks] fetches
-/// and parses it with the same `<z-bookcard>` parser the booklist
-/// detail page uses. Unlike the booklist repository there is no
-/// persistent cache here: category pages are read-only listings, so
-/// every open revalidates from the network (v1).
+/// A category page (`/category/{id}`, `?page=N`) is plain HTML; the
+/// plugin's [ZLibraryApi.getCategoryBooks] fetches and parses it
+/// with [parseCategoryBooksPage] — the category page's own parser,
+/// which keeps the per-card `deleted`/`favorite` flags and the
+/// page's `pagerOptions` total. Unlike the booklist repository there
+/// is no persistent cache here: category pages are read-only
+/// listings, so every open revalidates from the network (v1).
 class CategoryRepository {
   CategoryRepository(this._api);
 
   final ZLibraryApi _api;
 
-  /// One page of books in [categoryId] (page 1 = 10 books).
-  Future<ApiResponse<List<Book>>> fetchBooks({
+  /// One page of books in [categoryId], plus the page count when the
+  /// page carries it. [order] is one of the category sort values.
+  Future<ApiResponse<CategoryPage>> fetchBooks({
     required int categoryId,
     int page = 1,
+    String? order,
   }) =>
-      _api.getCategoryBooks(categoryId, page: page);
+      _api.getCategoryBooks(categoryId, page: page, order: order);
+
+  /// One page of an in-category search (see
+  /// [ZLibraryApi.searchInCategory]).
+  Future<ApiResponse<CategoryPage>> searchInCategory({
+    required int categoryId,
+    String? slug,
+    required String query,
+    bool exact = false,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    List<String>? contentTypes,
+    String? order,
+    int page = 1,
+  }) =>
+      _api.searchInCategory(
+        categoryId: categoryId,
+        slug: slug,
+        query: query,
+        exact: exact,
+        yearFrom: yearFrom,
+        yearTo: yearTo,
+        languages: languages,
+        extensions: extensions,
+        contentTypes: contentTypes,
+        order: order,
+        page: page,
+      );
 
   /// The full URL of one category page — the solver fallback's URL
   /// (the WebView follows the bare-id redirect itself).
-  String categoryPageUrl({required int categoryId, int page = 1}) =>
-      _api.categoryPageUrl(categoryId, page: page);
+  String categoryPageUrl({
+    required int categoryId,
+    int page = 1,
+    String? order,
+  }) =>
+      _api.categoryPageUrl(categoryId, page: page, order: order);
+
+  /// The full URL of an in-category search page — the solver
+  /// fallback's URL in search mode.
+  String categorySearchUrl({
+    required int categoryId,
+    String? slug,
+    required String query,
+    bool exact = false,
+    int? yearFrom,
+    int? yearTo,
+    List<String>? languages,
+    List<String>? extensions,
+    List<String>? contentTypes,
+    String? order,
+    int page = 1,
+  }) =>
+      _api.categorySearchUrl(
+        categoryId: categoryId,
+        slug: slug,
+        query: query,
+        exact: exact,
+        yearFrom: yearFrom,
+        yearTo: yearTo,
+        languages: languages,
+        extensions: extensions,
+        contentTypes: contentTypes,
+        order: order,
+        page: page,
+      );
 
   /// The plugin's short error for a browser-check wall (plus the older
   /// shapes a wall can surface as).
   bool isChallengeError(String? error) =>
       BooklistSolver.isChallengeError(error);
 
-  /// Parses solver-fetched HTML into books, or null when it fails to
-  /// parse. A parse failure here must not escape the load (which runs
-  /// from a microtask) and leave the screen loading forever — treat a
-  /// broken page like a fetch failure.
-  List<Book>? parseBooks(String html, {required String baseUrl}) {
+  /// Parses solver-fetched HTML into a category page, or null when
+  /// it fails to parse. A parse failure here must not escape the load
+  /// (which runs from a microtask) and leave the screen loading
+  /// forever — treat a broken page like a fetch failure.
+  CategoryPage? parseBooks(String html, {required String baseUrl}) {
     try {
-      return parseBooklistDetailBooks(html, baseUrl: baseUrl);
+      return parseCategoryBooksPage(html, baseUrl: baseUrl);
     } catch (_) {
       return null;
     }

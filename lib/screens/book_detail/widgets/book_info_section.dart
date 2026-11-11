@@ -5,6 +5,7 @@ import '../../../core/book_description.dart';
 import '../../../models/display_book.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../l10n/book_categories.dart';
+import '../../../providers/category_books_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../similar/similar_books_screen.dart';
 import '../../comments/book_comments_screen.dart';
@@ -37,13 +38,29 @@ class BookInfoSection extends StatelessWidget {
       // Website categories (eapi `categories`, e.g. `{307: History -
       // World history}`): one chip per category, localized to the app
       // language (zh / zh_Hant via the category table; other locales show
-      // the English name from the API).
-      ...parseBookCategories(book.categories).map(
-        (c) => BookDetailTag(
+      // the English name from the API). A chip with a parsed id opens
+      // that category's book list; a plain name without an id stays
+      // display-only.
+      ...parseBookCategories(book.categories).map((c) {
+        final locale = Localizations.localeOf(context);
+        final tag = BookDetailTag(
           icon: Icons.category_outlined,
-          text: localizedBookCategoryName(c, Localizations.localeOf(context)),
-        ),
-      ),
+          text: localizedBookCategoryName(c, locale),
+        );
+        final id = c.id;
+        if (id == null) return tag;
+        return InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: () => AppRoutes.openCategoryBooks(
+            context,
+            CategoryBooksArgs(
+              categoryId: id,
+              categoryName: localizedBookCategoryName(c, locale),
+            ),
+          ),
+          child: tag,
+        );
+      }),
     ];
     final fields = <String, String>{
       if (book.publisher?.isNotEmpty ?? false)

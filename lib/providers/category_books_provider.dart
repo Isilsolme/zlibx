@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 
+import '../constants/search_filters.dart';
 import '../services/category_repository.dart';
 import 'auth_provider.dart';
 import 'zlibrary_provider.dart';
@@ -33,9 +34,35 @@ class CategoryBooksState {
   final bool isLoading;
   final bool isLoadingMore;
   final String? error;
-  final List<Book> books;
+  final List<CategoryBook> books;
   final bool hasMore;
   final int nextPage;
+
+  /// Sort order, one of [categorySearchOrders]; `'popular'` default.
+  final String order;
+
+  /// In-category search query; empty means browse mode.
+  final String query;
+
+  /// Exact-match toggle for the in-category search (`e=1`).
+  final bool exact;
+
+  /// Language filter key into [searchLanguageOptions]; `'all'` means
+  /// no language filter.
+  final String language;
+
+  /// Extension filter key into [searchExtensions]; `'all'` means no
+  /// extension filter.
+  final String extension;
+
+  /// Total pages from the page's `pagerOptions`, when the page
+  /// carries it (null = unknown — never invented).
+  final int? totalPages;
+
+  /// First page's card count, the effective page size when
+  /// [totalPages] is unknown (a small category's page carries no
+  /// `pagerOptions`). Null until page 1 lands.
+  final int? effectivePageSize;
 
   const CategoryBooksState({
     this.isLoading = true,
@@ -44,6 +71,13 @@ class CategoryBooksState {
     this.books = const [],
     this.hasMore = true,
     this.nextPage = 2,
+    this.order = 'popular',
+    this.query = '',
+    this.exact = false,
+    this.language = 'all',
+    this.extension = 'all',
+    this.totalPages,
+    this.effectivePageSize,
   });
 
   CategoryBooksState copyWith({
@@ -51,9 +85,16 @@ class CategoryBooksState {
     bool? isLoadingMore,
     String? error,
     bool clearError = false,
-    List<Book>? books,
+    List<CategoryBook>? books,
     bool? hasMore,
     int? nextPage,
+    String? order,
+    String? query,
+    bool? exact,
+    String? language,
+    String? extension,
+    int? totalPages,
+    int? effectivePageSize,
   }) {
     return CategoryBooksState(
       isLoading: isLoading ?? this.isLoading,
@@ -62,21 +103,33 @@ class CategoryBooksState {
       books: books ?? this.books,
       hasMore: hasMore ?? this.hasMore,
       nextPage: nextPage ?? this.nextPage,
+      order: order ?? this.order,
+      query: query ?? this.query,
+      exact: exact ?? this.exact,
+      language: language ?? this.language,
+      extension: extension ?? this.extension,
+      totalPages: totalPages ?? this.totalPages,
+      effectivePageSize: effectivePageSize ?? this.effectivePageSize,
     );
   }
 }
 
 /// Books in one category. Every page is the category page's own HTML
-/// (10 books per page, `?page=N`); there is no JSON endpoint and no
-/// persistent cache in v1, so every open revalidates from the network.
-/// A short page (fewer than 10 books) means the last page.
+/// (`?page=N`); there is no JSON endpoint and no persistent cache in
+/// v1, so every open revalidates from the network.
+///
+/// Pagination (P0 fix): a category page carries 50 cards, not 10 —
+/// the old `books.length == 10` rule set `hasMore` false on a full
+/// first page and pages 2–10 were unreachable. `hasMore` now comes
+/// from the page's `pagerOptions.pagesTotal` when present
+/// (`page < totalPages`); when the page carries no total, the FIRST
+/// page's card count is the effective page size and a page is full
+/// iff it carries that many cards. A short page is never trusted as
+/// "last page" when a total is known.
 class CategoryBooksController
     extends
         AutoDisposeFamilyNotifier<CategoryBooksState, CategoryBooksArgs> {
-  /// Books the site renders per category page.
-  static const int pageSize = 10;
-
-  final List<Book> _books = [];
+  final List<CategoryBook> _books = [];
   // O(1) membership checks while pages are appended.
   final Set<int> _bookIds = <int>{};
 
@@ -101,27 +154,95 @@ class CategoryBooksController
 
   bool _isCurrent(int generation) => _alive && generation == _generation;
 
+  /// Change the list sort order and reload page 1. [order] is one of
+  /// [categorySearchOrders].
+  void setOrder(String order) {
+    if (order == state.order) return;
+    state = state.copyWith(order: order);
+    unawaited(loadFirst());
+  }
+
+  /// Search inside the category (empty query = back to browse mode)
+  /// and reload page 1.
+  void search(String query) {
+    final trimmed = query.trim();
+    if (trimmed == state.query) return;
+    state = state.copyWith(query: trimmed);
+    unawaited(loadFirst());
+  }
+
+  /// Change the language filter and reload page 1. [language] is a
+  /// key into [searchLanguageOptions] (`'all'` = no filter).
+  void setLanguage(String language) {
+    if (language == state.language) return;
+    state = state.copyWith(language: language);
+    unawaited(loadFirst());
+  }
+
+  /// Change the extension filter and reload page 1. [extension] is
+  /// a key into [searchExtensions] (`'all'` = no filter).
+  void setExtension(String extension) {
+    if (extension == state.extension) return;
+    state = state.copyWith(extension: extension);
+    unawaited(loadFirst());
+  }
+
+  /// Change the exact-match toggle and reload page 1 (only applies
+  /// in search mode).
+  void setExact(bool exact) {
+    if (exact == state.exact) return;
+    state = state.copyWith(exact: exact);
+    unawaited(loadFirst());
+  }
+
+  /// Clear the language/extension/exact filters (the sort order and
+  /// the search query are kept) and reload page 1.
+  void resetFilters() {
+    if (state.language == 'all' &&
+        state.extension == 'all' &&
+        !state.exact) {
+      return;
+    }
+    state = state.copyWith(language: 'all', extension: 'all', exact: false);
+    unawaited(loadFirst());
+  }
+
   Future<void> loadFirst() async {
     if (!_alive) return;
     final generation = ++_generation;
     _books.clear();
     _bookIds.clear();
-    state = const CategoryBooksState();
+    // Fresh state, but keep the user's sort / search / filter
+    // choices — they are selections, not per-load results.
+    state = CategoryBooksState(
+      order: state.order,
+      query: state.query,
+      exact: state.exact,
+      language: state.language,
+      extension: state.extension,
+    );
     final result = await _loadPage(1, generation: generation);
     if (!_isCurrent(generation)) return;
-    final books = result.books;
-    if (books == null) {
+    final page = result.page;
+    if (page == null) {
       state = state.copyWith(
         error: result.error ?? 'Failed to load category',
         isLoading: false,
       );
       return;
     }
-    _merge(books);
+    _merge(page.books);
     state = state.copyWith(
       books: List.of(_books),
-      hasMore: books.length == pageSize,
+      hasMore: _hasMoreAfterPage(
+        page: 1,
+        loadedCount: page.books.length,
+        totalPages: page.totalPages,
+        effectivePageSize: page.books.length,
+      ),
       nextPage: 2,
+      totalPages: page.totalPages,
+      effectivePageSize: page.books.length,
       isLoading: false,
     );
   }
@@ -144,40 +265,87 @@ class CategoryBooksController
     state = state.copyWith(isLoadingMore: true);
     final result = await _loadPage(page, generation: generation);
     if (!_isCurrent(generation)) return;
-    final books = result.books;
-    if (books == null) {
+    final fetched = result.page;
+    if (fetched == null) {
       state = state.copyWith(isLoadingMore: false);
       return;
     }
-    _merge(books);
+    _merge(fetched.books);
     state = state.copyWith(
       books: List.of(_books),
-      hasMore: books.length == pageSize,
+      hasMore: _hasMoreAfterPage(
+        page: page,
+        loadedCount: fetched.books.length,
+        totalPages: fetched.totalPages ?? state.totalPages,
+        effectivePageSize: state.effectivePageSize,
+      ),
       nextPage: page + 1,
+      totalPages: fetched.totalPages ?? state.totalPages,
       isLoadingMore: false,
     );
   }
 
+  /// Whether another page exists after the page just loaded.
+  ///
+  /// A known total is authoritative: `page < totalPages`. Without
+  /// one, a page is full iff it carried as many cards as the first
+  /// page did — a short page is the last one. An empty first page
+  /// (`effectivePageSize` 0) has no next page.
+  bool _hasMoreAfterPage({
+    required int page,
+    required int loadedCount,
+    required int? totalPages,
+    required int? effectivePageSize,
+  }) {
+    if (totalPages != null) return page < totalPages;
+    if (effectivePageSize == null || effectivePageSize <= 0) return false;
+    return loadedCount == effectivePageSize;
+  }
+
   /// Loads one page: Dio first, the WebView solver on the
-  /// browser-check wall. Returns the books, or null books + an error
+  /// browser-check wall. Returns the page, or null page + an error
   /// message when both paths failed.
-  Future<({List<Book>? books, String? error})> _loadPage(
+  Future<({CategoryPage? page, String? error})> _loadPage(
     int page, {
     required int generation,
   }) async {
-    final url = _repository.categoryPageUrl(
-      categoryId: _categoryId,
-      page: page,
-    );
+    final s = state;
+    final inSearch = s.query.isNotEmpty;
+    final url = inSearch
+        ? _repository.categorySearchUrl(
+            categoryId: _categoryId,
+            query: s.query,
+            exact: s.exact,
+            languages: _languageParam(s.language),
+            extensions: _extensionParam(s.extension),
+            order: s.order,
+            page: page,
+          )
+        : _repository.categoryPageUrl(
+            categoryId: _categoryId,
+            page: page,
+            order: s.order,
+          );
     try {
-      final response = await _repository.fetchBooks(
-        categoryId: _categoryId,
-        page: page,
-      );
-      if (!_isCurrent(generation)) return (books: null, error: null);
+      final response = inSearch
+          ? await _repository.searchInCategory(
+              categoryId: _categoryId,
+              query: s.query,
+              exact: s.exact,
+              languages: _languageParam(s.language),
+              extensions: _extensionParam(s.extension),
+              order: s.order,
+              page: page,
+            )
+          : await _repository.fetchBooks(
+              categoryId: _categoryId,
+              page: page,
+              order: s.order,
+            );
+      if (!_isCurrent(generation)) return (page: null, error: null);
       final data = response.data;
       if (response.success && data != null) {
-        return (books: data, error: null);
+        return (page: data, error: null);
       }
       final error = response.error ?? 'Failed to load category';
       if (_repository.isChallengeError(response.error)) {
@@ -187,14 +355,14 @@ class CategoryBooksController
           originalError: error,
         );
       }
-      return (books: null, error: error);
+      return (page: null, error: error);
     } catch (e) {
-      if (!_isCurrent(generation)) return (books: null, error: null);
-      return (books: null, error: e.toString());
+      if (!_isCurrent(generation)) return (page: null, error: null);
+      return (page: null, error: e.toString());
     }
   }
 
-  Future<({List<Book>? books, String? error})> _loadPageViaSolver(
+  Future<({CategoryPage? page, String? error})> _loadPageViaSolver(
     String url, {
     required int generation,
     required String originalError,
@@ -205,19 +373,33 @@ class CategoryBooksController
       userId: user?.id,
       userKey: user?.remixUserkey,
     );
-    if (!_isCurrent(generation)) return (books: null, error: null);
-    if (html == null) return (books: null, error: originalError);
-    final books = _repository.parseBooks(
+    if (!_isCurrent(generation)) return (page: null, error: null);
+    if (html == null) return (page: null, error: originalError);
+    final page = _repository.parseBooks(
       html,
       baseUrl: Uri.parse(url).origin,
     );
-    if (books == null) return (books: null, error: originalError);
-    return (books: books, error: null);
+    if (page == null) return (page: null, error: originalError);
+    return (page: page, error: null);
   }
 
-  void _merge(List<Book> books) {
+  /// The plugin's `languages` value for a filter key: null (no
+  /// filter) for `'all'`, else the single API value.
+  List<String>? _languageParam(String language) {
+    final apiValue = searchLanguages[language];
+    return apiValue == null ? null : [apiValue];
+  }
+
+  /// The plugin's `extensions` value for a filter key: null (no
+  /// filter) for `'all'`, else the single extension.
+  List<String>? _extensionParam(String extension) {
+    final apiValue = searchExtensions[extension];
+    return apiValue == null ? null : [apiValue];
+  }
+
+  void _merge(List<CategoryBook> books) {
     for (final book in books) {
-      if (_bookIds.add(book.id)) _books.add(book);
+      if (_bookIds.add(book.book.id)) _books.add(book);
     }
   }
 }

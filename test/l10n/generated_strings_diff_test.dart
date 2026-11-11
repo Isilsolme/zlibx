@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 418 getters/methods, in all 5 locales, plus the 27
+// every one of the 421 getters/methods, in all 5 locales, plus the 27
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -96,6 +96,7 @@ void main() {
     expect(loc.cancel, 'Cancel');
     expect(loc.cannotOpenFolder, 'Could not open folder');
     expect(loc.categories, 'Categories');
+    expect(loc.categorySearchHint, 'Search in this category');
     expect(loc.checkForUpdates, 'Check for Updates');
     expect(loc.checkYourConnection, 'Please check your connection');
     expect(loc.checkingNetwork, 'Checking network...');
@@ -180,6 +181,7 @@ void main() {
     expect(loc.fileExistsDesc, 'This book has already been downloaded.\n\nYou can open the existing file or download again.');
     expect(loc.fileExistsTitle, 'File Already Exists');
     expect(loc.fileSize, 'File Size');
+    expect(loc.filter, 'Filter');
     expect(loc.floatingNav, 'Floating navigation bar');
     expect(loc.followDevice, 'Follow device language');
     expect(loc.fullTextLoginRequired, 'Sign in to use full-text search');
@@ -340,6 +342,7 @@ void main() {
     expect(loc.search, 'Search');
     expect(loc.searchBooklists, 'Search booklists');
     expect(loc.searchBooks, 'Search Books');
+    expect(loc.searchCategories, 'Search categories');
     expect(loc.searchFailed, 'Search failed');
     expect(loc.searchForBooks, 'Search for books...');
     expect(loc.searchFree, 'Free');
@@ -518,6 +521,7 @@ void main() {
     expect(loc.cancel, 'キャンセル');
     expect(loc.cannotOpenFolder, 'フォルダを開けません');
     expect(loc.categories, 'カテゴリ');
+    expect(loc.categorySearchHint, 'このカテゴリ内で検索');
     expect(loc.checkForUpdates, 'アップデートを確認');
     expect(loc.checkYourConnection, '接続を確認してください');
     expect(loc.checkingNetwork, 'ネットワークを確認しています...');
@@ -602,6 +606,7 @@ void main() {
     expect(loc.fileExistsDesc, 'この本はすでにダウンロード済みです。\n\n既存のファイルを開くか、再ダウンロードできます。');
     expect(loc.fileExistsTitle, 'ファイルは既に存在します');
     expect(loc.fileSize, 'ファイルサイズ');
+    expect(loc.filter, 'フィルター');
     expect(loc.floatingNav, 'フローティングバー');
     expect(loc.followDevice, 'デバイスの言語に従う');
     expect(loc.fullTextLoginRequired, '全文検索を利用するにはログインしてください');
@@ -762,6 +767,7 @@ void main() {
     expect(loc.search, '検索');
     expect(loc.searchBooklists, 'ブックリストを検索');
     expect(loc.searchBooks, '本を検索');
+    expect(loc.searchCategories, 'カテゴリを検索');
     expect(loc.searchFailed, '検索に失敗しました');
     expect(loc.searchForBooks, '本を検索...');
     expect(loc.searchFree, '無料');
@@ -940,6 +946,7 @@ void main() {
     expect(loc.cancel, '취소');
     expect(loc.cannotOpenFolder, '폴더를 열 수 없습니다');
     expect(loc.categories, '카테고리');
+    expect(loc.categorySearchHint, '이 카테고리 내에서 검색');
     expect(loc.checkForUpdates, '업데이트 확인');
     expect(loc.checkYourConnection, '연결 상태를 확인해 주세요');
     expect(loc.checkingNetwork, '네트워크 확인 중...');
@@ -1024,6 +1031,7 @@ void main() {
     expect(loc.fileExistsDesc, '이 책은 이미 다운로드되었습니다.\n\n기존 파일을 열거나 다시 다운로드할 수 있습니다.');
     expect(loc.fileExistsTitle, '파일이 이미 있습니다');
     expect(loc.fileSize, '파일 크기');
+    expect(loc.filter, '필터');
     expect(loc.floatingNav, '플로팅 탐색 모음');
     expect(loc.followDevice, '기기 언어 따르기');
     expect(loc.fullTextLoginRequired, '전문 검색을 사용하려면 로그인하세요');
@@ -1184,6 +1192,7 @@ void main() {
     expect(loc.search, '검색');
     expect(loc.searchBooklists, '책 목록 검색');
     expect(loc.searchBooks, '책 검색');
+    expect(loc.searchCategories, 'カテゴリ検索');
     expect(loc.searchFailed, '검색에 실패했습니다');
     expect(loc.searchForBooks, '책 검색...');
     expect(loc.searchFree, '무료');
@@ -1362,6 +1371,7 @@ void main() {
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '无法打开文件夹');
     expect(loc.categories, '分类');
+    expect(loc.categorySearchHint, '在该分类中搜索');
     expect(loc.checkForUpdates, '检查更新');
     expect(loc.checkYourConnection, '请检查网络连接');
     expect(loc.checkingNetwork, '正在检查网络...');
@@ -1446,6 +1456,7 @@ void main() {
     expect(loc.fileExistsDesc, '这本书已经下载过了。\n\n您可以打开现有文件或重新下载。');
     expect(loc.fileExistsTitle, '文件已存在');
     expect(loc.fileSize, '文件大小');
+    expect(loc.filter, '筛选');
     expect(loc.floatingNav, '悬浮栏');
     expect(loc.followDevice, '跟随设备语言');
     expect(loc.fullTextLoginRequired, '请先登录后使用全文检索');
@@ -1606,6 +1617,7 @@ void main() {
     expect(loc.search, '搜索');
     expect(loc.searchBooklists, '搜索书单');
     expect(loc.searchBooks, '搜索书籍');
+    expect(loc.searchCategories, '搜索分类');
     expect(loc.searchFailed, '搜索失败');
     expect(loc.searchForBooks, '搜索书籍...');
     expect(loc.searchFree, '免费');
@@ -1784,6 +1796,7 @@ void main() {
     expect(loc.cancel, '取消');
     expect(loc.cannotOpenFolder, '無法開啟資料夾');
     expect(loc.categories, '分類');
+    expect(loc.categorySearchHint, '在該分類中搜尋');
     expect(loc.checkForUpdates, '檢查更新');
     expect(loc.checkYourConnection, '請檢查網路連線');
     expect(loc.checkingNetwork, '正在檢查網路...');
@@ -1868,6 +1881,7 @@ void main() {
     expect(loc.fileExistsDesc, '這本書已經下載過了。\n\n您可以開啟現有檔案或重新下載。');
     expect(loc.fileExistsTitle, '檔案已存在');
     expect(loc.fileSize, '檔案大小');
+    expect(loc.filter, '篩選');
     expect(loc.floatingNav, '懸浮欄');
     expect(loc.followDevice, '跟隨裝置語言');
     expect(loc.fullTextLoginRequired, '請先登入後使用全文檢索');
@@ -2028,6 +2042,7 @@ void main() {
     expect(loc.search, '搜尋');
     expect(loc.searchBooklists, '搜尋書單');
     expect(loc.searchBooks, '搜尋書籍');
+    expect(loc.searchCategories, '搜尋分類');
     expect(loc.searchFailed, '搜尋失敗');
     expect(loc.searchForBooks, '搜尋書籍...');
     expect(loc.searchFree, '免費');

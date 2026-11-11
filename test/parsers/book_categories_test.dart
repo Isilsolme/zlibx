@@ -182,6 +182,44 @@ void main() {
     });
   });
 
+  group('kBookCategoryParents', () {
+    test('841 entries, 39 null parents, same id set as the names table', () {
+      expect(kBookCategoryParents.length, 841);
+      expect(
+        kBookCategoryParents.keys.toSet(),
+        kBookCategoryNames.keys.toSet(),
+      );
+      final tops = [
+        for (final e in kBookCategoryParents.entries)
+          if (e.value == null) e.key,
+      ];
+      expect(tops.length, 39);
+      expect(
+        tops.toSet(),
+        {for (final g in kBookCategoryGroups) g.top},
+      );
+    });
+
+    test('every child parent exists and is a top-level category', () {
+      final tops = {for (final g in kBookCategoryGroups) g.top};
+      for (final entry in kBookCategoryParents.entries) {
+        final parent = entry.value;
+        if (parent == null) continue;
+        expect(tops, contains(parent), reason: 'parent of ${entry.key}');
+        expect(kBookCategoryParents[parent], isNull);
+      }
+    });
+
+    test('parents agree with the groups (same tree, flat shape)', () {
+      for (final g in kBookCategoryGroups) {
+        expect(kBookCategoryParents[g.top], isNull);
+        for (final sub in g.subs) {
+          expect(kBookCategoryParents[sub], g.top, reason: 'parent of $sub');
+        }
+      }
+    });
+  });
+
   group('bookCategoryDisplayName', () {
     test('zh shows the Chinese name, other locales the English name', () {
       expect(

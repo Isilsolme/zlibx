@@ -4,12 +4,14 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 /// Category-page books, modelled on the live `/category/75/` document
 /// captured 2026-11-11 (Firefox, zh.z-library.sk, saved page HTML):
 /// 10 `<z-bookcard>` elements, same shape as the booklist detail
-/// page's cards — the category fetch reuses
-/// [parseBooklistDetailBooks], so this test pins that the category
-/// page's cards parse through it. One synthetic `deleted="1"` card is
-/// appended: it must be skipped. Every card carries a `user_token`
-/// attribute (a session secret); the value here is a fake marker —
-/// the parser must ignore it, and no parsed field may contain it.
+/// page's cards. The category fetch itself now uses
+/// [parseCategoryBooksPage] (which keeps `deleted` cards and reads
+/// the page count); this test pins that the shared
+/// [parseBooklistDetailBooks] still handles category-shaped cards —
+/// one synthetic `deleted="1"` card is appended: it must be skipped
+/// by that parser. Every card carries a `user_token` attribute (a
+/// session secret); the value here is a fake marker — the parser
+/// must ignore it, and no parsed field may contain it.
 const _categoryHtml = '''
 <html><body><div id="searchResultBox">
 <z-bookcard id="11993425" isbn="" termshash="bab11857da3b83e406fd7f7c311d8f7a" href="/book/0vp2QrWNRr/%E6%B2%88%E5%86%B0%E8%87%AA%E8%BF%B0%E6%88%91%E5%92%8C%E5%91%A8%E6%B0%B8%E5%BA%B7%E7%9A%84%E6%95%85%E4%BA%8B.html" download="/dl/fake-token-1" deleted="0" publisher="飆笛出版社" language="中文" year="2015" extension="epub" filesize="823 KB" rating="5.0" quality="4" user_token="fake-token-must-be-ignored" contenttypeparam="" class="ready">

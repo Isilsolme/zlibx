@@ -8,6 +8,7 @@ import 'book.dart';
 import 'book_comment.dart';
 import 'book_detail_html.dart';
 import 'booklist.dart';
+import 'category.dart';
 import 'fulltext.dart';
 import 'user.dart';
 
@@ -214,6 +215,7 @@ abstract class ZLibraryApiBase {
   Future<_Raw> _getWithRedirects(
     String path, {
     Map<String, String>? extraHeaders,
+    Map<String, dynamic>? queryParameters,
   }) async {
     var url = '$_base$path';
     var headers = Map<String, String>.from(_headers);
@@ -230,6 +232,10 @@ abstract class ZLibraryApiBase {
       try {
         final res = await _dio.get<String>(
           url,
+          // Re-sent on every hop: a redirect target (e.g. the
+          // slugged category URL) carries no query of its own, so
+          // the page/order/filter params belong on each request.
+          queryParameters: queryParameters,
           options: Options(
             headers: headers,
             responseType: ResponseType.plain,
