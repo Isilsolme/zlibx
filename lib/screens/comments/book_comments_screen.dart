@@ -97,8 +97,9 @@ class _BookCommentsScreenState extends ConsumerState<BookCommentsScreen> {
   Future<void> _submit() async {
     final text = _composerController.text.trim();
     if (text.isEmpty || _c.isPosting) return;
-    // 服务端会拒绝过短评论；明显的 1–2 字符直接在前端拦掉。
-    if (text.length < 3) {
+    // 服务端要求评论至少 4 个字符；过短的 1–3 字符直接在前端拦掉，
+    // 不发请求，免得服务端拒绝后只剩一句笼统的“评论发布失败”。
+    if (text.length <= 3) {
       _showSnack(AppLocalizations.of(context)!.commentTooShort);
       return;
     }
