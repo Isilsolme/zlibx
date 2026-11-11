@@ -25,6 +25,7 @@
   "annasDonationKey": "Anna's Archive 기부 키",
   "annasDonationKeyHint": "기부 키를 입력하면 빠른 다운로드를 사용할 수 있습니다. 비워 두면 느린 다운로드를 사용합니다.",
   "appearance": "모양",
+  "articleSearch": "논문",
   "author": "저자",
   "badgeAiBuilt": "AI로 제작",
   "badgeOpenSource": "오픈소스",

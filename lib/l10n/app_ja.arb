@@ -25,6 +25,7 @@
   "annasDonationKey": "Anna's Archive 寄付キー",
   "annasDonationKeyHint": "寄付キーを入力すると高速ダウンロードが使えます。空欄の場合は低速ダウンロードになります。",
   "appearance": "外観",
+  "articleSearch": "論文",
   "author": "著者",
   "badgeAiBuilt": "AI製",
   "badgeOpenSource": "オープンソース",

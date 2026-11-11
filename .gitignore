@@ -77,6 +77,7 @@ api_dump/
 test/*
 !test/widgets/
 !test/parsers/
+!test/providers/
 !test/services/
 !test/l10n/
 !test/routes/

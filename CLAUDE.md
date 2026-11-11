@@ -40,7 +40,7 @@ Models are hand-written: `Book`/`User` and all other models use no freezed, no j
 
 ## Tests
 
-`test/` is organised as `test/parsers/` (HTML/JSON parsers), `test/services/` (providers, caches, storage, downloader, trust), `test/widgets/` (widget tests), `test/l10n/` (localization string/resolution tests) and `test/routes/` (route table and argument guards). `.gitignore` ignores `test/*` but un-ignores exactly these five directories — a new test directory needs a matching `!test/<dir>/` line, otherwise it is silently not committed.
+`test/` is organised as `test/parsers/` (HTML/JSON parsers), `test/services/` (providers, caches, storage, downloader, trust), `test/providers/` (Riverpod notifier tests), `test/widgets/` (widget tests), `test/l10n/` (localization string/resolution tests) and `test/routes/` (route table and argument guards). `.gitignore` ignores `test/*` but un-ignores exactly these six directories — a new test directory needs a matching `!test/<dir>/` line, otherwise it is silently not committed.
 
 ## Key Patterns
 

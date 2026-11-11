@@ -25,6 +25,7 @@
   "annasDonationKey": "Anna's Archive donation key",
   "annasDonationKeyHint": "Enter your donation key to enable fast downloads. Leave empty to use slow downloads.",
   "appearance": "Appearance",
+  "articleSearch": "Articles",
   "author": "Author",
   "badgeAiBuilt": "AI-Built",
   "badgeOpenSource": "Open Source",

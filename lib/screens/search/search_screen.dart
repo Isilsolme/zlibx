@@ -3,18 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
+import '../../providers/article_search_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/fulltext_search_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
 import 'widgets/active_filter_chips.dart';
+import 'widgets/article_tile.dart';
 import 'widgets/empty_query_view.dart';
 import 'widgets/fulltext_hit_tile.dart';
-import 'widgets/fulltext_mode_selector.dart';
+import 'widgets/search_mode_selector.dart';
 import 'widgets/search_bar_field.dart';
 import 'widgets/search_skeleton_grid.dart';
 import 'widgets/search_suggestions_view.dart';
 import 'widgets/source_selector.dart';
+import '../reader/reader_screen.dart';
 import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
@@ -53,12 +57,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   String _selectedOrder = 'default';
   String _selectedExtension = 'all';
 
-  // ── Full-text mode (z站 only): words/phrase match + exact flag.
-  // The match default is `words` (the site's working default,
-  // device-proven 2026-11-11); the order default differs per mode
-  // ('popular' for full-text, 'default' for general search) — see
-  // _switchFullTextMode.
-  bool _isFullText = false;
+  // ── z站 search mode: 通用 / 文章 / 全文检索. The full-text-only
+  // extras (words/phrase match + exact flag) live below; their
+  // default is `words` / off (the site's working default,
+  // device-proven 2026-11-11). The order default differs per mode
+  // ('popular' for full-text, 'default' for general and article
+  // search) — see _switchMode.
+  SearchMode _mode = SearchMode.general;
   String _fullTextMatchType = 'words';
   bool _fullTextExact = false;
 
@@ -76,12 +81,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   late BookSource _source;
 
-  int get _activeFilterCount =>
-      (_selectedLanguage != 'all' ? 1 : 0) +
-      (_selectedOrder != (_isFullText ? 'popular' : 'default') ? 1 : 0) +
-      (_selectedExtension != 'all' ? 1 : 0) +
-      (_isFullText && _fullTextMatchType != 'words' ? 1 : 0) +
-      (_isFullText && _fullTextExact ? 1 : 0);
+  int get _activeFilterCount {
+    switch (_mode) {
+      case SearchMode.fulltext:
+        // The full-text request DOES carry language / extension
+        // (`/fulltext/?…&languages[]=…&extensions[]=…`, verified
+        // end-to-end: search_screen → FullTextSearchParams →
+        // ZLibraryFullText.searchFullText), and the sheet shows both
+        // sections in this mode — so the badge counts them, same as
+        // the general branch. Only article mode hides those filters.
+        return (_selectedLanguage != 'all' ? 1 : 0) +
+            (_selectedOrder != 'popular' ? 1 : 0) +
+            (_selectedExtension != 'all' ? 1 : 0) +
+            (_fullTextMatchType != 'words' ? 1 : 0) +
+            (_fullTextExact ? 1 : 0);
+      case SearchMode.article:
+        // Article search sends only the query and sort (v1) — the
+        // sheet hides the language / extension sections so the UI
+        // never promises a filter the request does not carry.
+        return _selectedOrder != 'default' ? 1 : 0;
+      case SearchMode.general:
+        return (_selectedLanguage != 'all' ? 1 : 0) +
+            (_selectedOrder != 'default' ? 1 : 0) +
+            (_selectedExtension != 'all' ? 1 : 0);
+    }
+  }
 
   @override
   void initState() {
@@ -222,6 +246,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     setState(() => _lastSubmittedQuery = '');
     ref.read(searchProvider.notifier).reset();
     ref.read(fulltextSearchProvider.notifier).reset();
+    ref.read(articleSearchProvider.notifier).reset();
     ref.read(externalSearchProvider.notifier).reset();
   }
 
@@ -243,7 +268,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _resetOrderFilter() {
-    _selectedOrder = _isFullText ? 'popular' : 'default';
+    _selectedOrder = _mode == SearchMode.fulltext ? 'popular' : 'default';
     _applyFilterChange();
   }
 
@@ -254,17 +279,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   /// The filter button in the search bar: opens the sheet with the
   /// current locale's display names (same maps the chips mirror).
+  /// Article mode passes empty language / extension maps — their
+  /// sections hide (the request carries none of those filters).
   void _openFilterSheetForCurrentLocale() {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
+    final isArticle = _mode == SearchMode.article;
     unawaited(
       _openFilterSheet(
         l10n,
-        getLanguageDisplayNames(locale),
-        _isFullText
+        isArticle
+            ? const <String, String>{}
+            : getLanguageDisplayNames(locale),
+        _mode == SearchMode.fulltext
             ? getFulltextOrderDisplayNames(locale)
             : getOrderDisplayNames(locale),
-        getExtensionDisplayNames(locale),
+        isArticle
+            ? const <String, String>{}
+            : getExtensionDisplayNames(locale),
       ),
     );
   }
@@ -352,7 +384,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_isFullText) ...[
+                    if (_mode == SearchMode.fulltext) ...[
                       section(
                         l10n.matchMode,
                         {
@@ -373,24 +405,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       ),
                       const SizedBox(height: 20),
                     ],
-                    section(
-                      l10n.language,
-                      languageNames,
-                      _selectedLanguage,
-                      (v) => _selectedLanguage = v,
-                    ),
+                    // Article mode sends only the query and sort, so
+                    // its language / extension sections stay hidden
+                    // (empty maps from the caller).
+                    if (languageNames.isNotEmpty)
+                      section(
+                        l10n.language,
+                        languageNames,
+                        _selectedLanguage,
+                        (v) => _selectedLanguage = v,
+                      ),
                     section(
                       l10n.sort,
                       orderNames,
                       _selectedOrder,
                       (v) => _selectedOrder = v,
                     ),
-                    section(
-                      null,
-                      extensionNames,
-                      _selectedExtension,
-                      (v) => _selectedExtension = v,
-                    ),
+                    if (extensionNames.isNotEmpty)
+                      section(
+                        null,
+                        extensionNames,
+                        _selectedExtension,
+                        (v) => _selectedExtension = v,
+                      ),
                     Row(
                       children: [
                         TextButton.icon(
@@ -398,7 +435,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             setSheetState(() {
                               _selectedLanguage = 'all';
                               _selectedOrder =
-                                  _isFullText ? 'popular' : 'default';
+                                  _mode == SearchMode.fulltext
+                                      ? 'popular'
+                                      : 'default';
                               _selectedExtension = 'all';
                               _fullTextMatchType = 'words';
                               _fullTextExact = false;
@@ -451,7 +490,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       return true;
     }
 
-    if (_isFullText) {
+    if (_mode == SearchMode.fulltext) {
       ref.read(fulltextSearchProvider.notifier).search(
         FullTextSearchParams(
           query: query,
@@ -464,6 +503,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ? [searchExtensions[_selectedExtension]!]
               : null,
           order: _selectedOrder,
+        ),
+      );
+      return true;
+    }
+
+    if (_mode == SearchMode.article) {
+      ref.read(articleSearchProvider.notifier).search(
+        ArticleSearchParams(
+          query: query,
+          order: searchOrders[_selectedOrder],
         ),
       );
       return true;
@@ -496,19 +545,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _lastSubmittedQuery = '';
     });
     ref.read(searchProvider.notifier).reset();
+    ref.read(fulltextSearchProvider.notifier).reset();
+    ref.read(articleSearchProvider.notifier).reset();
     ref.read(externalSearchProvider.notifier).reset();
     if (_searchController.text.trim().isNotEmpty) _performSearch();
   }
 
-  /// Switch between general and full-text search (z站 only). The
+  /// Switch between the z站 search modes (通用 / 文章 / 全文检索). The
   /// sort selection resets to the new mode's default ('popular' for
-  /// full-text, 'default' for general) so a sort value from one mode
-  /// can never leak into the other endpoint's request.
-  void _switchFullTextMode(bool isFullText) {
-    if (isFullText == _isFullText) return;
+  /// full-text, 'default' for general and article) so a sort value
+  /// from one mode can never leak into the other endpoint's request.
+  void _switchMode(SearchMode mode) {
+    if (mode == _mode) return;
     setState(() {
-      _isFullText = isFullText;
-      _selectedOrder = isFullText ? 'popular' : 'default';
+      _mode = mode;
+      _selectedOrder = mode == SearchMode.fulltext ? 'popular' : 'default';
       _suggestions = [];
       _suggestionsLoading = false;
       _showSuggestions = false;
@@ -516,6 +567,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     });
     ref.read(searchProvider.notifier).reset();
     ref.read(fulltextSearchProvider.notifier).reset();
+    ref.read(articleSearchProvider.notifier).reset();
     if (_searchController.text.trim().isNotEmpty) _performSearch();
   }
 
@@ -524,8 +576,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         _scrollController.position.maxScrollExtent - 200) {
       if (_source != BookSource.zlibrary) {
         ref.read(externalSearchProvider.notifier).loadMore();
-      } else if (_isFullText) {
+      } else if (_mode == SearchMode.fulltext) {
         ref.read(fulltextSearchProvider.notifier).loadMore();
+      } else if (_mode == SearchMode.article) {
+        ref.read(articleSearchProvider.notifier).loadMore();
       } else {
         ref.read(searchProvider.notifier).loadMore();
       }
@@ -544,12 +598,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  /// Opens one article's site detail page in the reader WebView —
+  /// the same session-installed page the online reader uses. Articles
+  /// have no eapi detail flow (those endpoints are book-only), so the
+  /// site's own page (which carries the download button) is the v1
+  /// interaction. The URL host is the API line's own domain — the
+  /// same host the session was already issued for — so the session
+  /// rides along whenever the user is signed in. Removed articles
+  /// still open (site behaviour: the page stays reachable).
+  void _openArticle(Article article) {
+    final url = article.url;
+    if (url == null || url.isEmpty) return;
+    final user = ref.read(authProvider).user;
+    AppRoutes.openReader(
+      context,
+      ReaderArgs(
+        url: url,
+        title: article.title,
+        remixUserId: user?.id,
+        remixUserKey: user?.remixUserkey,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
     final languageNames = getLanguageDisplayNames(locale);
-    final orderNames = _isFullText
+    final orderNames = _mode == SearchMode.fulltext
         ? getFulltextOrderDisplayNames(locale)
         : getOrderDisplayNames(locale);
     final extensionNames = getExtensionDisplayNames(locale);
@@ -558,45 +635,62 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchState = ref.watch(searchProvider);
     final externalState = ref.watch(externalSearchProvider);
     final fulltextState = ref.watch(fulltextSearchProvider);
-    final isFullTextMode = _isFullText && !isExternal;
+    final articleState = ref.watch(articleSearchProvider);
+    final isFullTextMode = _mode == SearchMode.fulltext && !isExternal;
+    final isArticleMode = _mode == SearchMode.article && !isExternal;
     final books = isExternal
         ? externalState.books
         : searchState.books.map((book) => book.toDisplay()).toList();
-    final resultCount =
-        isFullTextMode ? fulltextState.hits.length : books.length;
+    final resultCount = isFullTextMode
+        ? fulltextState.hits.length
+        : isArticleMode
+        ? articleState.articles.length
+        : books.length;
     final hasSearched = isExternal
         ? externalState.hasSearched
         : isFullTextMode
-            ? fulltextState.hasSearched
-            : searchState.hasSearched;
+        ? fulltextState.hasSearched
+        : isArticleMode
+        ? articleState.hasSearched
+        : searchState.hasSearched;
     final isLoading = isExternal
         ? externalState.isLoading
         : isFullTextMode
-            ? fulltextState.isLoading
-            : searchState.isLoading;
+        ? fulltextState.isLoading
+        : isArticleMode
+        ? articleState.isLoading
+        : searchState.isLoading;
     final isLoadingMore = isExternal
         ? externalState.isLoadingMore
         : isFullTextMode
-            ? fulltextState.isLoadingMore
-            : searchState.isLoadingMore;
+        ? fulltextState.isLoadingMore
+        : isArticleMode
+        ? articleState.isLoadingMore
+        : searchState.isLoadingMore;
     final loginRequired = isFullTextMode && fulltextState.loginRequired;
     final error = isExternal
         ? externalState.error
         : isFullTextMode
-            ? (fulltextState.error == fulltextTokenUnavailable
-                ? l10n.fullTextUnavailable
-                : fulltextState.error)
-            : searchState.error;
+        ? (fulltextState.error == fulltextTokenUnavailable
+              ? l10n.fullTextUnavailable
+              : fulltextState.error)
+        : isArticleMode
+        ? articleState.error
+        : searchState.error;
     final currentPage = isExternal
         ? externalState.currentPage
         : isFullTextMode
-            ? fulltextState.currentPage
-            : searchState.currentPage;
+        ? fulltextState.currentPage
+        : isArticleMode
+        ? articleState.currentPage
+        : searchState.currentPage;
     final totalPagesText = isExternal
         ? (externalState.hasMore ? '…' : '${externalState.currentPage}')
         : isFullTextMode
-            ? '${fulltextState.totalPages}'
-            : '${searchState.totalPages}';
+        ? '${fulltextState.totalPages}'
+        : isArticleMode
+        ? '${articleState.totalPages}'
+        : '${searchState.totalPages}';
 
     return Scaffold(
       appBar: GradientAppBar(title: l10n.searchBooks),
@@ -608,7 +702,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             isExternal: isExternal,
             activeFilterCount: _activeFilterCount,
             isQueryEmpty: _isQueryEmpty,
-            hintText: _isFullText ? l10n.fullTextSearchHint : null,
+            hintText: _mode == SearchMode.fulltext
+                ? l10n.fullTextSearchHint
+                : null,
             onSubmitted: _performSearch,
             onFilterTap: _openFilterSheetForCurrentLocale,
             onClear: _clearSearch,
@@ -619,10 +715,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             onSwitch: _switchSource,
           ),
           if (!isExternal)
-            FulltextModeSelector(
+            SearchModeSelector(
               l10n: l10n,
-              isFullText: _isFullText,
-              onSwitch: _switchFullTextMode,
+              mode: _mode,
+              onSwitch: _switchMode,
             ),
           if (!isExternal && _activeFilterCount > 0)
             SearchActiveFilterChips(
@@ -741,7 +837,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     ),
                               ),
                             ),
-                            if (!isFullTextMode)
+                            // 文章/全文模式没有网格卡片，视图切换只
+                            // 对通用搜索的 DisplayBook 网格有意义。
+                            if (!isFullTextMode && !isArticleMode)
                               IconButton(
                                 icon: Icon(
                                   _isListView
@@ -778,6 +876,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     ref
                                         .read(fulltextSearchProvider.notifier)
                                         .loadMore();
+                                  } else if (isArticleMode) {
+                                    ref
+                                        .read(articleSearchProvider.notifier)
+                                        .loadMore();
                                   } else {
                                     ref
                                         .read(searchProvider.notifier)
@@ -810,6 +912,31 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     hit: hit,
                                     l10n: l10n,
                                     onTap: () => _openFullTextHit(hit),
+                                  );
+                                },
+                              )
+                            : isArticleMode
+                            ? ListView.builder(
+                                controller: _scrollController,
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                itemCount: articleState.articles.length +
+                                    (isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index >=
+                                      articleState.articles.length) {
+                                    return const LoadingWidget.more();
+                                  }
+                                  final article =
+                                      articleState.articles[index];
+                                  return ArticleTile(
+                                    article: article,
+                                    l10n: l10n,
+                                    onTap: () => _openArticle(article),
                                   );
                                 },
                               )

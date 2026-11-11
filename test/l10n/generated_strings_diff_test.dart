@@ -3,7 +3,7 @@
 //
 // Proves the generated gen-l10n output returns byte-identical strings
 // to the pre-migration hand-written tables (scripts/l10n_snapshot.json):
-// every one of the 421 getters/methods, in all 5 locales, plus the 27
+// every one of the 422 getters/methods, in all 5 locales, plus the 27
 // placeholder methods called with fixed sample arguments. If any
 // user-visible string differs, this test fails.
 //
@@ -39,6 +39,7 @@ void main() {
     expect(loc.annasDonationKey, 'Anna\'s Archive donation key');
     expect(loc.annasDonationKeyHint, 'Enter your donation key to enable fast downloads. Leave empty to use slow downloads.');
     expect(loc.appearance, 'Appearance');
+    expect(loc.articleSearch, 'Articles');
     expect(loc.author, 'Author');
     expect(loc.badgeAiBuilt, 'AI-Built');
     expect(loc.badgeOpenSource, 'Open Source');
@@ -464,6 +465,7 @@ void main() {
     expect(loc.annasDonationKey, 'Anna\'s Archive 寄付キー');
     expect(loc.annasDonationKeyHint, '寄付キーを入力すると高速ダウンロードが使えます。空欄の場合は低速ダウンロードになります。');
     expect(loc.appearance, '外観');
+    expect(loc.articleSearch, '論文');
     expect(loc.author, '著者');
     expect(loc.badgeAiBuilt, 'AI製');
     expect(loc.badgeOpenSource, 'オープンソース');
@@ -889,6 +891,7 @@ void main() {
     expect(loc.annasDonationKey, 'Anna\'s Archive 기부 키');
     expect(loc.annasDonationKeyHint, '기부 키를 입력하면 빠른 다운로드를 사용할 수 있습니다. 비워 두면 느린 다운로드를 사용합니다.');
     expect(loc.appearance, '모양');
+    expect(loc.articleSearch, '논문');
     expect(loc.author, '저자');
     expect(loc.badgeAiBuilt, 'AI로 제작');
     expect(loc.badgeOpenSource, '오픈소스');
@@ -1314,6 +1317,7 @@ void main() {
     expect(loc.annasDonationKey, 'Anna\'s Archive 捐赠 Key');
     expect(loc.annasDonationKeyHint, '填入捐赠 Key 可用快速下载，留空则使用慢速下载。');
     expect(loc.appearance, '外观');
+    expect(loc.articleSearch, '文章');
     expect(loc.author, '作者');
     expect(loc.badgeAiBuilt, 'AI构建');
     expect(loc.badgeOpenSource, '开源');
@@ -1739,6 +1743,7 @@ void main() {
     expect(loc.annasDonationKey, 'Anna\'s Archive 捐贈 Key');
     expect(loc.annasDonationKeyHint, '填入捐贈 Key 可用快速下載，留空則使用慢速下載。');
     expect(loc.appearance, '外觀');
+    expect(loc.articleSearch, '文章');
     expect(loc.author, '作者');
     expect(loc.badgeAiBuilt, 'AI構建');
     expect(loc.badgeOpenSource, '開源');

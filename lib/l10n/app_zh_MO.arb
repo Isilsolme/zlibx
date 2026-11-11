@@ -25,6 +25,7 @@
   "annasDonationKey": "Anna's Archive 捐贈 Key",
   "annasDonationKeyHint": "填入捐贈 Key 可用快速下載，留空則使用慢速下載。",
   "appearance": "外觀",
+  "articleSearch": "文章",
   "author": "作者",
   "badgeAiBuilt": "AI構建",
   "badgeOpenSource": "開源",
