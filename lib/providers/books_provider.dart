@@ -162,33 +162,32 @@ class SearchNotifier extends Notifier<SearchState> {
   }
 }
 
-final searchProvider =
-    NotifierProvider<SearchNotifier, SearchState>(SearchNotifier.new);
+final searchProvider = NotifierProvider<SearchNotifier, SearchState>(
+  SearchNotifier.new,
+);
 
 // ── Book Details ────────────────────────────────────────────────────
 
 /// autoDispose：详情页关掉后无人 watch 即释放缓存。此前常驻内存，
 /// 长会话逐本累积（每本详情是全量 [Book]）；相似书链路中每一页
 /// 详情始终 watch 自己的 identifier，不会产生重复请求。
-final bookDetailsProvider =
-    FutureProvider.autoDispose.family<Book, BookIdentifier>(
-  (ref, identifier) async {
-  final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getBookInfo(
-    identifier.bookId,
-    identifier.hashId,
-    title: identifier.title,
-  );
-  if (!response.success) {
-    throw StateError(response.error ?? 'Failed to load book details');
-  }
-  final book = response.data;
-  if (book == null) {
-    throw StateError('Book details response did not contain a book');
-  }
-  return book;
-  },
-);
+final bookDetailsProvider = FutureProvider.autoDispose
+    .family<Book, BookIdentifier>((ref, identifier) async {
+      final api = ref.watch(zlibraryApiProvider);
+      final response = await api.getBookInfo(
+        identifier.bookId,
+        identifier.hashId,
+        title: identifier.title,
+      );
+      if (!response.success) {
+        throw StateError(response.error ?? 'Failed to load book details');
+      }
+      final book = response.data;
+      if (book == null) {
+        throw StateError('Book details response did not contain a book');
+      }
+      return book;
+    });
 
 // ── External Search (Anna's Archive + LibGen) ────────────────────────
 //
@@ -280,17 +279,12 @@ class ExternalSearchNotifier extends Notifier<ExternalSearchState> {
       );
     } catch (e) {
       if (requestId != _requestId) return;
-      state = ExternalSearchState(
-        hasSearched: true,
-        error: _errorMessage(e),
-      );
+      state = ExternalSearchState(hasSearched: true, error: _errorMessage(e));
     }
   }
 
   Future<void> loadMore() async {
-    if (_lastQuery == null ||
-        state.isLoadingMore ||
-        !state.hasMore) {
+    if (_lastQuery == null || state.isLoadingMore || !state.hasMore) {
       return;
     }
 
@@ -304,20 +298,14 @@ class ExternalSearchNotifier extends Notifier<ExternalSearchState> {
       );
       if (requestId != _requestId) return;
       state = state.copyWith(
-        books: [
-          ...state.books,
-          ...books.map<DisplayBook>(_toDisplay),
-        ],
+        books: [...state.books, ...books.map<DisplayBook>(_toDisplay)],
         currentPage: nextPage,
         isLoadingMore: false,
         hasMore: books.isNotEmpty,
       );
     } catch (e) {
       if (requestId != _requestId) return;
-      state = state.copyWith(
-        isLoadingMore: false,
-        error: _errorMessage(e),
-      );
+      state = state.copyWith(isLoadingMore: false, error: _errorMessage(e));
     }
   }
 
@@ -344,8 +332,7 @@ final externalSearchProvider =
 /// reused across detail and search requests instead of being rebuilt
 /// per call. The service holds no per-request mutable state (its headers
 /// map is only read), so sharing one instance is safe.
-final annasArchieveProvider =
-    Provider<AnnasArchieve>((ref) => AnnasArchieve());
+final annasArchieveProvider = Provider<AnnasArchieve>((ref) => AnnasArchieve());
 
 // ── Anna's Archive Book Details ──────────────────────────────────────
 //
@@ -354,8 +341,8 @@ final annasArchieveProvider =
 // mirror, parse failure), so the provider surfaces the error as-is.
 /// autoDispose：详情页关掉后无人 watch 即释放缓存；每条 link 各占一
 /// 个缓存项，重度浏览否则无界增长。
-final annasBookDetailsProvider =
-    FutureProvider.autoDispose.family<BookInfoData, String>((ref, link) async {
+final annasBookDetailsProvider = FutureProvider.autoDispose
+    .family<BookInfoData, String>((ref, link) async {
       final archive = ref.watch(annasArchieveProvider);
       return archive.bookInfo(url: link);
     });
@@ -364,8 +351,7 @@ final annasBookDetailsProvider =
 /// a fresh Dio (and a fresh keep-alive HttpClient pool) every time the
 /// user opened a LibGen book — the same leak pattern the search side
 /// already fixed with [annasArchieveProvider].
-final libgenServiceProvider =
-    Provider<LibgenService>((ref) => LibgenService());
+final libgenServiceProvider = Provider<LibgenService>((ref) => LibgenService());
 
 // ── LibGen Book Details ──────────────────────────────────────────────
 //
@@ -374,8 +360,8 @@ final libgenServiceProvider =
 // (no mirror, non-200, parse failure), so the provider turns that into
 // a StateError for the detail page's error UI.
 /// autoDispose：与 [annasBookDetailsProvider] 同理，详情页关掉即释放。
-final libgenBookDetailsProvider =
-    FutureProvider.autoDispose.family<BookInfoData, String>((ref, link) async {
+final libgenBookDetailsProvider = FutureProvider.autoDispose
+    .family<BookInfoData, String>((ref, link) async {
       final info = await ref.watch(libgenServiceProvider).bookInfo(link);
       if (info == null) throw StateError('Failed to load book details');
       return info;
@@ -403,48 +389,6 @@ class BookIdentifier {
   @override
   int get hashCode => bookId.hashCode ^ hashId.hashCode ^ title.hashCode;
 }
-
-// ── Book Lists ──────────────────────────────────────────────────────
-
-final mostPopularBooksProvider = FutureProvider<List<Book>>((ref) async {
-  final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getMostPopular();
-  if (!response.success) {
-    // Surface the failure as AsyncError so the UI shows its error/retry
-    // branch — an API failure and a genuinely empty list must not look
-    // identical (and only the former is retryable).
-    throw StateError(response.error ?? 'Failed to load popular books');
-  }
-  return response.data ?? [];
-});
-
-final recommendedBooksProvider = FutureProvider<List<Book>>((ref) async {
-  final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getUserRecommended();
-  if (!response.success) {
-    throw StateError(response.error ?? 'Failed to load recommendations');
-  }
-  return response.data ?? [];
-});
-
-/// 首页推荐：z站推荐，转为 DisplayBook 列表。
-final homeRecommendedProvider = Provider<AsyncValue<List<DisplayBook>>>((ref) {
-  final zlibAsync = ref.watch(recommendedBooksProvider);
-  // whenData keeps loading/error states as-is: the home screen keeps its
-  // error/retry entry and keeps showing the previous data while a
-  // revalidation after an account switch is in flight.
-  return zlibAsync
-      .whenData((books) => books.map((b) => b.toDisplay()).toList());
-});
-
-final recentBooksProvider = FutureProvider<List<Book>>((ref) async {
-  final api = ref.watch(zlibraryApiProvider);
-  final response = await api.getRecently();
-  if (!response.success) {
-    throw StateError(response.error ?? 'Failed to load recent books');
-  }
-  return response.data ?? [];
-});
 
 // ── Saved Books ─────────────────────────────────────────────────────
 
@@ -611,11 +555,9 @@ class HistoryCoverNotifier extends Notifier<Map<String, String>> {
     if (book.id == 0 || _attempted.contains(id)) return;
     _attempted.add(id);
     try {
-      final response = await ref.read(zlibraryApiProvider).getBookInfo(
-            id,
-            book.hash ?? '',
-            title: book.title,
-          );
+      final response = await ref
+          .read(zlibraryApiProvider)
+          .getBookInfo(id, book.hash ?? '', title: book.title);
       final cover = response.data?.cover;
       if (response.success && cover != null && cover.isNotEmpty) {
         state = {...state, id: cover};
@@ -637,10 +579,9 @@ final historyCoverProvider =
 
 /// autoDispose：每本书一个缓存项；详情页关掉即释放，切换账号时
 /// [invalidateAccountScopedProviders] 本来就会整体失效它。
-final isBookFavoritedProvider = FutureProvider.autoDispose.family<bool, String>((
-  ref,
-  bookId,
-) async {
-  final storage = ref.watch(storageServiceProvider);
-  return await storage.isFavorite(bookId);
-});
+final isBookFavoritedProvider = FutureProvider.autoDispose.family<bool, String>(
+  (ref, bookId) async {
+    final storage = ref.watch(storageServiceProvider);
+    return await storage.isFavorite(bookId);
+  },
+);
