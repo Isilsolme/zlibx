@@ -12,6 +12,7 @@ import 'widgets/language_section.dart';
 import 'widgets/theme_section.dart';
 import 'widgets/network_section.dart';
 import 'widgets/navigation_section.dart';
+import 'widgets/home_layout_section.dart';
 import 'widgets/section_header.dart';
 import 'widgets/settings_card.dart';
 
@@ -75,6 +76,11 @@ class SettingsScreen extends ConsumerWidget {
 
             // ── Theme ────────────────────────────────────────────────
             const ThemeSection(),
+
+            const SizedBox(height: 20),
+
+            // ── Home layout ──────────────────────────────────────────
+            const HomeLayoutSection(),
 
             const SizedBox(height: 20),
 

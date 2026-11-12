@@ -631,5 +631,9 @@
   "navLabelNever": "不显示",
   "glassRefraction": "液态玻璃折射",
   "glassRefractionDesc": "底栏额外透镜层，关闭可减少渲染开销",
-  "noMoreBooks": "没有更多书籍了"
+  "noMoreBooks": "没有更多书籍了",
+  "homeLayout": "首页布局",
+  "gridColumns": "网格列数",
+  "twoColumns": "2 列",
+  "threeColumns": "3 列"
 }

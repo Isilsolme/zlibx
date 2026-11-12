@@ -240,3 +240,22 @@ final navLabelModeProvider =
     NotifierProvider<NavLabelModeNotifier, NavLabelMode>(
       NavLabelModeNotifier.new,
     );
+
+/// Home grid columns: 2 or 3. Defaults to 3 (the current design).
+class HomeGridColumnsNotifier extends Notifier<int> {
+  @override
+  int build() {
+    final stored = HiveService.settingsBox.get('homeGridColumns');
+    return stored == 2 ? 2 : 3;
+  }
+
+  Future<void> setColumns(int value) async {
+    if (value != 2 && value != 3) return;
+    state = value;
+    await HiveService.settingsBox.put('homeGridColumns', value);
+  }
+}
+
+final homeGridColumnsProvider = NotifierProvider<HomeGridColumnsNotifier, int>(
+  HomeGridColumnsNotifier.new,
+);

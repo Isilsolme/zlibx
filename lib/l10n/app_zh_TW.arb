@@ -631,5 +631,9 @@
   "navLabelNever": "不顯示",
   "glassRefraction": "液態玻璃折射",
   "glassRefractionDesc": "底欄額外透鏡層，關閉可減少渲染開銷",
-  "noMoreBooks": "沒有更多書籍了"
+  "noMoreBooks": "沒有更多書籍了",
+  "homeLayout": "首頁版面",
+  "gridColumns": "網格欄數",
+  "twoColumns": "2 欄",
+  "threeColumns": "3 欄"
 }

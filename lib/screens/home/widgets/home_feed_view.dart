@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
 import '../../../providers/home_feed_provider.dart';
+import '../../../providers/settings_provider.dart';
 import '../../../widgets/book_card.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../widgets/loading_widget.dart';
@@ -44,12 +45,14 @@ class HomeFeedView extends ConsumerWidget {
     final isLoading = ref.watch(homeFeedProvider.select((s) => s.isLoading));
     final books = ref.watch(homeFeedProvider.select((s) => s.books));
     final error = ref.watch(homeFeedProvider.select((s) => s.error));
+    final columns = ref.watch(homeGridColumnsProvider);
 
     if (isLoading && books.isEmpty) {
       return _crossFade(
         _SkeletonFeed(
           key: const ValueKey<String>('skeleton'),
           topPadding: topPadding,
+          columns: columns,
         ),
       );
     }
@@ -77,18 +80,15 @@ class HomeFeedView extends ConsumerWidget {
         key: const ValueKey<String>('grid'),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const maxCardWidth = 120.0;
             const columnSpacing = 16.0;
             const horizontalPadding = 20.0;
             final gridWidth = (constraints.maxWidth - horizontalPadding * 2)
                 .clamp(0.0, double.infinity);
-            final columnCount = (gridWidth / (maxCardWidth + columnSpacing))
-                .ceil()
-                .clamp(1, 1000)
-                .toInt();
             final cardWidth =
-                ((gridWidth - columnSpacing * (columnCount - 1)) / columnCount)
-                    .clamp(0.0, double.infinity);
+                ((gridWidth - columnSpacing * (columns - 1)) / columns).clamp(
+                  0.0,
+                  double.infinity,
+                );
 
             return RefreshIndicator(
               onRefresh: onRefresh,
@@ -109,8 +109,8 @@ class HomeFeedView extends ConsumerWidget {
                       0,
                     ),
                     sliver: SliverGrid(
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: maxCardWidth,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
                         mainAxisExtent: BookCard.compactHeightFor(cardWidth),
                         crossAxisSpacing: columnSpacing,
                         mainAxisSpacing: 12,
@@ -287,9 +287,14 @@ class _FeedPlaceholder extends StatelessWidget {
 /// sweeps a highlight across all cards, which reads as "loading" without a
 /// spinner covering the whole screen.
 class _SkeletonFeed extends StatefulWidget {
-  const _SkeletonFeed({super.key, required this.topPadding});
+  const _SkeletonFeed({
+    super.key,
+    required this.topPadding,
+    required this.columns,
+  });
 
   final double topPadding;
+  final int columns;
 
   @override
   State<_SkeletonFeed> createState() => _SkeletonFeedState();
@@ -328,21 +333,17 @@ class _SkeletonFeedState extends State<_SkeletonFeed>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const maxCardWidth = 120.0;
         const spacing = 16.0;
         const horizontal = 20.0;
         final width = (constraints.maxWidth - horizontal * 2).clamp(
           0.0,
           double.infinity,
         );
-        final columns = (width / (maxCardWidth + spacing))
-            .ceil()
-            .clamp(1, 1000)
-            .toInt();
-        final cardWidth = ((width - spacing * (columns - 1)) / columns).clamp(
-          0.0,
-          double.infinity,
-        );
+        final cardWidth =
+            ((width - spacing * (widget.columns - 1)) / widget.columns).clamp(
+              0.0,
+              double.infinity,
+            );
         // One opacity layer for the whole grid. The cards themselves are
         // static; nothing rebuilds per frame beyond this FadeTransition.
         return FadeTransition(
@@ -355,13 +356,13 @@ class _SkeletonFeedState extends State<_SkeletonFeed>
               horizontal,
               24,
             ),
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: maxCardWidth,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: widget.columns,
               mainAxisExtent: BookCard.compactHeightFor(cardWidth),
               crossAxisSpacing: spacing,
               mainAxisSpacing: 12,
             ),
-            itemCount: math.max(6, columns * 3),
+            itemCount: math.max(6, widget.columns * 3),
             itemBuilder: (context, index) => const _SkeletonCard(),
           ),
         );
