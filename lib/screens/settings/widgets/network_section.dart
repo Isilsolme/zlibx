@@ -10,6 +10,7 @@ import 'section_header.dart';
 import 'settings_card.dart';
 
 import '../../../l10n/s_keys.dart';
+
 /// Network line picker — same chevron-tile shape as the other settings.
 /// Shows "Line N · 234ms" (latency from the latest speed test) and only
 /// ever displays the line index, never the underlying domain.
@@ -51,10 +52,7 @@ class NetworkSection extends ConsumerWidget {
               testing: speedState.testing,
             ),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => showDialog(
-              context: context,
-              builder: (_) => const DomainSelectionDialog(),
-            ),
+            onTap: () => showDomainSelectionSheet(context),
           ),
         ),
         const SizedBox(height: 12),
@@ -66,9 +64,9 @@ class NetworkSection extends ConsumerWidget {
             title: Text(t.get(S.mirrors)),
             subtitle: Text(t.get(S.mirrorsSubtitle)),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MirrorsPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const MirrorsPage())),
           ),
         ),
       ],
@@ -136,12 +134,17 @@ class _LineStatus extends StatelessWidget {
     final status = domainLatencyStatus(latency);
     if (status == DomainLatencyStatus.untested) {
       return (
-        testing ? (AppLocalizations.of(context).get(S.speedTesting)) : (AppLocalizations.of(context).get(S.speedUntested)),
+        testing
+            ? (AppLocalizations.of(context).get(S.speedTesting))
+            : (AppLocalizations.of(context).get(S.speedUntested)),
         cs.onSurfaceVariant,
       );
     }
     if (status == DomainLatencyStatus.unavailable) {
-      return (AppLocalizations.of(context).get(S.lineStatusUnavailable), cs.error);
+      return (
+        AppLocalizations.of(context).get(S.lineStatusUnavailable),
+        cs.error,
+      );
     }
     if (status == DomainLatencyStatus.normal) {
       return ('${latency!}ms', AppColors.success);

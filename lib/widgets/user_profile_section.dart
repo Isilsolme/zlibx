@@ -3,6 +3,7 @@ import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../l10n/app_localizations.dart';
 
 import '../l10n/s_keys.dart';
+
 /// Horizontal hero card showing the signed-in user.
 /// Avatar on the left, name + email on the right, downloads-left chip below.
 class UserProfileSection extends StatelessWidget {
@@ -32,9 +33,6 @@ class UserProfileSection extends StatelessWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: cs.primary.withValues(alpha: isDark ? 0.25 : 0.12),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,11 +77,11 @@ class UserProfileSection extends StatelessWidget {
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton.icon(
+            child: FilledButton.tonalIcon(
               onPressed: onManageAccounts,
               icon: const Icon(Icons.swap_horiz_rounded, size: 18),
               label: Text(AppLocalizations.of(context).get(S.switchAccount)),
-              style: OutlinedButton.styleFrom(
+              style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

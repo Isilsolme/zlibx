@@ -78,19 +78,22 @@ class AppTheme {
   static ColorScheme? _lastDarkScheme;
   static ThemeData? _lastDarkTheme;
 
-  /// 页面转场基线：Android 用 Material 3 的 Zoom（对预测性返回手势
-  /// 友好），Apple 平台保持 Cupertino 滑动手感，桌面统一 Zoom。
-  /// 此前未配置，三端各走各自默认，体验不一致。
+  /// 页面转场基线：Android 也改用 Cupertino 横向滑动。
+  ///
+  /// Zoom 转场会给整页叠一层透明度/缩放，在 Impeller 上返回首页时，
+  /// 卡片圆角裁剪外的透明像素会透出黑色，形成“黑花瓣”花屏。横向滑动
+  /// 不做整页淡入淡出，既能避开这个合成 bug，也更接近 legado 的返回
+  /// 手感。Apple 平台本来就是这个行为，桌面保持 Zoom。
   static const PageTransitionsTheme _pageTransitionsTheme =
       PageTransitionsTheme(
-    builders: {
-      TargetPlatform.android: ZoomPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: ZoomPageTransitionsBuilder(),
-      TargetPlatform.linux: ZoomPageTransitionsBuilder(),
-    },
-  );
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: ZoomPageTransitionsBuilder(),
+        },
+      );
 
   /// Light theme for a dynamic [scheme]; null falls back to [lightTheme].
   static ThemeData lightThemeFromScheme(ColorScheme? scheme) {
@@ -117,8 +120,7 @@ class AppTheme {
     final cs = scheme ?? _lightColorScheme;
     // Without a dynamic scheme we keep the warm-paper scaffold/app-bar
     // background; a dynamic scheme uses its own surface instead.
-    final background =
-        scheme == null ? AppColors.background : cs.surface;
+    final background = scheme == null ? AppColors.background : cs.surface;
 
     return ThemeData(
       useMaterial3: true,
@@ -127,6 +129,25 @@ class AppTheme {
       scaffoldBackgroundColor: background,
       colorScheme: cs,
       pageTransitionsTheme: _pageTransitionsTheme,
+      // One popup language for the whole app: sheets are 28dp tonal
+      // surfaces with an M3 drag handle; dialogs share the 28dp shape.
+      // This is what makes every settings option animate the same way.
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cs.surfaceContainerLow,
+        modalBackgroundColor: cs.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: cs.onSurfaceVariant.withValues(alpha: 0.4),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        clipBehavior: Clip.antiAlias,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: cs.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
 
       cardTheme: CardThemeData(
         color: cs.surface,
@@ -157,14 +178,13 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(fontSize: 12, fontWeight: FontWeight.bold);
           }
-          return const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.normal);
+          return const TextStyle(fontSize: 12, fontWeight: FontWeight.normal);
         }),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: cs.surface,
+        fillColor: cs.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide.none,
@@ -175,10 +195,12 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide(color: cs.primary, width: 1.5),
+          borderSide: BorderSide.none,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
         hintStyle: TextStyle(color: cs.onSurfaceVariant),
       ),
 
@@ -191,17 +213,34 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
       ),
 
-      dividerTheme: DividerThemeData(
-        color: cs.outlineVariant,
-        thickness: 1,
+      // No outlined buttons anywhere: secondary actions are tonal fills.
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: cs.surfaceContainerHigh,
+          foregroundColor: cs.primary,
+          side: BorderSide.none,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ),
+      // Chips are filled pills, never outlined.
+      chipTheme: ChipThemeData(
+        side: BorderSide.none,
+        backgroundColor: cs.surfaceContainerHigh,
+        selectedColor: cs.primaryContainer,
+        labelStyle: TextStyle(color: cs.onSurface),
+        secondaryLabelStyle: TextStyle(color: cs.onPrimaryContainer),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      dividerTheme: DividerThemeData(color: cs.outlineVariant, thickness: 1),
     );
   }
 
@@ -216,6 +255,25 @@ class AppTheme {
       scaffoldBackgroundColor: cs.surfaceContainerLowest,
       colorScheme: cs,
       pageTransitionsTheme: _pageTransitionsTheme,
+      // One popup language for the whole app: sheets are 28dp tonal
+      // surfaces with an M3 drag handle; dialogs share the 28dp shape.
+      // This is what makes every settings option animate the same way.
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: cs.surfaceContainerLow,
+        modalBackgroundColor: cs.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        dragHandleColor: cs.onSurfaceVariant.withValues(alpha: 0.4),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        clipBehavior: Clip.antiAlias,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: cs.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      ),
 
       // Make all default text colors honor onSurface/onSurfaceVariant so
       // widgets that don't explicitly read colorScheme still pick up the
@@ -228,9 +286,8 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: cs.surface,
         elevation: 0,
-        shape: RoundedRectangleBorder(
-          side: BorderSide(color: cs.outlineVariant),
-          borderRadius: const BorderRadius.all(Radius.circular(20)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
         ),
       ),
 
@@ -252,8 +309,7 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(fontSize: 12, fontWeight: FontWeight.bold);
           }
-          return const TextStyle(
-              fontSize: 12, fontWeight: FontWeight.normal);
+          return const TextStyle(fontSize: 12, fontWeight: FontWeight.normal);
         }),
       ),
 
@@ -270,10 +326,12 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
-          borderSide: BorderSide(color: cs.primary, width: 1.5),
+          borderSide: BorderSide.none,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
         hintStyle: TextStyle(color: cs.onSurfaceVariant),
       ),
 
@@ -287,10 +345,30 @@ class AppTheme {
         ),
       ),
 
-      dividerTheme: DividerThemeData(
-        color: cs.outlineVariant,
-        thickness: 1,
+      // No outlined buttons anywhere: secondary actions are tonal fills.
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: cs.surfaceContainerHigh,
+          foregroundColor: cs.primary,
+          side: BorderSide.none,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
       ),
+      // Chips are filled pills, never outlined.
+      chipTheme: ChipThemeData(
+        side: BorderSide.none,
+        backgroundColor: cs.surfaceContainerHigh,
+        selectedColor: cs.primaryContainer,
+        labelStyle: TextStyle(color: cs.onSurface),
+        secondaryLabelStyle: TextStyle(color: cs.onPrimaryContainer),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      dividerTheme: DividerThemeData(color: cs.outlineVariant, thickness: 1),
     );
   }
 }

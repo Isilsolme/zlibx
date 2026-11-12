@@ -18,6 +18,7 @@ import '../../reader/reader_screen.dart';
 import 'download_quota_dialog.dart';
 
 import '../../../l10n/s_keys.dart';
+
 class BookActionBar extends ConsumerWidget {
   final Book book;
   final DownloadTask? downloadTask;
@@ -36,24 +37,32 @@ class BookActionBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final hasReadOnline = book.readOnlineUrl != null && book.readOnlineUrl!.isNotEmpty;
+    final hasReadOnline =
+        book.readOnlineUrl != null && book.readOnlineUrl!.isNotEmpty;
 
     return Container(
       padding: EdgeInsets.fromLTRB(
-        20, 12, 20, MediaQuery.of(context).padding.bottom + 12,
+        20,
+        12,
+        20,
+        MediaQuery.of(context).padding.bottom + 12,
       ),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        border: Border(top: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
-        )),
+        border: Border(
+          top: BorderSide(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
       ),
       child: Row(
         children: [
           // ── Download Button (Secondary or Primary if no read) ──
           Expanded(
             child: _buildDownloadButton(
-              context, ref, l10n,
+              context,
+              ref,
+              l10n,
               isPrimary: !hasReadOnline,
             ),
           ),
@@ -62,9 +71,7 @@ class BookActionBar extends ConsumerWidget {
             const SizedBox(width: 12),
 
             // ── Read Button (Primary) ──
-            Expanded(
-              child: _buildReadButton(context, ref, l10n),
-            ),
+            Expanded(child: _buildReadButton(context, ref, l10n)),
           ],
         ],
       ),
@@ -97,8 +104,8 @@ class BookActionBar extends ConsumerWidget {
     final stateKey = isCompleted
         ? 'completed'
         : isDownloading
-            ? 'downloading'
-            : 'idle';
+        ? 'downloading'
+        : 'idle';
     final iconWidget = StateTransitionSwitch(
       child: Icon(icon, size: 20, key: ValueKey(icon)),
     );
@@ -120,7 +127,9 @@ class BookActionBar extends ConsumerWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: isCompleted ? cs.primaryContainer : cs.primary,
             foregroundColor: isCompleted ? cs.onPrimaryContainer : cs.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             minimumSize: const Size(0, 48),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
             elevation: 0,
@@ -131,16 +140,13 @@ class BookActionBar extends ConsumerWidget {
 
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 48),
-      child: OutlinedButton.icon(
+      child: FilledButton.tonalIcon(
         onPressed: isDownloading ? null : () => _handleDownload(context, ref),
         icon: iconWidget,
         label: labelWidget,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: cs.primary,
-          side: BorderSide(
-            color: cs.primary.withValues(alpha: 0.35),
-            width: 1,
-          ),
+        style: FilledButton.styleFrom(
+          backgroundColor: cs.primaryContainer,
+          foregroundColor: cs.onPrimaryContainer,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(0, 48),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
@@ -150,7 +156,9 @@ class BookActionBar extends ConsumerWidget {
   }
 
   Widget _buildReadButton(
-    BuildContext context, WidgetRef ref, AppLocalizations l10n,
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
   ) {
     final cs = Theme.of(context).colorScheme;
     return ConstrainedBox(
@@ -184,7 +192,19 @@ class BookActionBar extends ConsumerWidget {
 
     // Build the reader domain from the custom domain
     final String readerDomain;
-    final languagePrefixes = {'zh', 'en', 'de', 'fr', 'es', 'it', 'pt', 'ja', 'ko', 'ru', 'ar'};
+    final languagePrefixes = {
+      'zh',
+      'en',
+      'de',
+      'fr',
+      'es',
+      'it',
+      'pt',
+      'ja',
+      'ko',
+      'ru',
+      'ar',
+    };
     final dotIndex = customDomain.indexOf('.');
     if (dotIndex > 0) {
       final prefix = customDomain.substring(0, dotIndex);
@@ -207,8 +227,9 @@ class BookActionBar extends ConsumerWidget {
     // 已登录就带会话：自定义线路登录时密码本来就发给该线路，
     // 会话只发给同线路的 reader 子域，不再按内置/自定义区分。
     // 未登录时 user 为 null，仍不带会话，站点会弹登录墙。
-    final userKey =
-        (user?.remixUserkey.isNotEmpty == true) ? user!.remixUserkey : null;
+    final userKey = (user?.remixUserkey.isNotEmpty == true)
+        ? user!.remixUserkey
+        : null;
     Navigator.of(context).pushNamed(
       AppRoutes.reader,
       arguments: ReaderArgs(
@@ -236,7 +257,6 @@ class BookActionBar extends ConsumerWidget {
           .checkFileExists(book);
 
       if (existingPath != null && context.mounted) {
-
         AwesomeDialog(
           context: context,
           dialogType: DialogType.info,
@@ -285,9 +305,7 @@ class BookActionBar extends ConsumerWidget {
   /// （额度按天重置，缓存可能过期）。额度未知（null）时绝不视为用尽。
   Future<bool> _ownQuotaExhausted(WidgetRef ref) async {
     final user = ref.read(authProvider).user;
-    if (user == null ||
-        user.downloadsLeft == null ||
-        user.downloadsLeft! > 0) {
+    if (user == null || user.downloadsLeft == null || user.downloadsLeft! > 0) {
       return false;
     }
     await ref.read(authProvider.notifier).refreshProfile();
@@ -306,27 +324,18 @@ class BookActionBar extends ConsumerWidget {
       if (MediaStoreFiles.isContentUri(path)) {
         final opened = await MediaStoreFiles.open(path);
         if (!opened && context.mounted) {
-          _toast(
-            context,
-            AppLocalizations.of(context).get(S.openFileFailed),
-          );
+          _toast(context, AppLocalizations.of(context).get(S.openFileFailed));
         }
         return;
       }
       final result = await OpenFilex.open(path);
       if (result.type != ResultType.done && context.mounted) {
-        _toast(
-          context,
-          AppLocalizations.of(context).get(S.openFileFailed),
-        );
+        _toast(context, AppLocalizations.of(context).get(S.openFileFailed));
       }
     } catch (error) {
       logIgnored('book_action_bar', error);
       if (context.mounted) {
-        _toast(
-          context,
-          AppLocalizations.of(context).get(S.openFileFailed),
-        );
+        _toast(context, AppLocalizations.of(context).get(S.openFileFailed));
       }
     }
   }

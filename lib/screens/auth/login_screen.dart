@@ -15,6 +15,7 @@ import 'widgets/account_manager_sheet.dart';
 import 'login_failure.dart';
 
 import '../../l10n/s_keys.dart';
+
 class LoginScreen extends ConsumerStatefulWidget {
   final bool addAccountMode;
 
@@ -52,11 +53,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _checkForUpdates() async {
-    final hasUpdate =
-        await ref.read(updateProvider.notifier).checkForUpdate(force: true);
+    final hasUpdate = await ref
+        .read(updateProvider.notifier)
+        .checkForUpdate(force: true);
 
     if (!hasUpdate || !mounted) return;
-
 
     if (ref.read(updateProvider).forceUpdate) {
       // Force update - non-dismissable dialog with download channels
@@ -139,7 +140,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _navigateAfterAuthentication();
     } else {
       final error = ref.read(authProvider).error;
-      final occurredAt = DateTime.now().toLocal().toIso8601String().split('.').first;
+      final occurredAt = DateTime.now()
+          .toLocal()
+          .toIso8601String()
+          .split('.')
+          .first;
 
       final failureKind = classifyLoginFailure(error);
       if (failureKind == LoginFailureKind.line) {
@@ -150,17 +155,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           dialogType: DialogType.warning,
           animType: AnimType.bottomSlide,
           title: AppLocalizations.of(context).get(S.lineUnavailable),
-          desc: AppLocalizations.of(context).get(
-              cf ? 'login_line_blocked_cf' : 'login_line_connect_failed'),
+          desc: AppLocalizations.of(
+            context,
+          ).get(cf ? 'login_line_blocked_cf' : 'login_line_connect_failed'),
           btnCancelText: AppLocalizations.of(context).get(S.close),
           btnCancelOnPress: () {},
           btnOkText: AppLocalizations.of(context).get(S.switchLine),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {
-            showDialog(
-              context: context,
-              builder: (_) => const DomainSelectionDialog(),
-            );
+            showDomainSelectionSheet(context);
           },
         ).show();
       } else {
@@ -171,7 +174,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           title: AppLocalizations.of(context).get(S.loginFailed),
           desc: failureKind == LoginFailureKind.credentials
               ? (AppLocalizations.of(context).get(S.loginBadCredentials))
-              : (AppLocalizations.of(context).get(S.loginUnknownFailure).replaceAll('{line}', lineName).replaceAll('{time}', occurredAt).replaceAll('{detail}', safeLoginErrorDetail(error, email, password))),
+              : (AppLocalizations.of(context)
+                    .get(S.loginUnknownFailure)
+                    .replaceAll('{line}', lineName)
+                    .replaceAll('{time}', occurredAt)
+                    .replaceAll(
+                      '{detail}',
+                      safeLoginErrorDetail(error, email, password),
+                    )),
           btnOkText: AppLocalizations.of(context).get(S.confirmOk),
           btnOkColor: Theme.of(context).colorScheme.primary,
           btnOkOnPress: () {},
@@ -389,7 +399,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             child: ElevatedButton(
                               onPressed: _isLoading ? null : _handleLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 16,
@@ -501,16 +513,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildAccountHint(BuildContext context) {
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.2),
-          width: 1,
-        ),
       ),
       child: Column(
         children: [
@@ -550,7 +557,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildSkipLogin(BuildContext context) {
-
     return TextButton(
       onPressed: () {
         Navigator.of(context).pushReplacementNamed(AppRoutes.home);
@@ -566,7 +572,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildBadges(BuildContext context) {
-
     return Wrap(
       alignment: WrapAlignment.center,
       spacing: 8,
@@ -601,7 +606,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

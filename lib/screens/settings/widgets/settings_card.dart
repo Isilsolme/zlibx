@@ -7,30 +7,18 @@ class SettingsCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
 
-  const SettingsCard({
-    super.key,
-    required this.child,
-    this.padding,
-  });
+  const SettingsCard({super.key, required this.child, this.padding});
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
+    // legado-style filled surface: no hairline outline, just a tonal card.
     return Material(
-      color: cs.surface,
+      color: cs.surfaceContainer,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: cs.outlineVariant, width: 1),
-        ),
-        padding: padding,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: child,
-        ),
-      ),
+      clipBehavior: Clip.antiAlias,
+      child: padding == null ? child : Padding(padding: padding!, child: child),
     );
   }
 }

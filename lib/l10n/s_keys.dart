@@ -145,6 +145,8 @@ abstract final class S {
   static const String floatingNav = 'floating_nav';
   static const String followDevice = 'follow_device';
   static const String githubOpenSource = 'github_open_source';
+  static const String glassRefraction = 'glass_refraction';
+  static const String glassRefractionDesc = 'glass_refraction_desc';
   static const String goodMorning = 'good_morning';
   static const String gotIt = 'got_it';
   static const String greetingAfternoon = 'greeting_afternoon';
@@ -225,6 +227,11 @@ abstract final class S {
   static const String myLibrary = 'my_library';
   static const String myLibrarySubtitle = 'my_library_subtitle';
   static const String name = 'name';
+  static const String navigation = 'navigation';
+  static const String navLabelMode = 'nav_label_mode';
+  static const String navLabelAlways = 'nav_label_always';
+  static const String navLabelAuto = 'nav_label_auto';
+  static const String navLabelNever = 'nav_label_never';
   static const String network = 'network';
   static const String networkLine = 'network_line';
   static const String newReleases = 'new_releases';
@@ -237,6 +244,7 @@ abstract final class S {
   static const String noCompletedDownloads = 'no_completed_downloads';
   static const String noFavorites = 'no_favorites';
   static const String noHistory = 'no_history';
+  static const String noMoreBooks = 'no_more_books';
   static const String noMoreComments = 'no_more_comments';
   static const String noResults = 'no_results';
   static const String noSavedAccounts = 'no_saved_accounts';
@@ -269,6 +277,7 @@ abstract final class S {
   static const String recheck = 'recheck';
   static const String recommended = 'recommended';
   static const String refreshFailed = 'refresh_failed';
+  static const String homeFeedUpdated = 'home_feed_updated';
   static const String register = 'register';
   static const String registrationFailed = 'registration_failed';
   static const String remove = 'remove';

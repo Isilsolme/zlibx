@@ -12,12 +12,12 @@ import 'section_header.dart';
 import 'settings_card.dart';
 
 import '../../../l10n/s_keys.dart';
+
 class DonationKeySection extends ConsumerStatefulWidget {
   const DonationKeySection({super.key});
 
   @override
-  ConsumerState<DonationKeySection> createState() =>
-      _DonationKeySectionState();
+  ConsumerState<DonationKeySection> createState() => _DonationKeySectionState();
 }
 
 class _DonationKeySectionState extends ConsumerState<DonationKeySection> {
@@ -110,7 +110,9 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
           hintText: t.get(S.annasDonationKeyHint),
           suffixIcon: IconButton(
             icon: Icon(
-              _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+              _obscured
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
             ),
             onPressed: () => setState(() => _obscured = !_obscured),
           ),
@@ -121,7 +123,7 @@ class _DonationKeyDialogState extends State<_DonationKeyDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(t.get(S.cancel)),
         ),
-        TextButton(
+        FilledButton(
           onPressed: () async {
             await saveAnnasDonationKey(_controller.text);
             if (context.mounted) Navigator.of(context).pop();

@@ -15,6 +15,7 @@ import '../../widgets/empty_state.dart';
 import '../../utils/app_snack.dart';
 import '../../utils/date_text.dart';
 import '../../l10n/s_keys.dart';
+
 class LocalDownloadsScreen extends ConsumerWidget {
   const LocalDownloadsScreen({super.key});
 
@@ -53,8 +54,24 @@ class LocalDownloadsScreen extends ConsumerWidget {
         ),
       ],
       bottom: TabBar(
-        indicatorColor: Theme.of(context).colorScheme.primary,
-        labelColor: Theme.of(context).colorScheme.primary,
+        dividerColor: Colors.transparent,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicatorPadding: const EdgeInsets.symmetric(
+          horizontal: 6,
+          vertical: 5,
+        ),
+        indicator: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        splashBorderRadius: BorderRadius.circular(20),
+        labelColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
         tabs: [
           Tab(text: '${l.get(S.ongoing)} (${ongoingIds.length})'),
           Tab(text: '${l.get(S.completed)} (${completedIds.length})'),
@@ -70,7 +87,8 @@ class LocalDownloadsScreen extends ConsumerWidget {
           children: [
             SizedBox(
               height:
-                  appBar.preferredSize.height + MediaQuery.paddingOf(context).top,
+                  appBar.preferredSize.height +
+                  MediaQuery.paddingOf(context).top,
               child: appBar,
             ),
             Expanded(
@@ -343,7 +361,10 @@ class _DownloadItem extends ConsumerWidget {
         l.get(S.downloadPreparing),
         Theme.of(context).colorScheme.primary,
       ),
-      DownloadStatus.downloading => (l.get(S.downloading), Theme.of(context).colorScheme.primary),
+      DownloadStatus.downloading => (
+        l.get(S.downloading),
+        Theme.of(context).colorScheme.primary,
+      ),
       DownloadStatus.completed => (l.get(S.completed), AppColors.success),
       DownloadStatus.error => (
         l.get(S.downloadFailed),
@@ -387,9 +408,10 @@ class _DownloadItem extends ConsumerWidget {
     if (path != null && await MediaStoreFiles.exists(path)) return true;
     ref.read(downloadProvider.notifier).markMissingFile(task.id);
     if (context.mounted) {
-      showAppSnack(context,
-            AppLocalizations.of(context).get(S.downloadFileMissing),
-          );
+      showAppSnack(
+        context,
+        AppLocalizations.of(context).get(S.downloadFileMissing),
+      );
     }
     return false;
   }
@@ -406,9 +428,10 @@ class _DownloadItem extends ConsumerWidget {
       if (MediaStoreFiles.isContentUri(task.filePath!)) {
         final opened = await MediaStoreFiles.open(task.filePath!);
         if (!opened && context.mounted) {
-          showAppSnack(context,
-                AppLocalizations.of(context).get(S.openFileFailed),
-              );
+          showAppSnack(
+            context,
+            AppLocalizations.of(context).get(S.openFileFailed),
+          );
         }
         return;
       }
@@ -464,9 +487,7 @@ class _DownloadItem extends ConsumerWidget {
         // MediaStore-published downloads live at a content:// URI,
         // which share_plus cannot share as a file path — those are
         // copied to a temp file in the app cache dir first.
-        final sharePath = await MediaStoreFiles.shareablePath(
-          task.filePath!,
-        );
+        final sharePath = await MediaStoreFiles.shareablePath(task.filePath!);
         if (sharePath == null) {
           if (context.mounted) {
             showAppSnack(context, l.get(S.shareFailed));
@@ -529,5 +550,4 @@ class _DownloadItem extends ConsumerWidget {
       }
     }
   }
-
 }

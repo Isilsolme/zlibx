@@ -3,12 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/books_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/trending_provider.dart';
 import '../../widgets/book_card.dart';
 import '../../widgets/book_list_tile.dart';
 import '../../widgets/cover_placeholder.dart';
 import 'widgets/trending_section.dart';
+import 'widgets/search_filter_sheet.dart';
 import '../../widgets/loading_widget.dart';
+import '../../widgets/liquid_segmented_control.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/update_dialog.dart';
@@ -23,6 +26,7 @@ import '../../services/hive_service.dart';
 
 import '../../utils/app_snack.dart';
 import '../../l10n/s_keys.dart';
+
 const _recentSearchesKey = 'recent_search_keywords';
 const _recentSearchesLimit = 12;
 
@@ -148,9 +152,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     } catch (error) {
       debugPrint('Failed to save recent searches: ${error.runtimeType}');
       if (mounted) {
-        showAppSnack(context,
-              AppLocalizations.of(context).get(S.searchHistorySaveFailed),
-            );
+        showAppSnack(
+          context,
+          AppLocalizations.of(context).get(S.searchHistorySaveFailed),
+        );
       }
     }
   }
@@ -197,130 +202,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     Map<String, String> languageNames,
     Map<String, String> orderNames,
     Map<String, String> extensionNames,
-  ) async {
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final cs = Theme.of(context).colorScheme;
-            Widget section(
-              String? title,
-              Map<String, String> names,
-              String selected,
-              ValueChanged<String> onSelected,
-            ) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (title != null) ...[
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final entry in names.entries)
-                        ChoiceChip(
-                          label: Text(entry.value),
-                          selected: selected == entry.key,
-                          showCheckmark: false,
-                          selectedColor: cs.primaryContainer,
-                          side: BorderSide(
-                            color: selected == entry.key
-                                ? cs.primary
-                                : cs.outlineVariant,
-                          ),
-                          labelStyle: TextStyle(
-                            color: selected == entry.key
-                                ? cs.onPrimaryContainer
-                                : cs.onSurfaceVariant,
-                            fontWeight: selected == entry.key
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                          onSelected: (_) {
-                            onSelected(entry.key);
-                            setSheetState(() {});
-                            _applyFilterChange();
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
-              );
-            }
-
-            return Padding(
-              padding: EdgeInsets.fromLTRB(
-                20,
-                0,
-                20,
-                20 + MediaQuery.viewInsetsOf(context).bottom,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    section(
-                      l10n.get(S.language),
-                      languageNames,
-                      _selectedLanguage,
-                      (v) => _selectedLanguage = v,
-                    ),
-                    section(
-                      l10n.get(S.sort),
-                      orderNames,
-                      _selectedOrder,
-                      (v) => _selectedOrder = v,
-                    ),
-                    section(
-                      null,
-                      extensionNames,
-                      _selectedExtension,
-                      (v) => _selectedExtension = v,
-                    ),
-                    Row(
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            setSheetState(() {
-                              _selectedLanguage = 'all';
-                              _selectedOrder = 'default';
-                              _selectedExtension = 'all';
-                            });
-                            _applyFilterChange();
-                          },
-                          icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                          label: Text(l10n.get(S.searchHistoryClear)),
-                        ),
-                        const Spacer(),
-                        FilledButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: Text(l10n.get(S.close)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+  ) {
+    return showSearchFilterSheet(
+      context,
+      l10n: l10n,
+      languageNames: languageNames,
+      orderNames: orderNames,
+      extensionNames: extensionNames,
+      language: _selectedLanguage,
+      order: _selectedOrder,
+      extension: _selectedExtension,
+      onLanguageSelected: (value) => _selectedLanguage = value,
+      onOrderSelected: (value) => _selectedOrder = value,
+      onExtensionSelected: (value) => _selectedExtension = value,
+      onChanged: _applyFilterChange,
     );
   }
 
@@ -403,10 +298,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   /// Pill-shaped search bar; filter button opens the bottom sheet and
   /// carries a badge with the number of active filters.
-  Widget _buildSearchBar(
-    AppLocalizations l10n,
-    bool isExternal,
-  ) {
+  Widget _buildSearchBar(AppLocalizations l10n, bool isExternal) {
     final cs = Theme.of(context).colorScheme;
     const radius = BorderRadius.all(Radius.circular(28));
     return Padding(
@@ -460,12 +352,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             horizontal: 20,
             vertical: 14,
           ),
-          border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
-          enabledBorder:
-              OutlineInputBorder(borderRadius: radius, borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: radius,
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: radius,
+            borderSide: BorderSide.none,
+          ),
           focusedBorder: OutlineInputBorder(
             borderRadius: radius,
-            borderSide: BorderSide(color: cs.primary, width: 1.4),
+            borderSide: BorderSide.none,
           ),
         ),
       ),
@@ -492,25 +389,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            for (final source in items)
-              Expanded(
-                child: _SourceSegment(
-                  icon: icons[source]!,
-                  label: labels[source]!,
-                  selected: _source == source,
-                  onTap: () => _switchSource(source),
-                ),
-              ),
-          ],
-        ),
+      child: LiquidSegmentedControl(
+        segments: <LiquidSegment>[
+          for (final source in items)
+            LiquidSegment(icon: icons[source]!, label: labels[source]!),
+        ],
+        selectedIndex: items.indexOf(_source),
+        onChanged: (index) => _switchSource(items[index]),
+        glass: ref.watch(glassRefractionProvider),
       ),
     );
   }
@@ -553,22 +439,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       );
     }
     if (_selectedOrder != 'default') {
-      addChip(
-        '${l10n.get(S.sort)}: ${orderNames[_selectedOrder]}',
-        () {
-          _selectedOrder = 'default';
-          _applyFilterChange();
-        },
-      );
+      addChip('${l10n.get(S.sort)}: ${orderNames[_selectedOrder]}', () {
+        _selectedOrder = 'default';
+        _applyFilterChange();
+      });
     }
     if (_selectedExtension != 'all') {
-      addChip(
-        '${extensionNames[_selectedExtension]}',
-        () {
-          _selectedExtension = 'all';
-          _applyFilterChange();
-        },
-      );
+      addChip('${extensionNames[_selectedExtension]}', () {
+        _selectedExtension = 'all';
+        _applyFilterChange();
+      });
     }
 
     return SizedBox(
@@ -596,9 +476,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         Expanded(
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         if (trailing != null) trailing,
@@ -608,10 +488,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Widget _buildEmptyQueryView(AppLocalizations l10n) {
     final trendingAsync = ref.watch(trendingBooksProvider);
-    final trendingBooks = (trendingAsync.valueOrNull ??
-            const <TrendingBookData>[])
-        .where((book) => book.title?.trim().isNotEmpty ?? false)
-        .toList();
+    final trendingBooks =
+        (trendingAsync.valueOrNull ?? const <TrendingBookData>[])
+            .where((book) => book.title?.trim().isNotEmpty ?? false)
+            .toList();
     if (_recentSearches.isEmpty && trendingBooks.isEmpty) {
       if (trendingAsync.isLoading) {
         return const LoadingWidget.page(padding: EdgeInsets.all(24));
@@ -670,8 +550,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
                 deleteButtonTooltipMessage: l10n.get(S.searchHistoryRemove),
-                backgroundColor: cs.surfaceContainerLow,
-                side: BorderSide(color: cs.outlineVariant),
+                backgroundColor: cs.surfaceContainerHigh,
+                side: BorderSide.none,
               ),
           ],
         ),
@@ -720,9 +600,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _highlightedText(suggestion, query),
-                ),
+                Expanded(child: _highlightedText(suggestion, query)),
                 IconButton(
                   icon: Icon(
                     Icons.north_west_rounded,
@@ -761,10 +639,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           TextSpan(text: suggestion.substring(0, idx)),
           TextSpan(
             text: suggestion.substring(idx, idx + query.length),
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: cs.primary,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w700, color: cs.primary),
           ),
           TextSpan(text: suggestion.substring(idx + query.length)),
         ],
@@ -848,15 +723,19 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ? externalState.books
         : searchState.books.map((book) => book.toDisplay()).toList();
     final resultCount = books.length;
-    final hasSearched =
-        isExternal ? externalState.hasSearched : searchState.hasSearched;
-    final isLoading =
-        isExternal ? externalState.isLoading : searchState.isLoading;
-    final isLoadingMore =
-        isExternal ? externalState.isLoadingMore : searchState.isLoadingMore;
+    final hasSearched = isExternal
+        ? externalState.hasSearched
+        : searchState.hasSearched;
+    final isLoading = isExternal
+        ? externalState.isLoading
+        : searchState.isLoading;
+    final isLoadingMore = isExternal
+        ? externalState.isLoadingMore
+        : searchState.isLoadingMore;
     final error = isExternal ? externalState.error : searchState.error;
-    final currentPage =
-        isExternal ? externalState.currentPage : searchState.currentPage;
+    final currentPage = isExternal
+        ? externalState.currentPage
+        : searchState.currentPage;
     final totalPagesText = isExternal
         ? (externalState.hasMore ? '…' : '${externalState.currentPage}')
         : '${searchState.totalPages}';
@@ -868,7 +747,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _buildSearchBar(l10n, isExternal),
           _buildSourceSelector(l10n),
           if (!isExternal && _activeFilterCount > 0)
-            _buildActiveFilterChips(l10n, languageNames, orderNames, extensionNames),
+            _buildActiveFilterChips(
+              l10n,
+              languageNames,
+              orderNames,
+              extensionNames,
+            ),
           Expanded(
             child: _isQueryEmpty
                 ? _buildEmptyQueryView(l10n)
@@ -924,9 +808,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     .replaceAll('{count}', '$resultCount'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
+                                style: Theme.of(context).textTheme.labelMedium
                                     ?.copyWith(
                                       color: Theme.of(
                                         context,
@@ -944,9 +826,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     .replaceAll('{total}', totalPagesText),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
+                                style: Theme.of(context).textTheme.labelSmall
                                     ?.copyWith(
                                       color: Theme.of(
                                         context,
@@ -1059,63 +939,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One segment of the sliding-highlight source selector.
-class _SourceSegment extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SourceSegment({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        decoration: BoxDecoration(
-          color: selected ? cs.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: selected
-                          ? cs.onPrimaryContainer
-                          : cs.onSurfaceVariant,
-                      fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
