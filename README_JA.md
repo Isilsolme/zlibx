@@ -43,9 +43,9 @@ zlibx は shiyi-0x7f/olib-mobile を大幅に改造したフォークです：
 
 ## 📱 スクリーンショット
 
-<div align="center">
-<i>近日公開予定...</i>
-</div>
+| ホーム · 3列フィード | 設定 · ナビゲーション | MD3 スプラッシュ |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240" alt="3列の書籍グリッドとリキッドグラス・ナビゲーション" /> | <img src="docs/screenshots/settings-navigation.jpg" width="240" alt="塗りつぶし設定カードとリキッドグラス・バー" /> | <img src="docs/screenshots/splash.jpg" width="240" alt="シンプルな Material 3 スプラッシュ" /> |
 
 ## 🚀 クイックスタート
 

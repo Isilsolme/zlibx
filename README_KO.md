@@ -43,9 +43,9 @@ zlibx는 shiyi-0x7f/olib-mobile을 대폭 수정한 포크입니다:
 
 ## 📱 스크린샷
 
-<div align="center">
-<i>곧 출시 예정...</i>
-</div>
+| 홈 · 3열 피드 | 설정 · 내비게이션 | MD3 스플래시 |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240" alt="3열 도서 그리드와 리퀴드 글래스 내비게이션" /> | <img src="docs/screenshots/settings-navigation.jpg" width="240" alt="채워진 설정 카드와 리퀴드 글래스 바" /> | <img src="docs/screenshots/splash.jpg" width="240" alt="간결한 Material 3 스플래시" /> |
 
 ## 🚀 빠른 시작
 
