@@ -623,5 +623,12 @@
   "welcomeBack": "Welcome Back",
   "writeComment": "Write a comment",
   "year": "Year",
-  "yourOpenLibrary": "Your Open Library"
+  "yourOpenLibrary": "Your Open Library",
+  "navigation": "Navigation",
+  "navLabelMode": "Navigation labels",
+  "navLabelAlways": "Always",
+  "navLabelAuto": "Auto",
+  "navLabelNever": "Never",
+  "glassRefraction": "Liquid glass refraction",
+  "glassRefractionDesc": "Extra lens layer on the bottom bar; turn off to save GPU work"
 }

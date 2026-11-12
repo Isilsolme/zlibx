@@ -15,8 +15,6 @@ class ThemeSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final blurEnabled = ref.watch(blurEnabledProvider);
-    final floatingNav = ref.watch(floatingNavProvider);
     final t = AppLocalizations.of(context)!;
 
     final summary = <String>[
@@ -25,17 +23,12 @@ class ThemeSection extends ConsumerWidget {
         AppThemeMode.dark => t.dark,
         AppThemeMode.light => t.light,
       },
-      if (blurEnabled) t.blurEffect,
-      if (floatingNav) t.floatingNav,
     ].join(' · ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(
-          icon: Icons.palette_rounded,
-          title: t.appearance,
-        ),
+        SectionHeader(icon: Icons.palette_rounded, title: t.appearance),
         SettingsCard(
           child: ListTile(
             leading: const Icon(Icons.palette_rounded),
@@ -46,9 +39,7 @@ class ThemeSection extends ConsumerWidget {
               context: context,
               isScrollControlled: true,
               shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               builder: (_) => const AppearanceSheet(),
             ),
@@ -69,9 +60,6 @@ class AppearanceSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final blurEnabled = ref.watch(blurEnabledProvider);
-    final floatingNav = ref.watch(floatingNavProvider);
-    final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final followingSystem = themeMode == AppThemeMode.system;
@@ -93,9 +81,9 @@ class AppearanceSheet extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           child: Text(
             t.appearance,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
         ),
         const Divider(height: 1),
@@ -105,9 +93,9 @@ class AppearanceSheet extends ConsumerWidget {
           activeThumbColor: cs.primary,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
           onChanged: (value) {
-            ref.read(themeModeProvider.notifier).setThemeMode(
-                  value ? AppThemeMode.system : AppThemeMode.light,
-                );
+            ref
+                .read(themeModeProvider.notifier)
+                .setThemeMode(value ? AppThemeMode.system : AppThemeMode.light);
           },
         ),
         SwitchListTile(
@@ -118,41 +106,12 @@ class AppearanceSheet extends ConsumerWidget {
           onChanged: followingSystem
               ? null
               : (value) {
-                  ref.read(themeModeProvider.notifier).setThemeMode(
+                  ref
+                      .read(themeModeProvider.notifier)
+                      .setThemeMode(
                         value ? AppThemeMode.dark : AppThemeMode.light,
                       );
                 },
-        ),
-        SwitchListTile(
-          title: Text(t.blurEffect),
-          value: blurEnabled,
-          activeThumbColor: cs.primary,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          onChanged: (value) {
-            ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
-          },
-        ),
-        SwitchListTile(
-          title: Text(t.floatingNav),
-          value: floatingNav,
-          activeThumbColor: cs.primary,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          onChanged: (value) {
-            ref.read(floatingNavProvider.notifier).setFloatingNav(value);
-          },
-        ),
-        SwitchListTile(
-          title: Text(t.hideNavOnScroll),
-          value: hideNavOnScroll,
-          activeThumbColor: cs.primary,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-          onChanged: floatingNav
-              ? (value) {
-                  ref
-                      .read(hideNavOnScrollProvider.notifier)
-                      .setHideNavOnScroll(value);
-                }
-              : null,
         ),
         const SizedBox(height: 16),
       ],
