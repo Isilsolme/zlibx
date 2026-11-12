@@ -651,7 +651,11 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen>
               Navigator.pop(dialogContext);
               _batchRemove(ids);
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red[400]),
+            // 危险操作按钮统一走主题 error 色（此前硬编码 Colors.red[400]，
+            // 动态取色/深色模式下与全局错误色不一致）。
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
             child: Text(l.remove),
           ),
         ],

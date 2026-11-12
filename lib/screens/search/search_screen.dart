@@ -7,19 +7,15 @@ import '../../providers/article_search_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/books_provider.dart';
 import '../../providers/fulltext_search_provider.dart';
-import '../../widgets/book_card.dart';
-import '../../widgets/book_list_tile.dart';
 import 'widgets/active_filter_chips.dart';
-import 'widgets/article_tile.dart';
 import 'widgets/empty_query_view.dart';
-import 'widgets/fulltext_hit_tile.dart';
 import 'widgets/search_mode_selector.dart';
 import 'widgets/search_bar_field.dart';
+import 'widgets/search_results_view.dart';
 import 'widgets/search_skeleton_grid.dart';
 import 'widgets/search_suggestions_view.dart';
 import 'widgets/source_selector.dart';
 import '../reader/reader_screen.dart';
-import '../../widgets/loading_widget.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/gradient_app_bar.dart';
 import '../../widgets/update_dialog.dart';
@@ -50,7 +46,22 @@ class SearchScreen extends ConsumerStatefulWidget {
 /// wires the zero-state presentation widgets from `widgets/` together.
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
-  final _scrollController = ScrollController();
+
+  // z站通用搜索结果的 DisplayBook 缓存。此前 build 里每次
+  // `searchState.books.map((b) => b.toDisplay()).toList()`——每个
+  // setState（输入建议、视图切换、滚动加载计数）都重映射整页结果；
+  // provider 每次数据变更都换新列表实例（[...books, ...] 或全新
+  // 列表），所以按实例身份缓存即可，结果变更必然重算。
+  List<Book>? _displaySourceBooks;
+  List<DisplayBook> _displayBooks = const [];
+
+  List<DisplayBook> _resolveDisplayBooks(List<Book> books) {
+    if (!identical(books, _displaySourceBooks)) {
+      _displaySourceBooks = books;
+      _displayBooks = books.map((b) => b.toDisplay()).toList();
+    }
+    return _displayBooks;
+  }
 
   // ── Filters (applied immediately, edited in a bottom sheet) ──
   String _selectedLanguage = 'all';
@@ -124,7 +135,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           .toList();
     }
     _searchController.addListener(_onQueryChanged);
-    _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -132,7 +142,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _suggestDebounce?.cancel();
     _searchController.removeListener(_onQueryChanged);
     _searchController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -571,19 +580,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_searchController.text.trim().isNotEmpty) _performSearch();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (_source != BookSource.zlibrary) {
-        ref.read(externalSearchProvider.notifier).loadMore();
-      } else if (_mode == SearchMode.fulltext) {
-        ref.read(fulltextSearchProvider.notifier).loadMore();
-      } else if (_mode == SearchMode.article) {
-        ref.read(articleSearchProvider.notifier).loadMore();
-      } else {
-        ref.read(searchProvider.notifier).loadMore();
-      }
+  /// 结果列表滚到距底部 200px 内时加载下一页。四个源的分发此前在
+  /// _onScroll 与重试按钮里各写了一份，收口到这里。
+  void _loadMore() {
+    if (_source != BookSource.zlibrary) {
+      ref.read(externalSearchProvider.notifier).loadMore();
+    } else if (_mode == SearchMode.fulltext) {
+      ref.read(fulltextSearchProvider.notifier).loadMore();
+    } else if (_mode == SearchMode.article) {
+      ref.read(articleSearchProvider.notifier).loadMore();
+    } else {
+      ref.read(searchProvider.notifier).loadMore();
     }
+  }
+
+  /// 滚动加载走气泡通知（结果区在 [SearchResultsView] 外由调用处包
+  /// NotificationListener）：不再需要 ScrollController，网格↔列表
+  /// 切换的 AnimatedSwitcher 过渡期间新旧两个列表才能同时在树上。
+  /// 阈值与原 controller 监听一致；重复触发由各 provider 的
+  /// isLoadingMore / totalPages 守卫兜底。
+  bool _onScrollNotification(ScrollNotification n) {
+    if (n.metrics.pixels >= n.metrics.maxScrollExtent - 200) {
+      _loadMore();
+    }
+    return false;
   }
 
   void _openBook(DisplayBook book) {
@@ -640,7 +660,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final isArticleMode = _mode == SearchMode.article && !isExternal;
     final books = isExternal
         ? externalState.books
-        : searchState.books.map((book) => book.toDisplay()).toList();
+        : _resolveDisplayBooks(searchState.books);
     final resultCount = isFullTextMode
         ? fulltextState.hits.length
         : isArticleMode
@@ -786,218 +806,30 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     title: l10n.noResults,
                     message: l10n.searchNoResultsSwitch,
                   )
-                : Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 6,
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                l10n.searchResultsCount(resultCount),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onPrimaryContainer,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                l10n.searchPageProgress(currentPage, totalPagesText),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                              ),
-                            ),
-                            // 文章/全文模式没有网格卡片，视图切换只
-                            // 对通用搜索的 DisplayBook 网格有意义。
-                            if (!isFullTextMode && !isArticleMode)
-                              IconButton(
-                                icon: Icon(
-                                  _isListView
-                                      ? Icons.grid_view_rounded
-                                      : Icons.view_list_rounded,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  size: 22,
-                                ),
-                                tooltip: _isListView
-                                    ? l10n.gridView
-                                    : l10n.listView,
-                                onPressed: () {
-                                  setState(() => _isListView = !_isListView);
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (error != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(l10n.searchMoreFailed),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  if (isExternal) {
-                                    ref
-                                        .read(externalSearchProvider.notifier)
-                                        .loadMore();
-                                  } else if (isFullTextMode) {
-                                    ref
-                                        .read(fulltextSearchProvider.notifier)
-                                        .loadMore();
-                                  } else if (isArticleMode) {
-                                    ref
-                                        .read(articleSearchProvider.notifier)
-                                        .loadMore();
-                                  } else {
-                                    ref
-                                        .read(searchProvider.notifier)
-                                        .loadMore();
-                                  }
-                                },
-                                child: Text(l10n.searchRetry),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Expanded(
-                        child: isFullTextMode
-                            ? ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                itemCount: fulltextState.hits.length +
-                                    (isLoadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >= fulltextState.hits.length) {
-                                    return const LoadingWidget.more();
-                                  }
-                                  final hit = fulltextState.hits[index];
-                                  return FullTextHitTile(
-                                    hit: hit,
-                                    l10n: l10n,
-                                    onTap: () => _openFullTextHit(hit),
-                                  );
-                                },
-                              )
-                            : isArticleMode
-                            ? ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                itemCount: articleState.articles.length +
-                                    (isLoadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >=
-                                      articleState.articles.length) {
-                                    return const LoadingWidget.more();
-                                  }
-                                  final article =
-                                      articleState.articles[index];
-                                  return ArticleTile(
-                                    article: article,
-                                    l10n: l10n,
-                                    onTap: () => _openArticle(article),
-                                  );
-                                },
-                              )
-                            : _isListView
-                            ? ListView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                itemCount:
-                                    books.length + (isLoadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >= books.length) {
-                                    return const LoadingWidget.more();
-                                  }
-                                  final book = books[index];
-                                  return BookListTile(
-                                    book: book,
-                                    showCover: true,
-                                    onTap: () => _openBook(book),
-                                  );
-                                },
-                              )
-                            : GridView.builder(
-                                controller: _scrollController,
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  0,
-                                  16,
-                                  16,
-                                ),
-                                gridDelegate:
-                                    const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 220,
-                                      childAspectRatio: 0.60,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                    ),
-                                itemCount:
-                                    books.length + (isLoadingMore ? 1 : 0),
-                                itemBuilder: (context, index) {
-                                  if (index >= books.length) {
-                                    return const LoadingWidget.more();
-                                  }
-                                  final book = books[index];
-                                  return BookCard(
-                                    book: book,
-                                    searchResult: true,
-                                    // 搜索结果同屏同 id 重复极罕见
-                                    // （不同 edition id 不同），
-                                    // 可安全开 Hero。
-                                    heroEnabled: true,
-                                    onTap: () => _openBook(book),
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
+                // 滚动加载用气泡通知监听（见 _onScrollNotification）：
+                // 只包住结果分支，空态/建议页的滚动不会误触发加载。
+                : NotificationListener<ScrollNotification>(
+                    onNotification: _onScrollNotification,
+                    child: SearchResultsView(
+                      l10n: l10n,
+                      resultCount: resultCount,
+                      currentPage: currentPage,
+                      totalPagesText: totalPagesText,
+                      isListView: _isListView,
+                      onToggleView: () =>
+                          setState(() => _isListView = !_isListView),
+                      error: error,
+                      isLoadingMore: isLoadingMore,
+                      isFullTextMode: isFullTextMode,
+                      isArticleMode: isArticleMode,
+                      books: books,
+                      hits: fulltextState.hits,
+                      articles: articleState.articles,
+                      onOpenBook: _openBook,
+                      onOpenFullTextHit: _openFullTextHit,
+                      onOpenArticle: _openArticle,
+                      onRetryLoadMore: _loadMore,
+                    ),
                   ),
           ),
         ],

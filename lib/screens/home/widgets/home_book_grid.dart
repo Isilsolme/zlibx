@@ -5,6 +5,7 @@ import '../../../models/display_book.dart';
 import '../../../routes/app_routes.dart';
 import '../../../widgets/book_card.dart';
 import '../../../widgets/empty_state.dart';
+import '../../../widgets/entrance.dart';
 import '../../../widgets/loading_widget.dart';
 
 /// The recommendation grid plus its empty / loading / error states.
@@ -73,13 +74,16 @@ class HomeBookGrid extends StatelessWidget {
                 itemCount: itemCount,
                 itemBuilder: (context, index) {
                   final book = books[index];
-                  return BookCard(
-                    book: book,
-                    compact: true,
-                    showSourceBadge: true,
-                    onTap: () {
-                      AppRoutes.openBookDetailForDisplayBook(context, book);
-                    },
+                  return EntranceSlideFade(
+                    index: index,
+                    child: BookCard(
+                      book: book,
+                      compact: true,
+                      showSourceBadge: true,
+                      onTap: () {
+                        AppRoutes.openBookDetailForDisplayBook(context, book);
+                      },
+                    ),
                   );
                 },
               ),

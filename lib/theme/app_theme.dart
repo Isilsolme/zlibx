@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'app_colors.dart';
 
 /// Lazily-built but cached ThemeData. Building Material3 ThemeData isn't
@@ -203,6 +202,32 @@ class AppTheme {
         color: cs.outlineVariant,
         thickness: 1,
       ),
+
+      // 全局兜底子主题（SnackBar / Dialog / BottomSheet）：此前三者的
+      // 形状与浮起行为靠各调用点手写（app_snack、22 处 showDialog、
+      // 9 处 showModalBottomSheet 各自为政），这里给方案驱动的默认值。
+      // 调用点显式传入的参数仍然优先（home 更新提示的定制样式不受影响）。
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(16),
+          ),
+        ),
+        showDragHandle: false,
+      ),
     );
   }
 
@@ -291,6 +316,29 @@ class AppTheme {
       dividerTheme: DividerThemeData(
         color: cs.outlineVariant,
         thickness: 1,
+      ),
+
+      // 与亮色主题相同的兜底子主题，见 _buildLightTheme 里的说明。
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(16),
+          ),
+        ),
+        showDragHandle: false,
       ),
     );
   }
