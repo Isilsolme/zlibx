@@ -630,5 +630,6 @@
   "navLabelAuto": "自动",
   "navLabelNever": "不显示",
   "glassRefraction": "液态玻璃折射",
-  "glassRefractionDesc": "底栏额外透镜层，关闭可减少渲染开销"
+  "glassRefractionDesc": "底栏额外透镜层，关闭可减少渲染开销",
+  "noMoreBooks": "没有更多书籍了"
 }

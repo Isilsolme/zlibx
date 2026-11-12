@@ -86,6 +86,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ref.read(navBarVisibleProvider.notifier).setVisible(true);
               }
               setState(() => _selectedIndex = index);
+              if (index == 0) {
+                _homeTabKey.currentState?.onBecameVisible();
+              }
             },
             itemCount: 4,
             itemBuilder: (context, index) {
