@@ -18,11 +18,11 @@ export '../services/update/update_manifest.dart' show UpdateLink;
 class UpdateState {
   /// GitHub Releases 数据源
   static const String releaseApiUrl =
-      'https://api.github.com/repos/minglaiyo/zlibx/releases/latest';
+      'https://api.github.com/repos/Isilsolme/zlibx-MD3/releases/latest';
 
-  /// 项目 Releases 页（minglaiyo/zlibx），PanSync 发版时同步网盘链接到这里
+  /// 项目 Releases 页（Isilsolme/zlibx-MD3），PanSync 发版时同步网盘链接到这里
   static const String downloadUrlDefault =
-      'https://github.com/minglaiyo/zlibx/releases';
+      'https://github.com/Isilsolme/zlibx-MD3/releases';
 
   /// Remote version info
   final String? latestVersion;

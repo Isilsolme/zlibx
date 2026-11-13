@@ -12,7 +12,7 @@
 
 **서드파티 클라이언트 • 프론트엔드 인터페이스만 제공 • 외부 소스에서 데이터**
 
-[APK 다운로드](https://github.com/minglaiyo/zlibx/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
+[APK 다운로드](https://github.com/Isilsolme/zlibx-MD3/releases) • [버그 신고](../../issues) • [기능 요청](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **[日本語](README_JA.md)** | **한국어**
 
@@ -43,9 +43,9 @@ zlibx는 shiyi-0x7f/olib-mobile을 대폭 수정한 포크입니다:
 
 ## 📱 스크린샷
 
-<div align="center">
-<i>곧 출시 예정...</i>
-</div>
+| 홈 · 3열 피드 | 설정 · 내비게이션 | MD3 스플래시 |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240" alt="3열 도서 그리드와 리퀴드 글래스 내비게이션" /> | <img src="docs/screenshots/settings-navigation.jpg" width="240" alt="채워진 설정 카드와 리퀴드 글래스 바" /> | <img src="docs/screenshots/splash.jpg" width="240" alt="간결한 Material 3 스플래시" /> |
 
 ## 🚀 빠른 시작
 
@@ -59,7 +59,7 @@ zlibx는 shiyi-0x7f/olib-mobile을 대폭 수정한 포크입니다:
 
 ```bash
 # 저장소 복제
-git clone https://github.com/minglaiyo/zlibx.git
+git clone https://github.com/Isilsolme/zlibx-MD3.git
 
 # 프로젝트 디렉토리로 이동
 cd zlibx

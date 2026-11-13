@@ -12,7 +12,7 @@
 
 **サードパーティクライアント • フロントエンドインターフェースのみ • 外部ソースからのデータ**
 
-[APKをダウンロード](https://github.com/minglaiyo/zlibx/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
+[APKをダウンロード](https://github.com/Isilsolme/zlibx-MD3/releases) • [バグを報告](../../issues) • [機能をリクエスト](../../issues)
 
 **[English](README.md)** | **[简体中文](README_ZH.md)** | **日本語** | **[한국어](README_KO.md)**
 
@@ -43,9 +43,9 @@ zlibx は shiyi-0x7f/olib-mobile を大幅に改造したフォークです：
 
 ## 📱 スクリーンショット
 
-<div align="center">
-<i>近日公開予定...</i>
-</div>
+| ホーム · 3列フィード | 設定 · ナビゲーション | MD3 スプラッシュ |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/home.jpg" width="240" alt="3列の書籍グリッドとリキッドグラス・ナビゲーション" /> | <img src="docs/screenshots/settings-navigation.jpg" width="240" alt="塗りつぶし設定カードとリキッドグラス・バー" /> | <img src="docs/screenshots/splash.jpg" width="240" alt="シンプルな Material 3 スプラッシュ" /> |
 
 ## 🚀 クイックスタート
 
@@ -59,7 +59,7 @@ zlibx は shiyi-0x7f/olib-mobile を大幅に改造したフォークです：
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/minglaiyo/zlibx.git
+git clone https://github.com/Isilsolme/zlibx-MD3.git
 
 # プロジェクトディレクトリに移動
 cd zlibx

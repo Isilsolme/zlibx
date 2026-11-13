@@ -4,7 +4,7 @@
 > 实现：`lib/services/update/update_manifest.dart`（解析）、`lib/providers/update_provider.dart`（检查 + 缓存）、
 > `lib/widgets/update_dialog.dart`（对话框）。
 
-客户端请求公开仓库最新 Release（`api.github.com/repos/minglaiyo/zlibx/releases/latest`），
+客户端请求公开仓库最新 Release（`api.github.com/repos/Isilsolme/zlibx-MD3/releases/latest`），
 解析 Release 正文末尾的**隐藏注释**（GitHub 页面上不可见）：
 
 ```text
@@ -50,5 +50,5 @@ min_version: 1.4.0
 ## 发版时怎么写
 
 1. CI 构建完成后，PanSync 把 APK 上传到网盘（见 [refs/pansync.md](refs/pansync.md)），拿到分享链接。
-2. 写好 notes（面向用户），末尾追加清单块，`gh release edit vX.Y.Z -R minglaiyo/zlibx --notes-file <文件>`。
+2. 写好 notes（面向用户），末尾追加清单块，`gh release edit vX.Y.Z -R Isilsolme/zlibx-MD3 --notes-file <文件>`。
 3. **只在必要时设置 `min_version`**（旧版接口失效、安全问题等），平时只写网盘链接。

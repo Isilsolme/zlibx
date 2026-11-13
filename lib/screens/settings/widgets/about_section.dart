@@ -144,9 +144,9 @@ class AboutSection extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () => _launchUrl(
-                          'https://github.com/minglaiyo/zlibx'),
+                          'https://github.com/Isilsolme/zlibx-MD3'),
                       icon: const Icon(Icons.code, size: 16),
-                      label: const Text('zlibx'),
+                      label: const Text('zlibx-MD3'),
                     ),
                   ),
                 ],
