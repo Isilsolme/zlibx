@@ -39,7 +39,15 @@ class CategoryPage {
   final List<CategoryBook> books;
   final int? totalPages;
 
-  const CategoryPage({required this.books, this.totalPages});
+  /// The slug from the page's search form action
+  /// (`/category/{id}/{slug}/s/`). The server only serves the
+  /// in-category search at the slugged URL — the bare
+  /// `/category/{id}/s/` answers an empty page (device-proven
+  /// 2026-11-12) — so a search must pass this slug (see
+  /// `searchInCategory`). Null when the page carries no search form.
+  final String? searchSlug;
+
+  const CategoryPage({required this.books, this.totalPages, this.searchSlug});
 }
 
 /// Parse a `/category/{id}` (or `/category/{id}/{slug}/s/`) document
@@ -90,16 +98,15 @@ CategoryPage parseCategoryBooksPage(String html, {String? baseUrl}) {
     if (id == null) continue;
     final href = card.attributes['href']?.trim() ?? '';
     final img = card.querySelector('img');
-    final coverRaw = img?.attributes['data-src']?.trim() ??
+    final coverRaw =
+        img?.attributes['data-src']?.trim() ??
         img?.attributes['src']?.trim() ??
         '';
     final title = card.querySelector('div[slot="title"]')?.text.trim() ?? '';
-    final author =
-        card.querySelector('div[slot="author"]')?.text.trim() ?? '';
+    final author = card.querySelector('div[slot="author"]')?.text.trim() ?? '';
     final deleted = card.attributes['deleted']?.trim() ?? '';
     final removed = deleted == '1' || deleted == '5' || deleted == '9';
-    final reason =
-        !removed ? null : (deleted == '1' ? 'copyright' : 'removed');
+    final reason = !removed ? null : (deleted == '1' ? 'copyright' : 'removed');
     books.add(
       CategoryBook(
         book: Book(
@@ -125,9 +132,27 @@ CategoryPage parseCategoryBooksPage(String html, {String? baseUrl}) {
       ),
     );
   }
+  // The search form's action carries the slugged search URL. Read the
+  // slug off it (decoded, so the path builder re-encodes it exactly
+  // once): any form whose action matches the search pattern counts, the
+  // form id is not relied on.
+  String? searchSlug;
+  for (final form in doc.querySelectorAll('form')) {
+    final action = form.attributes['action'] ?? '';
+    final slugMatch = RegExp(r'/category/\d+/([^/]+)/s/').firstMatch(action);
+    if (slugMatch != null) {
+      try {
+        searchSlug = Uri.decodeComponent(slugMatch.group(1)!);
+      } catch (_) {
+        searchSlug = slugMatch.group(1);
+      }
+      break;
+    }
+  }
   return CategoryPage(
     books: books,
     totalPages: _parseCategoryTotalPages(html),
+    searchSlug: searchSlug,
   );
 }
 

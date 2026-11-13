@@ -16,10 +16,7 @@ import 'package:zlibx/providers/zlibrary_provider.dart';
 /// (the two fetches plus the two URL builders `_loadPage` passes
 /// to the solver fallback); any other call throws.
 class _FakeZLibraryApi implements ZLibraryApi {
-  _FakeZLibraryApi({
-    required this.browsePages,
-    this.searchPages = const {},
-  });
+  _FakeZLibraryApi({required this.browsePages, this.searchPages = const {}});
 
   final Map<int, CategoryPage> browsePages;
   final Map<int, CategoryPage> searchPages;
@@ -29,6 +26,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
   String? lastBrowseOrder;
   String? lastSearchQuery;
   String? lastSearchOrder;
+  String? lastSearchSlug;
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -51,8 +49,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
     List<String>? contentTypes,
     String? order,
     int page = 1,
-  }) =>
-      'https://example.com/category/$categoryId/s/?q=$query';
+  }) => 'https://example.com/category/$categoryId/s/?q=$query';
 
   @override
   Future<ApiResponse<CategoryPage>> getCategoryBooks(
@@ -62,9 +59,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
   }) async {
     browseCalls++;
     lastBrowseOrder = order;
-    return ApiResponse.ok(
-      browsePages[page] ?? const CategoryPage(books: []),
-    );
+    return ApiResponse.ok(browsePages[page] ?? const CategoryPage(books: []));
   }
 
   @override
@@ -84,19 +79,14 @@ class _FakeZLibraryApi implements ZLibraryApi {
     searchCalls++;
     lastSearchQuery = query;
     lastSearchOrder = order;
-    return ApiResponse.ok(
-      searchPages[page] ?? const CategoryPage(books: []),
-    );
+    lastSearchSlug = slug;
+    return ApiResponse.ok(searchPages[page] ?? const CategoryPage(books: []));
   }
 }
 
 /// A synthetic page of [count] books (ids [startId] + 1 .. + count),
 /// optionally carrying a [totalPages] from `pagerOptions`.
-CategoryPage _page({
-  required int count,
-  int? totalPages,
-  int startId = 90000,
-}) {
+CategoryPage _page({required int count, int? totalPages, int startId = 90000}) {
   return CategoryPage(
     books: [
       for (var i = 1; i <= count; i++)
@@ -184,9 +174,7 @@ void main() {
 
   test('out-of-range page adds no duplicates', () async {
     final samePage = _page(count: 50, totalPages: 10);
-    final api = _FakeZLibraryApi(
-      browsePages: {1: samePage, 2: samePage},
-    );
+    final api = _FakeZLibraryApi(browsePages: {1: samePage, 2: samePage});
     final container = await _loadedContainer(api);
     await container
         .read(categoryBooksControllerProvider(_args).notifier)
@@ -198,36 +186,62 @@ void main() {
   });
 
   test('empty first page has no more', () async {
-    final api = _FakeZLibraryApi(
-      browsePages: {1: _page(count: 0)},
-    );
+    final api = _FakeZLibraryApi(browsePages: {1: _page(count: 0)});
     final container = await _loadedContainer(api);
     expect(_state(container).books, isEmpty);
     expect(_state(container).hasMore, isFalse);
   });
 
-  test('search routes to searchInCategory, clearing returns to browse',
-      () async {
+  test(
+    'search routes to searchInCategory, clearing returns to browse',
+    () async {
+      final api = _FakeZLibraryApi(
+        browsePages: {1: _page(count: 50, totalPages: 10)},
+        searchPages: {1: _page(count: 3, totalPages: 1)},
+      );
+      final container = await _loadedContainer(api);
+      final notifier = container.read(
+        categoryBooksControllerProvider(_args).notifier,
+      );
+      expect(api.browseCalls, 1);
+      notifier.search('synthetic');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(api.searchCalls, 1);
+      expect(api.lastSearchQuery, 'synthetic');
+      expect(_state(container).books.length, 3);
+      expect(_state(container).query, 'synthetic');
+      notifier.search('');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      // 3 browses: the initial load, the slug resolution that the search
+      // needed (this page carries no search form), and the browse the
+      // cleared query returns to.
+      expect(api.browseCalls, 3);
+      expect(_state(container).query, '');
+      expect(_state(container).books.length, 50);
+    },
+  );
+
+  test('in-category search carries the browse page search slug', () async {
+    // The server only serves /category/{id}/{slug}/s/; the bare search
+    // URL answers an empty page. The slug comes from the browse page's
+    // own search form, never hand-built.
     final api = _FakeZLibraryApi(
-      browsePages: {1: _page(count: 50, totalPages: 10)},
+      browsePages: {
+        1: CategoryPage(
+          books: _page(count: 2, totalPages: 3).books,
+          totalPages: 3,
+          searchSlug: 'Psychology-Theory-History',
+        ),
+      },
       searchPages: {1: _page(count: 3, totalPages: 1)},
     );
     final container = await _loadedContainer(api);
-    final notifier = container.read(
-      categoryBooksControllerProvider(_args).notifier,
-    );
-    expect(api.browseCalls, 1);
-    notifier.search('synthetic');
+    container
+        .read(categoryBooksControllerProvider(_args).notifier)
+        .search('freud');
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(api.searchCalls, 1);
-    expect(api.lastSearchQuery, 'synthetic');
-    expect(_state(container).books.length, 3);
-    expect(_state(container).query, 'synthetic');
-    notifier.search('');
-    await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(api.browseCalls, 2);
-    expect(_state(container).query, '');
-    expect(_state(container).books.length, 50);
+    expect(api.lastSearchSlug, 'Psychology-Theory-History');
   });
 
   test('setOrder passes the order through and reloads', () async {

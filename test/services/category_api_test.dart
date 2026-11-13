@@ -26,9 +26,14 @@ String _card(int n) {
 
 /// A synthetic category page: [cardCount] cards in
 /// `#searchResultBox` plus an inline `pagerOptions` definition when
-/// [totalPages] is given.
-String _page({required int cardCount, int? totalPages}) {
+/// [totalPages] is given, and a search form with [formAction] when given.
+String _page({required int cardCount, int? totalPages, String? formAction}) {
   final buffer = StringBuffer('<html><body>');
+  if (formAction != null) {
+    buffer.write(
+      '<form id="searchForm" method="get" action="$formAction"></form>',
+    );
+  }
   if (totalPages != null) {
     buffer.write(
       '<script>var pagerOptions = {pagesTotal: $totalPages, currentPage: 1};</script>',
@@ -115,7 +120,9 @@ class _FakeAdapter implements HttpClientAdapter {
     return ResponseBody.fromString(
       '',
       404,
-      headers: {Headers.contentTypeHeader: ['text/html']},
+      headers: {
+        Headers.contentTypeHeader: ['text/html'],
+      },
     );
   }
 
@@ -123,7 +130,9 @@ class _FakeAdapter implements HttpClientAdapter {
     return ResponseBody.fromString(
       html,
       statusCode,
-      headers: {Headers.contentTypeHeader: ['text/html']},
+      headers: {
+        Headers.contentTypeHeader: ['text/html'],
+      },
     );
   }
 
@@ -135,8 +144,7 @@ ZLibraryApi _apiWith(_FakeAdapter adapter) {
   return ZLibraryApi(dio: Dio()..httpClientAdapter = adapter);
 }
 
-Uri _lastUri(_FakeAdapter adapter) =>
-    Uri.parse(adapter.requestedUris.last);
+Uri _lastUri(_FakeAdapter adapter) => Uri.parse(adapter.requestedUris.last);
 
 void main() {
   group('getCategoryBooks request', () {
@@ -223,15 +231,9 @@ void main() {
       expect(uri.queryParameters['page'], '2');
       // Repeated keys with brackets: Dio's default list format
       // appends `[]` to the bare key.
-      expect(
-        uri.queryParametersAll['languages[]'],
-        ['chinese', 'english'],
-      );
+      expect(uri.queryParametersAll['languages[]'], ['chinese', 'english']);
       expect(uri.queryParametersAll['extensions[]'], ['epub', 'pdf']);
-      expect(
-        uri.queryParametersAll['selected_content_types[]'],
-        ['book'],
-      );
+      expect(uri.queryParametersAll['selected_content_types[]'], ['book']);
       expect(uri.query.contains('languages[][]'), isFalse);
       expect(uri.query.contains('extensions[][]'), isFalse);
     });
@@ -268,6 +270,32 @@ void main() {
     });
   });
 
+  group('search slug from the page', () {
+    // The server only serves the in-category search at the slugged URL
+    // (`/category/{id}/{slug}/s/`); the bare URL answers an empty
+    // page. The slug is read from the page's own search form.
+    test('reads the slug from the search form action', () {
+      final page = parseCategoryBooksPage(
+        _page(
+          cardCount: 1,
+          formAction: '/category/528/Psychology-Theory-History--Research/s/',
+        ),
+      );
+      expect(page.searchSlug, 'Psychology-Theory-History--Research');
+    });
+
+    test('decodes a percent-encoded slug so it is encoded once', () {
+      final page = parseCategoryBooksPage(
+        _page(cardCount: 1, formAction: '/category/528/Some%20Slug/s/'),
+      );
+      expect(page.searchSlug, 'Some Slug');
+    });
+
+    test('null when the page has no search form', () {
+      expect(parseCategoryBooksPage(_page(cardCount: 1)).searchSlug, isNull);
+    });
+  });
+
   group('category page URLs', () {
     test('categoryPageUrl is absolute and carries page + order', () {
       final api = _apiWith(_FakeAdapter());
@@ -285,10 +313,7 @@ void main() {
         languages: ['chinese', 'english'],
       );
       expect(url, contains('/category/528/s/'));
-      expect(
-        url,
-        contains('languages[]=chinese&languages[]=english'),
-      );
+      expect(url, contains('languages[]=chinese&languages[]=english'));
       expect(url, contains('q=synthetic%20query'));
     });
   });

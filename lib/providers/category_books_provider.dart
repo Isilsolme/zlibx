@@ -127,14 +127,17 @@ class CategoryBooksState {
 /// iff it carries that many cards. A short page is never trusted as
 /// "last page" when a total is known.
 class CategoryBooksController
-    extends
-        AutoDisposeFamilyNotifier<CategoryBooksState, CategoryBooksArgs> {
+    extends AutoDisposeFamilyNotifier<CategoryBooksState, CategoryBooksArgs> {
   final List<CategoryBook> _books = [];
   // O(1) membership checks while pages are appended.
   final Set<int> _bookIds = <int>{};
 
   bool _alive = true;
   int _generation = 0;
+
+  /// The category page's search-form slug, cached for the searches in
+  /// this category (see [_resolveSearchSlug]).
+  String? _searchSlug;
 
   /// Data layer: fetching and parsing (see [CategoryRepository]).
   /// Holds no state of its own; rebuilt on every (re)build from the
@@ -198,9 +201,7 @@ class CategoryBooksController
   /// Clear the language/extension/exact filters (the sort order and
   /// the search query are kept) and reload page 1.
   void resetFilters() {
-    if (state.language == 'all' &&
-        state.extension == 'all' &&
-        !state.exact) {
+    if (state.language == 'all' && state.extension == 'all' && !state.exact) {
       return;
     }
     state = state.copyWith(language: 'all', extension: 'all', exact: false);
@@ -311,9 +312,17 @@ class CategoryBooksController
   }) async {
     final s = state;
     final inSearch = s.query.isNotEmpty;
+    // The in-category search only works at the slugged URL
+    // (`/category/{id}/{slug}/s/`); the bare `/category/{id}/s/`
+    // answers an empty page. Resolve the slug from the browse page's
+    // search form first (cached per category); null falls back to the
+    // bare URL.
+    if (inSearch) await _resolveSearchSlug();
+    final slug = _searchSlug;
     final url = inSearch
         ? _repository.categorySearchUrl(
             categoryId: _categoryId,
+            slug: slug,
             query: s.query,
             exact: s.exact,
             languages: _languageParam(s.language),
@@ -330,6 +339,7 @@ class CategoryBooksController
       final response = inSearch
           ? await _repository.searchInCategory(
               categoryId: _categoryId,
+              slug: slug,
               query: s.query,
               exact: s.exact,
               languages: _languageParam(s.language),
@@ -345,6 +355,12 @@ class CategoryBooksController
       if (!_isCurrent(generation)) return (page: null, error: null);
       final data = response.data;
       if (response.success && data != null) {
+        // Keep the page's search-form slug for later searches in this
+        // category (a browse result carries it too).
+        final pageSlug = data.searchSlug;
+        if (pageSlug != null && pageSlug.isNotEmpty) {
+          _searchSlug = pageSlug;
+        }
         return (page: data, error: null);
       }
       final error = response.error ?? 'Failed to load category';
@@ -362,6 +378,44 @@ class CategoryBooksController
     }
   }
 
+  /// Resolves [CategoryPage.searchSlug] for this category by fetching
+  /// its browse page (Dio first, the WebView solver on the wall). The
+  /// server only serves the in-category search at the slugged URL, so
+  /// this is what makes a search return results instead of an empty
+  /// page. Cached for the lifetime of the controller; never throws.
+  Future<void> _resolveSearchSlug() async {
+    if (_searchSlug != null && _searchSlug!.isNotEmpty) return;
+    final generation = _generation;
+    final order = state.order;
+    final url = _repository.categoryPageUrl(
+      categoryId: _categoryId,
+      page: 1,
+      order: order,
+    );
+    try {
+      var response = await _repository.fetchBooks(
+        categoryId: _categoryId,
+        page: 1,
+        order: order,
+      );
+      CategoryPage? page = response.success ? response.data : null;
+      if (page == null && _repository.isChallengeError(response.error)) {
+        page = (await _loadPageViaSolver(
+          url,
+          generation: generation,
+          originalError: response.error ?? 'category failed',
+        )).page;
+      }
+      final slug = page?.searchSlug;
+      if (_isCurrent(generation) && slug != null && slug.isNotEmpty) {
+        _searchSlug = slug;
+      }
+    } catch (_) {
+      // Fall back to the bare search URL; the search itself may still
+      // parse on a mirror that does not need the slug.
+    }
+  }
+
   Future<({CategoryPage? page, String? error})> _loadPageViaSolver(
     String url, {
     required int generation,
@@ -375,10 +429,7 @@ class CategoryBooksController
     );
     if (!_isCurrent(generation)) return (page: null, error: null);
     if (html == null) return (page: null, error: originalError);
-    final page = _repository.parseBooks(
-      html,
-      baseUrl: Uri.parse(url).origin,
-    );
+    final page = _repository.parseBooks(html, baseUrl: Uri.parse(url).origin);
     if (page == null) return (page: null, error: originalError);
     return (page: page, error: null);
   }
