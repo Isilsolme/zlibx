@@ -192,36 +192,123 @@ class StorageService {
     await HiveService.settingsBox.put(_keyDownloadPath, path);
   }
 
+  // ===== Serialized whole-blob JSON writes =====
+  //
+  // The download history is one JSON blob in the settings box. A Hive
+  // `put` is async, so two concurrent read-modify-write calls for the
+  // same key would both read the same stale blob — the second write then
+  // silently drops the first one's entry. Chaining each write onto the
+  // previous write for the same key makes the read-modify-write atomic
+  // per key: a chained write only reads after the previous write's `put`
+  // completed. Pure reads are NOT serialized (they may see a slightly
+  // stale snapshot — acceptable for a cache). The map is static on
+  // purpose: the Hive box is global and StorageService is constructed
+  // directly outside the Riverpod singleton, so an instance field would
+  // not serialize writes across instances.
+  static final Map<String, Future<void>> _writeChains = {};
+
+  /// Run [work] after the previous write for [key] finished, and return
+  /// [work]'s own future to the caller. The stored chain future never
+  /// completes with an error — a failed write is swallowed in the chain —
+  /// so one failure does not block later writers for the same key; the
+  /// caller still sees its own result/error through the returned future.
+  static Future<T> _runSerialized<T>(String key, Future<T> Function() work) {
+    final previous = _writeChains[key];
+    final run = (previous ?? Future<void>.value()).then((_) => work());
+    _writeChains[key] = run.then<void>((_) {}).catchError((_, __) {});
+    return run;
+  }
+
   // ===== Download History Methods =====
-  
+
+  /// Read the local download-history blob, tolerating a corrupt entry
+  /// instead of crashing the caller. Returns {} when the key is absent
+  /// (the defaultValue '{}' below), when the stored value is not a
+  /// String, when it is not valid JSON, or when the top-level value is
+  /// not a Map. A corrupt value is moved to an isolation backup key (see
+  /// [_quarantineDownloadHistory]). Entries whose value is not a Map are
+  /// dropped, so a malformed entry cannot break a later field read.
+  Future<Map<String, dynamic>> _readDownloadHistorySafely() async {
+    final raw = HiveService.settingsBox.get(
+      _keyDownloadHistory,
+      defaultValue: '{}',
+    );
+    if (raw is! String) {
+      await _quarantineDownloadHistory(raw);
+      return {};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) {
+        await _quarantineDownloadHistory(raw);
+        return {};
+      }
+      final history = <String, dynamic>{};
+      for (final entry in decoded.entries) {
+        if (entry.value is Map) {
+          history['${entry.key}'] = Map<String, dynamic>.from(
+            entry.value as Map,
+          );
+        }
+      }
+      return history;
+    } catch (_) {
+      await _quarantineDownloadHistory(raw);
+      return {};
+    }
+  }
+
+  /// Move a corrupt download-history value to an isolation backup key and
+  /// log the corruption (without the raw value) so the bad entry is
+  /// preserved for inspection instead of being overwritten. Best-effort:
+  /// a failed backup must not break the read that found the corruption.
+  Future<void> _quarantineDownloadHistory(Object? raw) async {
+    AppLog.report(
+      '[storage] ignoring corrupt download history entry',
+      tag: 'storage_service',
+    );
+    try {
+      await HiveService.settingsBox.put(
+        '${_keyDownloadHistory}_corrupt',
+        raw,
+      );
+    } catch (_) {
+      // Best-effort backup; the read already returns {}.
+    }
+  }
+
   /// Add book to download history
   /// Stores: {bookId: {title, author, filePath, cover, extension, downloadTime}}
   Future<void> addToDownloadHistory(
-    String bookId, 
-    String title, 
-    String? author, 
-    String filePath, 
-    {String? cover, String? extension}
-  ) async {
-    final historyJson = HiveService.settingsBox.get(_keyDownloadHistory, defaultValue: '{}') as String;
-    final history = Map<String, dynamic>.from(jsonDecode(historyJson));
-    
-    history[bookId] = {
-      'title': title,
-      'author': author,
-      'filePath': filePath,
-      'cover': cover,
-      'extension': extension,
-      'downloadTime': DateTime.now().toIso8601String(),
-    };
-    
-    await HiveService.settingsBox.put(_keyDownloadHistory, jsonEncode(history));
+    String bookId,
+    String title,
+    String? author,
+    String filePath, {
+    String? cover,
+    String? extension,
+  }) async {
+    await _runSerialized(_keyDownloadHistory, () async {
+      final history = await _readDownloadHistorySafely();
+
+      history[bookId] = {
+        'title': title,
+        'author': author,
+        'filePath': filePath,
+        'cover': cover,
+        'extension': extension,
+        'downloadTime': DateTime.now().toIso8601String(),
+      };
+
+      await HiveService.settingsBox.put(
+        _keyDownloadHistory,
+        jsonEncode(history),
+      );
+    });
   }
 
   /// Get all download history
   Future<Map<String, dynamic>> getDownloadHistory() async {
-    final historyJson = HiveService.settingsBox.get(_keyDownloadHistory, defaultValue: '{}') as String;
-    return Map<String, dynamic>.from(jsonDecode(historyJson));
+    return _readDownloadHistorySafely();
   }
 
   /// Get downloaded file path for a book
@@ -235,11 +322,15 @@ class StorageService {
 
   /// Remove book from download history
   Future<void> removeFromDownloadHistory(String bookId) async {
-    final historyJson = HiveService.settingsBox.get(_keyDownloadHistory, defaultValue: '{}') as String;
-    final history = Map<String, dynamic>.from(jsonDecode(historyJson));
-    
-    history.remove(bookId);
-    
-    await HiveService.settingsBox.put(_keyDownloadHistory, jsonEncode(history));
+    await _runSerialized(_keyDownloadHistory, () async {
+      final history = await _readDownloadHistorySafely();
+
+      history.remove(bookId);
+
+      await HiveService.settingsBox.put(
+        _keyDownloadHistory,
+        jsonEncode(history),
+      );
+    });
   }
 }
