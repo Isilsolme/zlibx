@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.6.1+10601
+version: 1.6.2+10602
 
 environment:
   sdk: ^3.10.0
@@ -40,7 +40,6 @@ dependencies:
 
   # UI & Icons
   cached_network_image: ^3.3.1
-  awesome_dialog: ^3.3.0
   # Material You dynamic color (Android 12+): ColorScheme from the wallpaper,
   # falls back to the built-in palette where dynamic color is unavailable.
   dynamic_color: ^1.7.0
@@ -83,7 +82,6 @@ dependencies:
   # vendor/olib_api_plugin/ (committed to the repo; CI verifies it).
   olib_api_plugin:
     path: vendor/olib_api_plugin
-  liquid_glass_widgets: ^1.17.2
 
 dev_dependencies:
   flutter_test:
@@ -130,6 +128,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Only the one fragment shader used by the vendored ProgressiveBlur.
+  shaders:
+    - assets/shaders/progressive_blur.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

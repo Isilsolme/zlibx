@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import '../../../widgets/progressive_blur.dart';
 
 /// A progressive-blur header: the same graduated frost legado gets from
 /// HazeProgressive.verticalGradient(startIntensity = 1, endIntensity = 0).

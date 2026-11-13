@@ -3,7 +3,6 @@ import 'package:zlibx/utils/diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:olib_api_plugin/olib_api_plugin.dart';
 import '../../../providers/download_provider.dart';
 import '../../../providers/domain_provider.dart';
@@ -13,6 +12,7 @@ import '../../../services/media_store.dart';
 import '../../../providers/update_provider.dart';
 import '../../../routes/app_routes.dart';
 import '../../../utils/app_snack.dart';
+import '../../../widgets/app_dialog.dart';
 import '../../../utils/host_utils.dart';
 import '../../../widgets/state_transition_switch.dart';
 import '../../../widgets/update_dialog.dart';
@@ -282,26 +282,23 @@ class BookActionBar extends ConsumerWidget {
 
       if (existingPath != null && context.mounted) {
         unawaited(
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.info,
-            animType: AnimType.bottomSlide,
+          showAppDialog(
+            context,
             title: AppLocalizations.of(context)!.fileExistsTitle,
-            desc: AppLocalizations.of(context)!.fileExistsDesc,
-            btnCancelText: AppLocalizations.of(context)!.openFile,
-            btnCancelColor: Theme.of(context).colorScheme.primary,
-            btnCancelOnPress: () async {
+            message: AppLocalizations.of(context)!.fileExistsDesc,
+            cancelLabel: AppLocalizations.of(context)!.openFile,
+            onCancel: () async {
               // The dialog outlives this bar: re-check before using context.
               if (!context.mounted) return;
               await _openDownloadedFile(context, existingPath);
             },
-            btnOkText: AppLocalizations.of(context)!.downloadAgain,
-            btnOkColor: Theme.of(context).colorScheme.primary,
-            btnOkOnPress: () {
+            confirmLabel: AppLocalizations.of(context)!.downloadAgain,
+            confirmColor: Theme.of(context).colorScheme.primary,
+            onConfirm: () {
               if (!context.mounted) return;
               _kickoffDownload(context, ref);
             },
-          ).show(),
+          ),
         );
         return;
       }

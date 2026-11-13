@@ -41,14 +41,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
-  awesome_dialog:
-    dependency: "direct main"
-    description:
-      name: awesome_dialog
-      sha256: "4c5821a0a637ceee022084e78c1b8237dd4b8bfca4dd24ac2484662a56707338"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -429,14 +421,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  graphs:
-    dependency: transitive
-    description:
-      name: graphs
-      sha256: "741bbf84165310a68ff28fe9e727332eef1407342fca52759cb21ad8177bb8d0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.3.2"
   hive:
     dependency: "direct main"
     description:
@@ -557,14 +541,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.1.1"
-  liquid_glass_widgets:
-    dependency: "direct main"
-    description:
-      name: liquid_glass_widgets
-      sha256: bd6c27d70dff598920cb96b03018a044fe75306ee1c23bd0f480a98bac673edd
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.17.2"
   logging:
     dependency: transitive
     description:
@@ -764,22 +740,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
-  rive:
-    dependency: transitive
-    description:
-      name: rive
-      sha256: "3533244f855469047500c6d40c1232adf61e3ee35a6e706a6e8e5c6e2328c7df"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.14.7"
-  rive_native:
-    dependency: transitive
-    description:
-      name: rive_native
-      sha256: "27ffdb21e0c2cc3b5d37bcfa6b198830954784adb82b798383d35b0c2603a74e"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.7"
   riverpod:
     dependency: transitive
     description:

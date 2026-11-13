@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/user_profile_section.dart';
 import '../auth/login_screen.dart';
@@ -136,23 +136,22 @@ class AccountScreen extends ConsumerWidget {
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
-    unawaited(AwesomeDialog(
-      context: context,
-      dialogType: DialogType.warning,
-      animType: AnimType.bottomSlide,
-      title: AppLocalizations.of(context)!.logoutConfirmTitle,
-      desc: AppLocalizations.of(context)!.logoutConfirmDesc,
-      btnCancelText: AppLocalizations.of(context)!.cancel,
-      btnCancelOnPress: () {},
-      btnOkText: AppLocalizations.of(context)!.logoutAction,
-      btnOkColor: Theme.of(context).colorScheme.error,
-      btnOkOnPress: () async {
-        await ref.read(authProvider.notifier).logout();
-        if (context.mounted) {
-          await AppRoutes.logoutToLogin(context);
-        }
-      },
-    ).show());
+    unawaited(
+      showAppDialog(
+        context,
+        title: AppLocalizations.of(context)!.logoutConfirmTitle,
+        message: AppLocalizations.of(context)!.logoutConfirmDesc,
+        cancelLabel: AppLocalizations.of(context)!.cancel,
+        confirmLabel: AppLocalizations.of(context)!.logoutAction,
+        confirmColor: Theme.of(context).colorScheme.error,
+        onConfirm: () async {
+          await ref.read(authProvider.notifier).logout();
+          if (context.mounted) {
+            await AppRoutes.logoutToLogin(context);
+          }
+        },
+      ),
+    );
   }
 }
 

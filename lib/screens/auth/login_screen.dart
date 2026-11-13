@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/domain_provider.dart';
 import '../../routes/app_routes.dart';
 import '../../providers/update_provider.dart';
 import '../../utils/app_snack.dart';
+import '../../widgets/app_dialog.dart';
 import '../../widgets/domain_selector.dart';
 import '../../widgets/mirror_trust_dialog.dart';
 import '../../widgets/loading_widget.dart';
@@ -149,19 +149,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         // 线路被拦截 / 连接失败 —— 不是账号密码问题，提示切换线路。
         final cf = error == 'cf_blocked';
         unawaited(
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.warning,
-            animType: AnimType.bottomSlide,
+          showAppDialog(
+            context,
             title: AppLocalizations.of(context)!.lineUnavailable,
-            desc: cf
+            message: cf
                 ? AppLocalizations.of(context)!.loginLineBlockedCf
                 : AppLocalizations.of(context)!.loginLineConnectFailed,
-            btnCancelText: AppLocalizations.of(context)!.close,
-            btnCancelOnPress: () {},
-            btnOkText: AppLocalizations.of(context)!.switchLine,
-            btnOkColor: Theme.of(context).colorScheme.primary,
-            btnOkOnPress: () {
+            cancelLabel: AppLocalizations.of(context)!.close,
+            confirmLabel: AppLocalizations.of(context)!.switchLine,
+            confirmColor: Theme.of(context).colorScheme.primary,
+            onConfirm: () {
               unawaited(
                 showDialog(
                   context: context,
@@ -169,26 +166,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               );
             },
-          ).show(),
+          ),
         );
       } else {
         unawaited(
-          AwesomeDialog(
-            context: context,
-            dialogType: DialogType.error,
-            animType: AnimType.bottomSlide,
+          showAppDialog(
+            context,
             title: AppLocalizations.of(context)!.loginFailed,
-            desc: failureKind == LoginFailureKind.credentials
+            message: failureKind == LoginFailureKind.credentials
                 ? (AppLocalizations.of(context)!.loginBadCredentials)
                 : (AppLocalizations.of(context)!.loginUnknownFailure(
                     lineName,
                     occurredAt,
                     safeLoginErrorDetail(error, email, password),
                   )),
-            btnOkText: AppLocalizations.of(context)!.confirmOk,
-            btnOkColor: Theme.of(context).colorScheme.primary,
-            btnOkOnPress: () {},
-          ).show(),
+            confirmLabel: AppLocalizations.of(context)!.confirmOk,
+            confirmColor: Theme.of(context).colorScheme.primary,
+          ),
         );
       }
     }
