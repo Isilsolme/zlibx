@@ -146,6 +146,17 @@ class AppRoutes {
   ) =>
       Navigator.of(context).pushNamed<T>(categories);
 
+  /// The search page, pre-filled with a query: it runs the search
+  /// immediately. This is what the book-detail author/publisher taps
+  /// navigate to.
+  static Future<T?> openSearchWithQuery<T extends Object?>(
+    BuildContext context,
+    String query,
+  ) => Navigator.of(context).pushNamed<T>(
+    search,
+    arguments: SearchScreenArgs(query: query),
+  );
+
   /// The favorites page.
   static Future<T?> openFavorites<T extends Object?>(BuildContext context) =>
       Navigator.of(context).pushNamed<T>(favorites);
@@ -215,7 +226,15 @@ Map<String, WidgetBuilder> buildAppRoutes() {
     AppRoutes.splash: (context) => const SplashScreen(),
     AppRoutes.login: (context) => const LoginScreen(),
     AppRoutes.home: (context) => const HomeScreen(),
-    AppRoutes.search: (context) => const SearchScreen(),
+    AppRoutes.search: (context) {
+      // The search page can be opened with a preset query (detail-page
+      // author / publisher taps) or bare (search box, nav).
+      final args = ModalRoute.of(context)!.settings.arguments;
+      if (args is SearchScreenArgs) {
+        return SearchScreen(initialQuery: args.query);
+      }
+      return const SearchScreen();
+    },
     AppRoutes.categories: (context) => const CategoryTreeScreen(),
     AppRoutes.categoryBooks: (context) {
       final args = ModalRoute.of(context)!.settings.arguments;

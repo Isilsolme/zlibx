@@ -42,6 +42,7 @@ class _FakeApi extends ZLibraryApi {
     String? order,
     int? page,
     int? limit,
+    bool? exact,
   }) async {
     requestedOrders.add(order ?? '');
     final books =

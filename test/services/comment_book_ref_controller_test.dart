@@ -35,6 +35,7 @@ class _FakeZLibraryApi implements ZLibraryApi {
     String? order,
     int? page,
     int? limit,
+    bool? exact,
   }) async {
     searchCalls++;
     if (delay != null) await Future<void>.delayed(delay!);
