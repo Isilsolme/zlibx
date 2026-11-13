@@ -141,6 +141,23 @@ mixin ZLibraryCategories on ZLibraryApiBase {
     );
     final status = raw.status;
     if (status == null || status < 200 || status >= 300) {
+      // A 503/513 is the mirror's browser-check wall even when the page
+      // body carries none of _looksLikeChallengePage's markers (or is
+      // empty): the bare 'HTTP 503' error would not match
+      // isChallengeError, so the solver fallback would never run. Same
+      // status check as the download-history and detail-extras paths.
+      final errorLower = (raw.error ?? '').toLowerCase();
+      final challenged =
+          status == 503 ||
+          status == 513 ||
+          errorLower.contains('browser check') ||
+          errorLower.contains('cf_blocked');
+      if (challenged) {
+        return ApiResponse.fail(
+          'HTTP $status: browser check page',
+          statusCode: status,
+        );
+      }
       return ApiResponse.fail(
         raw.error ?? 'category failed (HTTP $status)',
         statusCode: status,
