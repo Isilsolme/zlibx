@@ -8,6 +8,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../providers/download_provider.dart';
 import '../../services/media_store.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_layout.dart';
 import '../../utils/cover_cache.dart';
 import '../../utils/file_utils.dart';
 import '../../widgets/empty_state.dart';
@@ -138,10 +139,15 @@ class _DownloadList extends StatelessWidget {
       );
     }
     return ListView.separated(
-      // Bottom 124 = 28 gap + 96 floating-nav clearance, reserved
-      // inside the list so items scroll behind the pill (like the
-      // home grid).
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 124),
+      // Bottom = 28 gap + nav clearance (96 floating bar on phones,
+      // less on tablets where the rail sits on the left), reserved
+      // inside the list so items scroll behind the pill.
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        28 + AppLayout.navClearance(context),
+      ),
       itemCount: taskIds.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (_, index) => _DownloadItem(id: taskIds[index]),

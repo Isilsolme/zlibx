@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/app_layout.dart';
 import '../../widgets/app_dialog.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/user_profile_section.dart';
@@ -51,10 +52,15 @@ class AccountScreen extends ConsumerWidget {
                 ),
               )
             : ListView(
-                // Bottom 112 = 16 gap + 96 floating-nav clearance,
-                // reserved inside the list so items scroll behind
-                // the pill (like the home grid).
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
+                // Bottom = 16 gap + nav clearance (96 floating bar on
+                // phones, less on tablets), reserved inside the list so
+                // items scroll behind the pill.
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + AppLayout.navClearance(context),
+                ),
                 children: [
                   UserProfileSection(
                     user: user,

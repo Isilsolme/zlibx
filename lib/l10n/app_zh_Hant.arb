@@ -634,6 +634,8 @@
   "noMoreBooks": "沒有更多書籍了",
   "homeLayout": "首頁版面",
   "gridColumns": "網格欄數",
+  "autoGridColumns": "自適應",
   "twoColumns": "2 欄",
-  "threeColumns": "3 欄"
+  "threeColumns": "3 欄",
+  "autoGridColumnsHint": "自適應會按螢幕寬度排列：手機 3 欄，平板更多。"
 }

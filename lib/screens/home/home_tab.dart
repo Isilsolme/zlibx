@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -10,6 +11,7 @@ import '../../providers/update_provider.dart';
 import '../../widgets/update_dialog.dart';
 import '../../routes/app_routes.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../theme/app_layout.dart';
 import '../../theme/app_metrics.dart';
 import '../../utils/app_snack.dart';
 import '../../widgets/liquid_nav_bar.dart';
@@ -220,12 +222,17 @@ class HomeTabState extends ConsumerState<HomeTab> with WidgetsBindingObserver {
 
     // Header content (search bar + greeting). The blur is applied
     // around it only when the blur switch is on; otherwise the header
-    // is a solid surface so nothing shows through.
+    // is a solid surface so nothing shows through. The side gutter grows
+    // on tablets so the search bar lines up with the grid below it.
+    final headerGutter = math.max(
+      24.0,
+      AppLayout.pageGutter(MediaQuery.sizeOf(context).width),
+    );
     final header = Padding(
       padding: EdgeInsets.fromLTRB(
-        24,
+        headerGutter,
         topInset + headerPadding,
-        24,
+        headerGutter,
         headerPadding,
       ),
       child: Column(
@@ -294,10 +301,11 @@ class HomeTabState extends ConsumerState<HomeTab> with WidgetsBindingObserver {
       ),
     );
 
-    final bottomPadding = LiquidNavBar.bottomClearance(
-      context,
-      floating: floatingNav,
-    );
+    // Phones reserve room for the floating bar; on tablets the rail takes no
+    // vertical space, so only the system inset plus a little air remains.
+    final bottomPadding = AppLayout.usesNavRail(context)
+        ? AppLayout.navClearance(context)
+        : LiquidNavBar.bottomClearance(context, floating: floatingNav);
 
     return Column(
       children: [

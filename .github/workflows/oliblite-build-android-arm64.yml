@@ -3,28 +3,36 @@ name: Build Android APK
 # Actions are pinned to commit SHAs (tag in a trailing comment) so a
 # moved tag cannot change what runs. To bump an action, resolve the
 # new tag's commit SHA and update both the SHA and the comment.
-
-# Triggered by either:
-#   - pushing a vX.Y.Z tag       → builds + creates a GitHub Release with APKs attached
-#   - manual workflow_dispatch   → builds + uploads APKs as workflow artifact only
 #
-# Required secrets (configure in repo Settings → Secrets and variables → Actions):
-#   KEYSTORE_BASE64        base64-encoded contents of olib-release-key.jks
-#                          generate locally with: base64 -w 0 android/app/olib-release-key.jks
-#   KEYSTORE_PASSWORD      storePassword from android/key.properties
-#   KEY_PASSWORD           keyPassword from android/key.properties
-#   KEY_ALIAS              keyAlias from android/key.properties (currently "olib")
+# Jobs:
+#   check   - every push to main, every pull request, every tag:
+#             'flutter analyze' and 'flutter test'. Nothing is built from
+#             a red tree.
+#   release - tag pushes (vX.Y.Z) and manual dispatch: builds the signed
+#             arm64 release APK. On a tag it also publishes the GitHub
+#             Release the in-app updater polls (/releases/latest ignores
+#             prereleases, so the release must be a normal one).
 #
-# NOTE: olib_api_plugin is NO LONGER fetched from a private repo.
-# The package now lives in this repo at vendor/olib_api_plugin/ (a
-# clean-room rewrite of the Z-Library client). No deploy key is needed
-# and no clone step runs; the step below only verifies the directory
-# is present before flutter pub get resolves the path dependency.
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   KEYSTORE_BASE64       base64 of the MD3 release keystore (zlibx-md3.jks)
+#   KEYSTORE_PASSWORD     storePassword from android/key.properties
+#   KEY_PASSWORD          keyPassword from android/key.properties
+#   KEY_ALIAS             keyAlias (currently zlibx-md3)
+#   EXPECTED_CERT_SHA256  optional: signing certificate SHA-256 fingerprint
+#                         (uppercase hex, no colons). When set, a build with
+#                         another key fails here instead of breaking every
+#                         installed user's upgrade path at install time.
+#
+# The keystore in CI must be the SAME one used for v1.6.2 locally;
+# otherwise existing users cannot upgrade in place
+# (INSTALL_FAILED_UPDATE_INCOMPATIBLE).
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       reason:
@@ -33,17 +41,17 @@ on:
         default: 'Manual build'
 
 permissions:
-  contents: write  # needed to create a Release on tag pushes
+  contents: read
 
 concurrency:
-  group: build-android-${{ github.ref }}
+  group: android-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build release APK
+  check:
+    name: Analyze and test
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -64,12 +72,6 @@ jobs:
           flutter-version: '3.44.0'
           cache: true
 
-      - name: Print toolchain versions
-        run: |
-          flutter --version
-          dart --version
-          java -version
-
       - name: Cache pub
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
@@ -89,10 +91,51 @@ jobs:
       - name: Test
         run: flutter test
 
+  release:
+    name: Build signed release APK
+    needs: check
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write # create the GitHub Release on tag pushes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: '3.44.0'
+          cache: true
+
+      - name: Cache pub
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
       - name: Read version from pubspec
         id: pubspec
         run: |
-          full=$(grep '^version:' pubspec.yaml | sed 's/version:\s*//' | tr -d ' ')
+          full=$(grep '^version:' pubspec.yaml | sed 's/version:\\s*//' | tr -d ' ')
           version=${full%+*}
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "full=$full" >> "$GITHUB_OUTPUT"
@@ -106,13 +149,12 @@ jobs:
         run: |
           expected="v$PUBSPEC_VERSION"
           if [ "$TAG" != "$expected" ]; then
-            echo "::error::Tag '$TAG' does not match pubspec version '$expected'. Run scripts/bump_version.js first."
+            echo "::error::Tag '$TAG' does not match pubspec version '$expected'. Bump pubspec.yaml before tagging."
             exit 1
           fi
 
       # olib_api_plugin 现在是仓库内代码（vendor/olib_api_plugin/），pubspec
-      # 用 path 依赖。只核对目录在场，不再 clone 私有仓库、不跑 codegen
-      #（重写版模型是手写代码，没有 build_runner 生成文件）。
+      # 用 path 依赖。只核对目录在场，不再 clone 私有仓库、不跑 codegen。
       - name: Verify in-repo olib_api_plugin
         run: |
           if [ ! -f vendor/olib_api_plugin/pubspec.yaml ] || [ ! -f vendor/olib_api_plugin/lib/olib_api_plugin.dart ]; then
@@ -139,27 +181,38 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::error::KEYSTORE_BASE64 secret is missing. Set it before running this workflow."
-            exit 1
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/olib-release-key.jks
-          # build.gradle.kts reads key.properties from the android/ dir.
+          missing=0
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_PASSWORD KEY_ALIAS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name secret is missing. Configure the signing secrets before releasing."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/zlibx-md3.jks
+          # android/app/build.gradle.kts resolves storeFile relative to android/app.
           {
             echo "storePassword=$KEYSTORE_PASSWORD"
             echo "keyPassword=$KEY_PASSWORD"
             echo "keyAlias=$KEY_ALIAS"
-            echo "storeFile=olib-release-key.jks"
+            echo "storeFile=zlibx-md3.jks"
           } > android/key.properties
           echo "Keystore restored. File sizes:"
-          wc -c android/app/olib-release-key.jks android/key.properties
+          wc -c android/app/zlibx-md3.jks android/key.properties
 
       - name: Build release APK
         # --obfuscate renames Dart symbols in the shipped snapshot (smaller
-        # + harder to read); the mapping lands in the --split-debug-info
+        # + harder to read); the mapping lands in the split-debug-info
         # directory and is uploaded as a separate artifact below, so crash
         # de-symbolization keeps working.
-        run: flutter build apk --release --target-platform android-arm64 --obfuscate --split-debug-info=build/app/outputs/symbols
+        run: |
+          flutter build apk --release \
+            --target-platform android-arm64 \
+            --obfuscate \
+            --split-debug-info=build/app/outputs/symbols \
+            --android-project-arg=kotlin.incremental=false \
+            --android-project-arg=ksp.incremental=false
 
       - name: Rename APK and compute checksum
         id: artifacts
@@ -167,10 +220,8 @@ jobs:
           cd build/app/outputs/flutter-apk
           v="${{ steps.pubspec.outputs.version }}"
 
-          # Rename to a clean, human-readable filename
           mv app-release.apk "zlibx-v$v.apk"
 
-          # Drop any leftover unsigned/intermediate artifacts
           rm -f *.apk.sha1 *-debug.apk
 
           echo "Output files:"
@@ -180,27 +231,38 @@ jobs:
           echo "--- sha256sums.txt ---"
           cat sha256sums.txt
 
-          # Record the APK size in the run summary so consecutive builds
-          # can be compared without downloading the artifact.
           apk_bytes=$(stat -c%s *.apk)
           echo "APK size: ${apk_bytes} bytes" >> "$GITHUB_STEP_SUMMARY"
+          echo "APK SHA-256: $(cut -d' ' -f1 sha256sums.txt)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Verify keystore signature
+        env:
+          EXPECTED_CERT_SHA256: ${{ secrets.EXPECTED_CERT_SHA256 }}
         run: |
           cd build/app/outputs/flutter-apk
           v="${{ steps.pubspec.outputs.version }}"
           apk="zlibx-v$v.apk"
-          # build-tools includes apksigner; pick the latest available version
           apksigner_bin=$(ls -1 "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -n1)
           if [ -z "$apksigner_bin" ]; then
-            echo "::warning::apksigner not found, skipping verification"
-            exit 0
+            echo "::error::apksigner not found; cannot verify the signing certificate."
+            exit 1
           fi
-          "$apksigner_bin" verify --print-certs "$apk"
+          "$apksigner_bin" verify --print-certs "$apk" | tee certs.txt
+
+          if [ -n "$EXPECTED_CERT_SHA256" ]; then
+            actual=$(grep -i 'SHA-256 digest' certs.txt | head -n1 | sed 's/.*: //' | tr -d ': ' | tr '[:lower:]' '[:upper:]')
+            expected=$(echo "$EXPECTED_CERT_SHA256" | tr -d ': ' | tr '[:lower:]' '[:upper:]')
+            if [ "$actual" != "$expected" ]; then
+              echo "::error::APK signed with an unexpected certificate. Expected $expected, got $actual. Installed users could not upgrade."
+              exit 1
+            fi
+            echo "Signing certificate matches EXPECTED_CERT_SHA256."
+          fi
 
       - name: Cleanup signing material (defence in depth)
         if: always()
         run: |
-          rm -f android/app/olib-release-key.jks android/key.properties
+          rm -f android/app/zlibx-md3.jks android/key.properties build/app/outputs/flutter-apk/certs.txt
           echo "Signing material removed from runner."
 
       - name: Upload APK artifacts
@@ -214,8 +276,6 @@ jobs:
 
       # --obfuscate 的符号映射表（app.android-arm64.symbols）：单独存一份
       # 构建产物，和 APK 同样的 30 天保留期；发布版崩溃堆栈靠它反解。
-      # 仓库本身是开源的，映射表只把已公开的源码符号名对应回去，不泄露
-      # 任何新东西，所以打 tag 时下面 Release 里也放一份（永久保存）。
       - name: Upload Dart symbols for de-obfuscation
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -231,6 +291,8 @@ jobs:
           name: zlibx ${{ github.ref_name }}
           # 正文不由工作流生成：发版时在草稿里写好说明；
           # action 更新已有 Release 时 body 为空会保留原正文。
+          draft: false
+          prerelease: false
           fail_on_unmatched_files: true
           files: |
             build/app/outputs/flutter-apk/zlibx-*.apk

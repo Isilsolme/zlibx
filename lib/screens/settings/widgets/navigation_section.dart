@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/nav_label_mode.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../theme/app_layout.dart';
 import 'section_header.dart';
 import 'settings_card.dart';
 
@@ -22,6 +23,10 @@ class NavigationSection extends ConsumerWidget {
     final floatingNav = ref.watch(floatingNavProvider);
     final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final labelMode = ref.watch(navLabelModeProvider);
+    // On tablets the bottom bar is replaced by the opaque left rail, which
+    // has no blur, refraction, floating mode or hide-on-scroll: showing
+    // those switches there would be lying. The label mode still applies.
+    final compactNav = !AppLayout.usesNavRail(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,55 +35,61 @@ class NavigationSection extends ConsumerWidget {
         SettingsCard(
           child: Column(
             children: [
-              SwitchListTile(
-                secondary: const Icon(Icons.blur_on_rounded),
-                title: Text(t.blurEffect),
-                value: blurEnabled,
-                activeThumbColor: cs.primary,
-                onChanged: (value) {
-                  ref.read(blurEnabledProvider.notifier).setBlurEnabled(value);
-                },
-              ),
-              const SettingsDivider(),
-              SwitchListTile(
-                secondary: const Icon(Icons.water_drop_outlined),
-                title: Text(t.glassRefraction),
-                subtitle: Text(t.glassRefractionDesc),
-                value: blurEnabled && refraction,
-                activeThumbColor: cs.primary,
-                onChanged: blurEnabled
-                    ? (value) {
-                        ref
-                            .read(glassRefractionProvider.notifier)
-                            .setGlassRefraction(value);
-                      }
-                    : null,
-              ),
-              const SettingsDivider(),
-              SwitchListTile(
-                secondary: const Icon(Icons.picture_in_picture_alt_outlined),
-                title: Text(t.floatingNav),
-                value: floatingNav,
-                activeThumbColor: cs.primary,
-                onChanged: (value) {
-                  ref.read(floatingNavProvider.notifier).setFloatingNav(value);
-                },
-              ),
-              const SettingsDivider(),
-              SwitchListTile(
-                secondary: const Icon(Icons.vertical_align_bottom_rounded),
-                title: Text(t.hideNavOnScroll),
-                value: hideNavOnScroll,
-                activeThumbColor: cs.primary,
-                onChanged: floatingNav
-                    ? (value) {
-                        ref
-                            .read(hideNavOnScrollProvider.notifier)
-                            .setHideNavOnScroll(value);
-                      }
-                    : null,
-              ),
-              const SettingsDivider(),
+              if (compactNav) ...[
+                SwitchListTile(
+                  secondary: const Icon(Icons.blur_on_rounded),
+                  title: Text(t.blurEffect),
+                  value: blurEnabled,
+                  activeThumbColor: cs.primary,
+                  onChanged: (value) {
+                    ref
+                        .read(blurEnabledProvider.notifier)
+                        .setBlurEnabled(value);
+                  },
+                ),
+                const SettingsDivider(),
+                SwitchListTile(
+                  secondary: const Icon(Icons.water_drop_outlined),
+                  title: Text(t.glassRefraction),
+                  subtitle: Text(t.glassRefractionDesc),
+                  value: blurEnabled && refraction,
+                  activeThumbColor: cs.primary,
+                  onChanged: blurEnabled
+                      ? (value) {
+                          ref
+                              .read(glassRefractionProvider.notifier)
+                              .setGlassRefraction(value);
+                        }
+                      : null,
+                ),
+                const SettingsDivider(),
+                SwitchListTile(
+                  secondary: const Icon(Icons.picture_in_picture_alt_outlined),
+                  title: Text(t.floatingNav),
+                  value: floatingNav,
+                  activeThumbColor: cs.primary,
+                  onChanged: (value) {
+                    ref
+                        .read(floatingNavProvider.notifier)
+                        .setFloatingNav(value);
+                  },
+                ),
+                const SettingsDivider(),
+                SwitchListTile(
+                  secondary: const Icon(Icons.vertical_align_bottom_rounded),
+                  title: Text(t.hideNavOnScroll),
+                  value: hideNavOnScroll,
+                  activeThumbColor: cs.primary,
+                  onChanged: floatingNav
+                      ? (value) {
+                          ref
+                              .read(hideNavOnScrollProvider.notifier)
+                              .setHideNavOnScroll(value);
+                        }
+                      : null,
+                ),
+                const SettingsDivider(),
+              ],
               Builder(
                 builder: (rowContext) => ListTile(
                   leading: const Icon(Icons.text_fields_rounded),

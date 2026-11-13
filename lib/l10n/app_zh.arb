@@ -634,6 +634,8 @@
   "noMoreBooks": "没有更多书籍了",
   "homeLayout": "首页布局",
   "gridColumns": "网格列数",
+  "autoGridColumns": "自适应",
   "twoColumns": "2 列",
-  "threeColumns": "3 列"
+  "threeColumns": "3 列",
+  "autoGridColumnsHint": "自适应会按屏幕宽度排列：手机 3 列，平板更多。"
 }

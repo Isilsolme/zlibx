@@ -634,6 +634,8 @@
   "noMoreBooks": "더 이상 책이 없습니다",
   "homeLayout": "홈 레이아웃",
   "gridColumns": "그리드 열 수",
+  "autoGridColumns": "자동",
   "twoColumns": "2열",
-  "threeColumns": "3열"
+  "threeColumns": "3열",
+  "autoGridColumnsHint": "화면 너비에 맞춰 자동으로 배치합니다(휴대폰 3열, 태블릿은 더 많음)."
 }

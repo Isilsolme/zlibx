@@ -634,6 +634,8 @@
   "noMoreBooks": "You have reached the end",
   "homeLayout": "Home layout",
   "gridColumns": "Grid columns",
+  "autoGridColumns": "Auto",
   "twoColumns": "2 columns",
-  "threeColumns": "3 columns"
+  "threeColumns": "3 columns",
+  "autoGridColumnsHint": "Auto fits the grid to the screen: 3 columns on a phone, more on a tablet."
 }

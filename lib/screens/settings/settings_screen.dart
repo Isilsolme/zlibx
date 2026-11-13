@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../providers/auth_provider.dart';
+import '../../theme/app_layout.dart';
 import '../../widgets/update_dialog.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../auth/login_screen.dart';
@@ -42,10 +43,15 @@ class SettingsScreen extends ConsumerWidget {
         // already does this.)
         bottom: false,
         child: ListView(
-          // Bottom 128 = 32 gap + 96 floating-nav clearance, reserved
-          // inside the list (like the home grid) so items scroll
-          // behind the pill instead of stopping at a blank band.
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 128),
+          // Bottom = 32 gap + nav clearance (96 floating bar on phones,
+          // the system inset plus air on tablets), reserved inside the
+          // list like the home grid so items scroll behind the pill.
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            32 + AppLayout.navClearance(context),
+          ),
           children: [
             // Signed in: the profile card lives on the account page now.
             // Signed out (e.g. skipped login): offer the login screen

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/storage_service.dart';
 import '../services/hive_service.dart';
 import '../utils/locale_utils.dart';
+import '../models/grid_columns_mode.dart';
 import '../models/nav_label_mode.dart';
 
 enum AppThemeMode { system, light, dark }
@@ -241,21 +242,35 @@ final navLabelModeProvider =
       NavLabelModeNotifier.new,
     );
 
-/// Home grid columns: 2 or 3. Defaults to 3 (the current design).
-class HomeGridColumnsNotifier extends Notifier<int> {
+/// Home grid columns: automatic (width-driven) by default, with explicit
+/// 2/3-column overrides kept for users who prefer a fixed density.
+class HomeGridColumnsNotifier extends Notifier<GridColumnsMode> {
+  static const String _key = 'homeGridColumnsMode';
+
   @override
-  int build() {
-    final stored = HiveService.settingsBox.get('homeGridColumns');
-    return stored == 2 ? 2 : 3;
+  GridColumnsMode build() {
+    final stored = HiveService.settingsBox.get(_key);
+    if (stored is String) {
+      for (final mode in GridColumnsMode.values) {
+        if (mode.name == stored) return mode;
+      }
+    }
+    // Migration: the pre-tablet setting stored 2 or 3 only after an explicit
+    // tap, so honour it as a manual choice. Nothing stored means auto, which
+    // is what a fresh install (and every tablet) should use.
+    final legacy = HiveService.settingsBox.get('homeGridColumns');
+    if (legacy == 2) return GridColumnsMode.two;
+    if (legacy == 3) return GridColumnsMode.three;
+    return GridColumnsMode.auto;
   }
 
-  Future<void> setColumns(int value) async {
-    if (value != 2 && value != 3) return;
-    state = value;
-    await HiveService.settingsBox.put('homeGridColumns', value);
+  Future<void> setMode(GridColumnsMode mode) async {
+    state = mode;
+    await HiveService.settingsBox.put(_key, mode.name);
   }
 }
 
-final homeGridColumnsProvider = NotifierProvider<HomeGridColumnsNotifier, int>(
-  HomeGridColumnsNotifier.new,
-);
+final homeGridColumnsModeProvider =
+    NotifierProvider<HomeGridColumnsNotifier, GridColumnsMode>(
+      HomeGridColumnsNotifier.new,
+    );

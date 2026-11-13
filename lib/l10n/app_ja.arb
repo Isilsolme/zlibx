@@ -634,6 +634,8 @@
   "noMoreBooks": "これ以上本はありません",
   "homeLayout": "ホームレイアウト",
   "gridColumns": "グリッド列数",
+  "autoGridColumns": "自動",
   "twoColumns": "2列",
-  "threeColumns": "3列"
+  "threeColumns": "3列",
+  "autoGridColumnsHint": "画面幅に合わせて自動調整します（スマホは3列、タブレットはそれ以上）。"
 }

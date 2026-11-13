@@ -6,8 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
+import '../../../models/grid_columns_mode.dart';
 import '../../../providers/home_feed_provider.dart';
 import '../../../providers/settings_provider.dart';
+import '../../../theme/app_layout.dart';
 import '../../../widgets/book_card.dart';
 import '../../../widgets/empty_state.dart';
 import '../../../widgets/loading_widget.dart';
@@ -45,14 +47,16 @@ class HomeFeedView extends ConsumerWidget {
     final isLoading = ref.watch(homeFeedProvider.select((s) => s.isLoading));
     final books = ref.watch(homeFeedProvider.select((s) => s.books));
     final error = ref.watch(homeFeedProvider.select((s) => s.error));
-    final columns = ref.watch(homeGridColumnsProvider);
+    // `auto` (the default) fits the columns to the current width, so the
+    // same grid is 3 wide on a phone and up to 8 wide on a tablet.
+    final columnMode = ref.watch(homeGridColumnsModeProvider);
 
     if (isLoading && books.isEmpty) {
       return _crossFade(
         _SkeletonFeed(
           key: const ValueKey<String>('skeleton'),
           topPadding: topPadding,
-          columns: columns,
+          mode: columnMode,
         ),
       );
     }
@@ -80,10 +84,13 @@ class HomeFeedView extends ConsumerWidget {
         key: const ValueKey<String>('grid'),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const columnSpacing = 16.0;
-            const horizontalPadding = 20.0;
+            const columnSpacing = AppLayout.gridSpacing;
+            final horizontalPadding = AppLayout.pageGutter(
+              constraints.maxWidth,
+            );
             final gridWidth = (constraints.maxWidth - horizontalPadding * 2)
                 .clamp(0.0, double.infinity);
+            final columns = AppLayout.gridColumns(columnMode, gridWidth);
             final cardWidth =
                 ((gridWidth - columnSpacing * (columns - 1)) / columns).clamp(
                   0.0,
@@ -290,11 +297,11 @@ class _SkeletonFeed extends StatefulWidget {
   const _SkeletonFeed({
     super.key,
     required this.topPadding,
-    required this.columns,
+    required this.mode,
   });
 
   final double topPadding;
-  final int columns;
+  final GridColumnsMode mode;
 
   @override
   State<_SkeletonFeed> createState() => _SkeletonFeedState();
@@ -333,17 +340,17 @@ class _SkeletonFeedState extends State<_SkeletonFeed>
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const spacing = 16.0;
-        const horizontal = 20.0;
+        const spacing = AppLayout.gridSpacing;
+        final horizontal = AppLayout.pageGutter(constraints.maxWidth);
         final width = (constraints.maxWidth - horizontal * 2).clamp(
           0.0,
           double.infinity,
         );
-        final cardWidth =
-            ((width - spacing * (widget.columns - 1)) / widget.columns).clamp(
-              0.0,
-              double.infinity,
-            );
+        final columns = AppLayout.gridColumns(widget.mode, width);
+        final cardWidth = ((width - spacing * (columns - 1)) / columns).clamp(
+          0.0,
+          double.infinity,
+        );
         // One opacity layer for the whole grid. The cards themselves are
         // static; nothing rebuilds per frame beyond this FadeTransition.
         return FadeTransition(
@@ -357,12 +364,12 @@ class _SkeletonFeedState extends State<_SkeletonFeed>
               24,
             ),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: widget.columns,
+              crossAxisCount: columns,
               mainAxisExtent: BookCard.compactHeightFor(cardWidth),
               crossAxisSpacing: spacing,
               mainAxisSpacing: 12,
             ),
-            itemCount: math.max(6, widget.columns * 3),
+            itemCount: math.max(6, columns * 3),
             itemBuilder: (context, index) => const _SkeletonCard(),
           ),
         );
