@@ -780,6 +780,10 @@ abstract class ZLibraryApiBase {
     String? order,
     int? page,
     int? limit,
+    // Exact title match: sends form field `e=1`, the same flag the
+    // full-text and in-category searches already use. Null/false sends
+    // nothing, so existing callers are unaffected.
+    bool? exact,
   }) async {
     final raw = await _postForm('/eapi/book/search', {
       if (message != null) 'message': message,
@@ -790,6 +794,7 @@ abstract class ZLibraryApiBase {
       if (order != null) 'order': order,
       if (page != null) 'page': page,
       if (limit != null) 'limit': limit,
+      if (exact == true) 'e': '1',
     });
     if (raw.json == null) {
       return ApiResponse.fail(raw.error ?? 'search failed',
