@@ -24,14 +24,12 @@ class LiquidSegmentedControl extends StatefulWidget {
     required this.segments,
     required this.selectedIndex,
     required this.onChanged,
-    this.glass = true,
     this.height = 40,
   });
 
   final List<LiquidSegment> segments;
   final int selectedIndex;
   final ValueChanged<int> onChanged;
-  final bool glass;
   final double height;
 
   @override
@@ -187,8 +185,6 @@ class _LiquidSegmentedControlState extends State<LiquidSegmentedControl>
                         count: _count,
                         pad: _pad,
                         gap: _gap,
-                        glass: widget.glass,
-                        accent: cs.primary,
                         container: cs.primaryContainer,
                         isDark: Theme.of(context).brightness == Brightness.dark,
                       ),
@@ -340,8 +336,6 @@ class _SegmentLensPainter extends CustomPainter {
     required this.count,
     required this.pad,
     required this.gap,
-    required this.glass,
-    required this.accent,
     required this.container,
     required this.isDark,
   }) : super(repaint: repaint);
@@ -351,8 +345,6 @@ class _SegmentLensPainter extends CustomPainter {
   final int count;
   final double pad;
   final double gap;
-  final bool glass;
-  final Color accent;
   final Color container;
   final bool isDark;
 
@@ -367,51 +359,11 @@ class _SegmentLensPainter extends CustomPainter {
       pad: pad,
       gap: gap,
     );
-    if (!glass) {
-      canvas.drawRRect(
-        rrect,
-        Paint()..color = container.withValues(alpha: 0.92),
-      );
-      return;
-    }
-    final rect = rrect.outerRect;
+    // Plain M3 thumb: the sliding pill is the animation, no refraction
+    // or sheen layers on top of it.
     canvas.drawRRect(
       rrect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            container.withValues(alpha: isDark ? 0.62 : 0.78),
-            accent.withValues(alpha: isDark ? 0.12 : 0.08),
-          ],
-        ).createShader(rect),
-    );
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.center,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.06 : 0.12),
-            Colors.transparent,
-          ],
-        ).createShader(rect),
-    );
-    canvas.drawRRect(
-      rrect.deflate(0.6),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.24 : 0.5),
-            Colors.white.withValues(alpha: isDark ? 0.04 : 0.12),
-          ],
-        ).createShader(rect),
+      Paint()..color = container.withValues(alpha: isDark ? 0.82 : 0.92),
     );
   }
 

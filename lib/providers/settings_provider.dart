@@ -201,30 +201,6 @@ final navBarVisibleProvider = NotifierProvider<NavBarVisibleNotifier, bool>(
   NavBarVisibleNotifier.new,
 );
 
-/// Liquid-glass refraction — an extra lens/frost pass on the floating
-/// navigation bar. Off by default: the bar's slide, pill tracking, colour
-/// sweep and squash/stretch animation are identical either way, and turning
-/// it off skips a backdrop-filter pass on every frame.
-class GlassRefractionNotifier extends Notifier<bool> {
-  @override
-  bool build() => _load();
-
-  bool _load() {
-    final v = HiveService.settingsBox.get('glassRefraction');
-    if (v is bool) return v;
-    return false;
-  }
-
-  Future<void> setGlassRefraction(bool value) async {
-    state = value;
-    await HiveService.settingsBox.put('glassRefraction', value);
-  }
-}
-
-final glassRefractionProvider = NotifierProvider<GlassRefractionNotifier, bool>(
-  GlassRefractionNotifier.new,
-);
-
 /// Bottom navigation labels: always / selected-only (auto) / never.
 class NavLabelModeNotifier extends Notifier<NavLabelMode> {
   @override

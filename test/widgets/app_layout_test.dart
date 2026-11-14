@@ -5,18 +5,23 @@ import 'package:zlibx/theme/app_layout.dart';
 
 void main() {
   group('AppLayout.gridColumns', () {
-    test('auto fits the phone grid at the current 3-column density', () {
-      // 411dp phone minus the 20dp page gutter each side.
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 371), 3);
-      // Very narrow phone: never below two columns.
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 280), 2);
+    test('phones keep three columns at every width', () {
+      // A 360dp phone used to fall to two columns under the width formula;
+      // the design has always been three up to the tablet breakpoint.
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 360), 3);
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 411), 3);
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 599), 3);
     });
 
-    test('auto adds columns as the window grows', () {
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 536), 4);
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 736), 5);
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 936), 7);
-      expect(AppLayout.gridColumns(GridColumnsMode.auto, 1176), 8);
+    test('auto adds columns from the tablet breakpoint', () {
+      // 600dp: 536dp of content, 4 columns.
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 600), 4);
+      // 840dp: 776dp of content, 6 columns.
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 840), 6);
+      // 1000dp: 936dp of content, 7 columns.
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 1000), 7);
+      // 1280dp: capped at 8.
+      expect(AppLayout.gridColumns(GridColumnsMode.auto, 1280), 8);
     });
 
     test('auto stops at the maximum on very wide windows', () {

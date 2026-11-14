@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../models/display_book.dart';
-import '../../../providers/settings_provider.dart';
 import '../../../widgets/liquid_segmented_control.dart';
 
 /// Three-way search source picker. A single draggable liquid lens replaces
@@ -48,7 +47,6 @@ class SearchSourceSelector extends ConsumerWidget {
         ],
         selectedIndex: items.indexOf(selected),
         onChanged: (index) => onSwitch(items[index]),
-        glass: ref.watch(glassRefractionProvider),
       ),
     );
   }

@@ -25,7 +25,6 @@ class HomeNavBar extends ConsumerWidget {
     final floatingNav = ref.watch(floatingNavProvider);
     final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final navVisible = ref.watch(navBarVisibleProvider);
-    final refraction = ref.watch(glassRefractionProvider);
     final labelMode = ref.watch(navLabelModeProvider);
     final hideEnabled = floatingNav && hideNavOnScroll;
 
@@ -36,7 +35,6 @@ class HomeNavBar extends ConsumerWidget {
       pageController: pageController,
       blurEnabled: blurEnabled,
       floating: floatingNav,
-      refractionEnabled: refraction,
       labelMode: labelMode,
       visible: !hideEnabled || navVisible,
     );

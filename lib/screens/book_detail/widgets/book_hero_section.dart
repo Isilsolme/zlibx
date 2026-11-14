@@ -9,7 +9,6 @@ import '../../../providers/books_provider.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../theme/app_metrics.dart';
 import '../../../utils/app_snack.dart';
-import '../../../utils/cover_cache.dart';
 import '../../../widgets/loading_widget.dart';
 import '../../../widgets/state_transition_switch.dart';
 import 'book_3d_cover.dart';
@@ -222,7 +221,9 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
     if (cover == null || cover.isEmpty) {
       child = content();
     } else {
-      // 要图与解码同宽：详情大图解码 400~900，covers100 原图放大会糊。
+      // Keep the API's cover URL (no CDN width rewrite): the grid loads the
+      // same URL, so the Hero flight reuses the decoded cover instead of
+      // showing a blank while a different width downloads.
       final cacheWidth =
           ((height - kToolbarHeight) *
                   0.7 *
@@ -230,7 +231,7 @@ class _BookHeroSectionState extends ConsumerState<BookHeroSection> {
               .ceil()
               .clamp(400, 900);
       child = CachedNetworkImage(
-        imageUrl: coverUrlAtWidth(cover, cacheWidth),
+        imageUrl: cover,
         memCacheWidth: cacheWidth,
         imageBuilder: (context, image) => content(image: image),
         placeholder: (context, url) => content(loading: true),

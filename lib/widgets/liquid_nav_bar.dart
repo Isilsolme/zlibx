@@ -52,7 +52,6 @@ class LiquidNavBar extends StatefulWidget {
     this.visible = true,
     this.blurEnabled = true,
     this.floating = true,
-    this.refractionEnabled = false,
     this.labelMode = NavLabelMode.always,
   }) : assert(destinations.length > 1, 'needs at least two destinations');
 
@@ -72,11 +71,6 @@ class LiquidNavBar extends StatefulWidget {
 
   /// When false the bar docks to the bottom edge as a full-width sheet.
   final bool floating;
-
-  /// Extra lens pass: a second backdrop blur under the lens plus a thick
-  /// refracting rim. Motion is identical when off; only the lens rendering is
-  /// skipped. Off by default, like legado's glass switch.
-  final bool refractionEnabled;
 
   /// Always show labels, show only the selected label, or hide labels
   /// entirely (legado's NavigationBarDisplayMode).
@@ -440,34 +434,6 @@ class _LiquidNavBarState extends State<LiquidNavBar>
         _barSize = size;
         return Stack(
           children: <Widget>[
-            if (widget.refractionEnabled)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: AnimatedBuilder(
-                    animation: _repaint,
-                    builder: (context, child) {
-                      final rrect = _LensGeometry.resolve(
-                        size,
-                        progress: _progress.value,
-                        stretch: _stretch.value,
-                        press: _press.value,
-                        count: _count,
-                      );
-                      return ClipPath(
-                        clipper: _LensClipper(rrect),
-                        child: BackdropFilter(
-                          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: ColoredBox(
-                            color: Colors.white.withValues(
-                              alpha: isDark ? 0.02 : 0.04,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
             Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(
@@ -477,8 +443,6 @@ class _LiquidNavBarState extends State<LiquidNavBar>
                     stretch: _stretch,
                     press: _press,
                     count: _count,
-                    glass: widget.refractionEnabled,
-                    accent: active,
                     container: cs.primaryContainer,
                     isDark: isDark,
                   ),
@@ -504,38 +468,6 @@ class _LiquidNavBarState extends State<LiquidNavBar>
                 ),
               ),
             ),
-            if (widget.refractionEnabled)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _SheenPainter(
-                      repaint: _repaint,
-                      progress: _progress,
-                      stretch: _stretch,
-                      press: _press,
-                      count: _count,
-
-                      isDark: isDark,
-                    ),
-                  ),
-                ),
-              ),
-            if (widget.refractionEnabled)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: _LensPainter(
-                      repaint: _repaint,
-                      progress: _progress,
-                      stretch: _stretch,
-                      press: _press,
-                      count: _count,
-
-                      isDark: isDark,
-                    ),
-                  ),
-                ),
-              ),
             Positioned.fill(child: _buildTargets()),
             // One pointer handler owns the whole bar: a tap selects, a
             // horizontal drag carries the lens between icons.
@@ -721,19 +653,6 @@ class _LensGeometry {
     final width = tab;
     return Rect.fromLTRB(cx - width / 2, 0, cx + width / 2, size.height);
   }
-}
-
-class _LensClipper extends CustomClipper<Path> {
-  const _LensClipper(this.rrect);
-
-  final RRect rrect;
-
-  @override
-  Path getClip(Size size) => Path()..addRRect(rrect);
-
-  @override
-  bool shouldReclip(covariant _LensClipper oldClipper) =>
-      oldClipper.rrect != rrect;
 }
 
 class _BandClipper extends CustomClipper<Path> {
@@ -929,9 +848,6 @@ class _SelectionPainter extends CustomPainter {
     required this.stretch,
     required this.press,
     required this.count,
-
-    required this.glass,
-    required this.accent,
     required this.container,
     required this.isDark,
   }) : super(repaint: repaint);
@@ -940,8 +856,6 @@ class _SelectionPainter extends CustomPainter {
   final ValueNotifier<double> stretch;
   final ValueNotifier<double> press;
   final int count;
-  final bool glass;
-  final Color accent;
   final Color container;
   final bool isDark;
 
@@ -955,65 +869,11 @@ class _SelectionPainter extends CustomPainter {
       press: press.value,
       count: count,
     );
-    final rect = rrect.outerRect;
-
-    if (!glass) {
-      // Liquid glass off: a plain M3 indicator mask, no bloom, sheen or rim.
-      canvas.drawRRect(
-        rrect,
-        Paint()..color = container.withValues(alpha: isDark ? 0.82 : 0.92),
-      );
-      return;
-    }
-
-    canvas.drawRRect(
-      rrect.inflate(2),
-      Paint()
-        ..color = accent.withValues(alpha: isDark ? 0.14 : 0.08)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
-    );
-
+    // Plain M3 indicator: the moving pill itself is the animation, with
+    // no refraction, sheen or rim on top of it.
     canvas.drawRRect(
       rrect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            container.withValues(alpha: isDark ? 0.52 : 0.60),
-            accent.withValues(alpha: isDark ? 0.12 : 0.07),
-          ],
-        ).createShader(rect),
-    );
-
-    // A soft top sheen. Deliberately linear: the old radial gradient left a
-    // visible little "dot" in the middle of the thumb.
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.center,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.06 : 0.11),
-            Colors.transparent,
-          ],
-        ).createShader(rect),
-    );
-
-    canvas.drawRRect(
-      rrect.deflate(0.6),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.24 : 0.52),
-            Colors.white.withValues(alpha: isDark ? 0.04 : 0.12),
-          ],
-        ).createShader(rect),
+      Paint()..color = container.withValues(alpha: isDark ? 0.82 : 0.92),
     );
   }
 
@@ -1022,196 +882,4 @@ class _SelectionPainter extends CustomPainter {
 
   @override
   bool shouldRebuildSemantics(covariant _SelectionPainter oldDelegate) => false;
-}
-
-/// A soft light band on the glass thumb.
-class _SheenPainter extends CustomPainter {
-  _SheenPainter({
-    required Listenable repaint,
-    required this.progress,
-    required this.stretch,
-    required this.press,
-    required this.count,
-
-    required this.isDark,
-  }) : super(repaint: repaint);
-
-  final Animation<double> progress;
-  final ValueNotifier<double> stretch;
-  final ValueNotifier<double> press;
-  final int count;
-
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final rrect = _LensGeometry.resolve(
-      size,
-      progress: progress.value,
-      stretch: stretch.value,
-      press: press.value,
-      count: count,
-    );
-    final rect = rrect.outerRect;
-    final band = Rect.fromLTRB(
-      rect.left + rect.width * 0.14,
-      rect.top + 1.5,
-      rect.right - rect.width * 0.14,
-      rect.top + rect.height * 0.42,
-    );
-    canvas.save();
-    canvas.clipRRect(rrect);
-    canvas.drawRect(
-      band,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.05 : 0.11),
-            Colors.transparent,
-          ],
-        ).createShader(band)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _SheenPainter old) => false;
-}
-
-/// Optional refraction pass on the thumb: thick refracting rim, moving
-/// caustic highlight and a faint chromatic fringe.
-class _LensPainter extends CustomPainter {
-  _LensPainter({
-    required Listenable repaint,
-    required this.progress,
-    required this.stretch,
-    required this.press,
-    required this.count,
-
-    required this.isDark,
-  }) : super(repaint: repaint);
-
-  final Animation<double> progress;
-  final ValueNotifier<double> stretch;
-  final ValueNotifier<double> press;
-  final int count;
-
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final rrect = _LensGeometry.resolve(
-      size,
-      progress: progress.value,
-      stretch: stretch.value,
-      press: press.value,
-      count: count,
-    );
-    final rect = rrect.outerRect;
-    if (rect.width <= 2 || rect.height <= 2) return;
-
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.05 : 0.09),
-            Colors.transparent,
-            Colors.white.withValues(alpha: 0.03),
-          ],
-        ).createShader(rect),
-    );
-
-    final caustic = Rect.fromLTRB(
-      rect.left + 4,
-      rect.top + 1.5,
-      rect.right - 4,
-      rect.top + rect.height * 0.42,
-    );
-    canvas.drawRect(
-      caustic,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.12 : 0.20),
-            Colors.transparent,
-          ],
-        ).createShader(caustic)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-
-    canvas.drawRRect(
-      rrect.deflate(1.4),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.1
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            const Color(0xFFFF5C7A).withValues(alpha: isDark ? 0.14 : 0.10),
-            Colors.transparent,
-            const Color(0xFF5CD8FF).withValues(alpha: isDark ? 0.14 : 0.10),
-          ],
-        ).createShader(rect),
-    );
-
-    canvas.drawRRect(
-      rrect.deflate(0.9),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.8
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            Colors.white.withValues(alpha: isDark ? 0.34 : 0.56),
-            Colors.white.withValues(alpha: isDark ? 0.05 : 0.12),
-            Colors.white.withValues(alpha: isDark ? 0.14 : 0.22),
-            Colors.white.withValues(alpha: 0.04),
-          ],
-          stops: const <double>[0, 0.35, 0.7, 1],
-        ).createShader(rect),
-    );
-
-    canvas.drawRRect(
-      rrect.deflate(2.0),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..shader = LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Colors.transparent,
-            Colors.black.withValues(alpha: isDark ? 0.14 : 0.07),
-          ],
-        ).createShader(rect),
-    );
-
-    canvas.restore();
-
-    canvas.drawRRect(
-      rrect.deflate(0.3),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
-        ..color = Colors.white.withValues(alpha: isDark ? 0.10 : 0.16),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _LensPainter oldDelegate) => false;
 }

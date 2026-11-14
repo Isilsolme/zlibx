@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../providers/settings_provider.dart';
 import '../../../widgets/liquid_segmented_control.dart';
 
 /// The three search modes of the z站 search page. The enum lives here
@@ -40,7 +39,6 @@ class SearchModeSelector extends ConsumerWidget {
         ],
         selectedIndex: mode.index,
         onChanged: (index) => onSwitch(SearchMode.values[index]),
-        glass: ref.watch(glassRefractionProvider),
       ),
     );
   }

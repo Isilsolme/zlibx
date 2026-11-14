@@ -19,13 +19,12 @@ class NavigationSection extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final t = AppLocalizations.of(context)!;
     final blurEnabled = ref.watch(blurEnabledProvider);
-    final refraction = ref.watch(glassRefractionProvider);
     final floatingNav = ref.watch(floatingNavProvider);
     final hideNavOnScroll = ref.watch(hideNavOnScrollProvider);
     final labelMode = ref.watch(navLabelModeProvider);
     // On tablets the bottom bar is replaced by the opaque left rail, which
-    // has no blur, refraction, floating mode or hide-on-scroll: showing
-    // those switches there would be lying. The label mode still applies.
+    // has no blur, floating mode or hide-on-scroll: showing those switches
+    // there would be lying. The label mode still applies.
     final compactNav = !AppLayout.usesNavRail(context);
 
     return Column(
@@ -46,21 +45,6 @@ class NavigationSection extends ConsumerWidget {
                         .read(blurEnabledProvider.notifier)
                         .setBlurEnabled(value);
                   },
-                ),
-                const SettingsDivider(),
-                SwitchListTile(
-                  secondary: const Icon(Icons.water_drop_outlined),
-                  title: Text(t.glassRefraction),
-                  subtitle: Text(t.glassRefractionDesc),
-                  value: blurEnabled && refraction,
-                  activeThumbColor: cs.primary,
-                  onChanged: blurEnabled
-                      ? (value) {
-                          ref
-                              .read(glassRefractionProvider.notifier)
-                              .setGlassRefraction(value);
-                        }
-                      : null,
                 ),
                 const SettingsDivider(),
                 SwitchListTile(

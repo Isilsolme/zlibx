@@ -215,7 +215,9 @@ class _BookCardState extends State<BookCard> {
           context,
         );
         return CachedNetworkImage(
-          imageUrl: coverUrlAtWidth(widget.book.cover!, cacheWidth),
+          // Keep the API URL: the detail page's Hero uses the same one, so
+          // the cover it already decoded is reused instead of re-downloaded.
+          imageUrl: widget.book.cover!,
           memCacheWidth: cacheWidth,
           memCacheHeight: cacheHeight,
           fadeInDuration: const Duration(milliseconds: 300),
@@ -252,7 +254,7 @@ class _BookCardState extends State<BookCard> {
           children: [
             if (_hasCover)
               CachedNetworkImage(
-                imageUrl: coverUrlAtWidth(widget.book.cover!, cacheWidth),
+                imageUrl: widget.book.cover!,
                 fit: BoxFit.cover,
                 memCacheWidth: cacheWidth,
                 fadeInDuration: const Duration(milliseconds: 300),

@@ -68,13 +68,21 @@ abstract final class AppLayout {
   /// Upper bound so a very wide window does not turn covers into stamps.
   static const int maxGridColumns = 8;
 
-  /// Resolves the home grid column count for [contentWidth] (already minus
-  /// the page gutter).
-  static int gridColumns(GridColumnsMode mode, double contentWidth) {
+  /// Resolves the home grid column count for [availableWidth] (the grid's
+  /// box, i.e. the window minus the rail — the page gutter is subtracted
+  /// here).
+  ///
+  /// Phones keep the design's 3-column density at every width: a 360dp
+  /// phone must not silently drop to 2 columns just because the arithmetic
+  /// says so. The adaptive part starts at the tablet breakpoint, where the
+  /// extra width really does fit more columns.
+  static int gridColumns(GridColumnsMode mode, double availableWidth) {
     final fixed = mode.fixedColumns;
     if (fixed != null) return fixed;
+    if (availableWidth < AppBreakpoints.medium) return 3;
+    final contentWidth = availableWidth - 2 * pageGutter(availableWidth);
     final fitting =
         ((contentWidth + gridSpacing) / (minCardWidth + gridSpacing)).floor();
-    return fitting.clamp(2, maxGridColumns).toInt();
+    return fitting.clamp(3, maxGridColumns).toInt();
   }
 }

@@ -167,9 +167,7 @@ void main() {
     expect(opacities.where((value) => value == 0).length, 6);
   });
 
-  testWidgets('optional refraction layer paints without errors', (
-    tester,
-  ) async {
+  testWidgets('blurred bar paints without errors', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -179,7 +177,6 @@ void main() {
             selectedIndex: 0,
             onSelected: (_) {},
             blurEnabled: true,
-            refractionEnabled: true,
           ),
         ),
       ),

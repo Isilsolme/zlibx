@@ -90,7 +90,10 @@ class HomeFeedView extends ConsumerWidget {
             );
             final gridWidth = (constraints.maxWidth - horizontalPadding * 2)
                 .clamp(0.0, double.infinity);
-            final columns = AppLayout.gridColumns(columnMode, gridWidth);
+            final columns = AppLayout.gridColumns(
+              columnMode,
+              constraints.maxWidth,
+            );
             final cardWidth =
                 ((gridWidth - columnSpacing * (columns - 1)) / columns).clamp(
                   0.0,
@@ -346,7 +349,10 @@ class _SkeletonFeedState extends State<_SkeletonFeed>
           0.0,
           double.infinity,
         );
-        final columns = AppLayout.gridColumns(widget.mode, width);
+        final columns = AppLayout.gridColumns(
+          widget.mode,
+          constraints.maxWidth,
+        );
         final cardWidth = ((width - spacing * (columns - 1)) / columns).clamp(
           0.0,
           double.infinity,
