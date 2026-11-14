@@ -52,18 +52,16 @@ that signed v1.6.2. A different key means every installed user has to
 uninstall first, which wipes their local Hive data (settings, cache,
 download history).
 
-Set the secrets from PowerShell:
+Set all five at once from PowerShell:
 
 ```powershell
-$repo = 'Isilsolme/zlibx-MD3'
-$b64 = [Convert]::ToBase64String(
-  [IO.File]::ReadAllBytes('D:\VSCode\zlibx-MD3-signing\zlibx-md3.jks'))
-gh secret set KEYSTORE_BASE64 --repo $repo --body $b64
-gh secret set KEYSTORE_PASSWORD --repo $repo --body '<storePassword>'
-gh secret set KEY_PASSWORD --repo $repo --body '<keyPassword>'
-gh secret set KEY_ALIAS --repo $repo --body 'zlibx-md3'
-gh secret set EXPECTED_CERT_SHA256 --repo $repo --body 'C93F965833ABA6EA1C775A52989A593B2BE57B7512C43F747DD76FD330D75C09'
+pwsh -File tool/set-ci-secrets.ps1
 ```
+
+The script reads `android/key.properties` (and the keystore it points at),
+base64-encodes the keystore in memory and uploads the secrets with `gh`.
+Nothing is written to the repository. Pass `-Repo` to target another
+repository, or `-ExpectedCertSha256 ''` to skip the fingerprint check.
 
 Verify with `gh secret list --repo Isilsolme/zlibx-MD3` (values are never
 readable back).
@@ -74,7 +72,9 @@ Still supported for offline checks. `android/key.properties` must point at
 the keystore, and Gradle refuses to sign a release without it:
 
 ```powershell
-flutter build apk --release --target-platform android-arm64   --android-project-arg=kotlin.incremental=false   --android-project-arg=ksp.incremental=false
+flutter build apk --release --target-platform android-arm64 `
+  --android-project-arg=kotlin.incremental=false `
+  --android-project-arg=ksp.incremental=false
 ```
 
 ## After a bad release
