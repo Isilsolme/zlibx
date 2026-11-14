@@ -41,9 +41,9 @@ class SearchTrendingSection extends StatelessWidget {
             Expanded(
               child: Text(
                 l10n.trendingOnOpenLibrary,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -72,7 +72,10 @@ class SearchTrendingSection extends StatelessWidget {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: CachedNetworkImage(
-                                imageUrl: book.thumbnail ?? '',
+                                imageUrl: coverUrlAtWidth(
+                                  book.thumbnail ?? '',
+                                  coverCacheWidth(105, context),
+                                ),
                                 height: 145,
                                 width: 105,
                                 fit: BoxFit.cover,
