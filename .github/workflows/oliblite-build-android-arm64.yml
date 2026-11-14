@@ -135,7 +135,7 @@ jobs:
       - name: Read version from pubspec
         id: pubspec
         run: |
-          full=$(grep '^version:' pubspec.yaml | sed 's/version:\\s*//' | tr -d ' ')
+          full=$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | tr -d ' ')
           version=${full%+*}
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "full=$full" >> "$GITHUB_OUTPUT"
