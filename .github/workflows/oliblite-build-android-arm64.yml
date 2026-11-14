@@ -289,8 +289,10 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: zlibx ${{ github.ref_name }}
-          # 正文不由工作流生成：发版时在草稿里写好说明；
-          # action 更新已有 Release 时 body 为空会保留原正文。
+          # 正文由 GitHub 依据「上一个 tag → 本 tag」的提交自动生成；
+          # 想手写说明可在发布后编辑 Release（body 非空时 workflow 重跑
+          # 不会覆盖）。
+          generate_release_notes: true
           draft: false
           prerelease: false
           fail_on_unmatched_files: true
