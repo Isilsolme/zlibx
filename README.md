@@ -32,7 +32,8 @@
 
 ## ✨ Highlights
 
-- **Liquid-glass navigation bar** — a draggable lens that follows the finger, springs between tabs, and can be switched to a plain color mask. Optional refraction, floating mode, hide-on-scroll, and Always / Auto / Never labels.
+- **Liquid-glass navigation bar** — a draggable lens that follows the finger, springs between tabs, and can be switched to a plain color mask. Optional refraction, floating mode, hide-on-scroll, and Always / Auto / Never labels. On tablets (≥ 600 dp) the same destinations move into an opaque vertical rail on the left, so the glass stays a phone-only effect.
+- **Adaptive grid** — the home grid asks the window how many columns fit: 3 on a phone, 4–8 on a tablet, still overridable to 2 or 3 in Settings.
 - **Warm-start home feed** — the last 60 books are cached in Hive, so a cold launch paints the grid immediately; the skeleton only appears on a true first launch.
 - **Infinite recommendations** — recommendations roll into popular → newest → publish-year pages, with pull-to-refresh that prepends genuinely new books.
 - **Progressive blur header** — a real fragment-shader gradient blur (no banding, no hard edge) under the home header.
@@ -46,9 +47,10 @@
 | Feature | Description |
 |---------|-------------|
 | 📚 **Multi-source search** | Z-Library, Anna’s Archive and LibGen; title/author/ISBN search, language/format/sort filters |
-| 🏠 **Infinite home feed** | Recommendations plus paged popular/newest/year lists; 3-column grid; pull-to-refresh |
+| 🏠 **Infinite home feed** | Recommendations plus paged popular/newest/year lists; adaptive grid (3 columns on phones, up to 8 on tablets); pull-to-refresh |
 | ⚡ **Warm start** | Hive-backed feed cache (60 books, 7 days) and a 15-minute background refresh policy |
-| 🌊 **Liquid-glass navigation** | Draggable lens, spring/haptics, optional refraction, floating bar, hide-on-scroll, label modes |
+| 🌊 **Liquid-glass navigation** | Draggable lens, spring/haptics, optional refraction, floating bar, hide-on-scroll, label modes; on tablets an opaque left rail replaces it |
+| 🕘 **Viewing history** | Books whose detail page was opened on this device, newest first, deduplicated, 200-entry cap, clearable |
 | 📥 **Resumable downloads** | Ongoing/completed tabs, Range resume, stable .part files, mirror-aware source resolution |
 | 🔐 **Multi-account** | Credentials in Android Keystore-backed secure storage; account-scoped caches |
 | 🌐 **Multi-domain** | Built-in and community lines, speed test, trust prompts before credentials are sent |
