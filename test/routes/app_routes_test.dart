@@ -14,6 +14,7 @@ void main() {
         AppRoutes.bookDetail,
         AppRoutes.favorites,
         AppRoutes.history,
+        AppRoutes.viewHistory,
         AppRoutes.similarBooks,
         AppRoutes.bookComments,
         AppRoutes.booklists,
@@ -25,9 +26,9 @@ void main() {
 
       final routes = buildAppRoutes();
 
-      expect(expected.length, 16);
+      expect(expected.length, 17);
       expect(routes.keys.toSet(), expected);
-      expect(routes.length, 16);
+      expect(routes.length, 17);
     });
   });
 }
